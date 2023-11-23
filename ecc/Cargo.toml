@@ -1,0 +1,13 @@
+[package]
+name = "ecc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# ff = { version = "0.13.0", default-features = false, features = ["std"] }
+ff = { version = "0.13", features = ["derive"] }
+ark-ff = { version = "0.4"}
+rand = "0.8"
+num-bigint = { version = "0.4", default-features = false }
