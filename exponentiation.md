@@ -94,11 +94,12 @@ $$
 the **left-to-right** algorithm would be like:
 ```python=
 def single_exponentiation(a, g):
-    acc = (0, 0)
+    acc = AffinePoint(0, 0)
     for i in range(l - 1, -1, -1):
         acc = 2 * acc
         if a[i] == 1:
             acc = acc + g
+    return acc
 ```
 
 <br />
@@ -118,6 +119,7 @@ $$
 <br />
 
 :::info
+Notice:
 You may have already found that the *doubling* and *addition* operations were merely equal, as the number of *addtion* operation is the non-zeros in $a_i$.
 
 So, do we have a more *fair* solution and make them even?
@@ -158,8 +160,48 @@ The property of NAF is:
 <br />
 
 So, how to encode scalar $a$, here is how it goes:
+```python=
+def NAF(a):
+    i = 0
+    naf_a = []
+    while k >= 1:
+        if a % 2 == 1:
+            a_i = 2 - k % 4
+            k -= a_i 
+        else:
+            a_i = 0
+        k /= 2
+        i += 1
+        naf_a.append(a_i)
+    return naf_a
+        
+```
+
+<br />
+
+Next, we will show how exponentiation goes with NAF represented scalar $a$:
+```python=
+def single_exponentiation(naf_a, g):
+    acc = AffinePoint(0, 0)
+    for i in range(l - 1, -1, -1):
+        acc = 2 * acc
+        if naf_a[i] == 1:
+            acc = acc + g
+        elif naf_a[i] == -1:
+            acc = acc - g      
+```
+<br />
+
+**group operation cost** would be:
 $$
+\frac{2l}{3} * A + \frac{l}{3} * D
 $$
+
+:::info
+Comparation:
+- *doubling operation* is much less than that of *vallina method*, $\frac{l}{3}$ verus $l$
+- *addition operation* is slightly more than that of *vallinda mehod*, $\frac{2l}{3}$ verus $\frac{l}{2}$
+:::
 
 <br />
 
