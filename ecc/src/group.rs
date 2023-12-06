@@ -4,12 +4,20 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
 // third-party lib
 use ff::{PrimeField, PrimeFieldBits};
+use num_bigint::BigInt;
 use serde::{Deserialize, Serialize};
 
 // custom defined lib
 use crate::error::MyError;
 
 ///////////////////////////////////////////
+/// truncate input bytes into fixed length bytes array before converting to PrimeField if necessary
+pub trait PrimeFieldExt: PrimeField {
+    /// Returns a scalar representing the bytes
+    fn from_uniform(bytes: &[u8]) -> Self;
+}
+
+/////////////////////////////////////////// group operation traits
 /// basic marker trait for Add/AddAssign/Sub/SubAssign
 /// 1. a + b
 /// 2. a += b
@@ -25,13 +33,13 @@ pub trait GroupOps<Rhs = Self, Output = Self>:
 /// 2. a *= b
 pub trait ScalarMul<Rhs, Output = Self>: Mul<Rhs, Output = Output> + MulAssign<Rhs> {}
 
-////////////////////////////////////////////  impl ops trait for T
-// impl<T, Rhs, Output> GroupOps<Rhs, Output> for T where
-//   T: Add<Rhs, Output = Output> + Sub<Rhs, Output = Output> + AddAssign<Rhs> + SubAssign<Rhs>
-// {
-// }
-// impl<T, Rhs, Output> ScalarMul<Rhs, Output> for T where T: Mul<Rhs, Output = Output> + MulAssign<Rhs>
-// {}
+////////////////////////////////////////////  impl ops trait for any type T with Add/Sub/AddAssign/SubAssign/Mul/MulAssign implemented
+impl<T, Rhs, Output> GroupOps<Rhs, Output> for T where
+    T: Add<Rhs, Output = Output> + Sub<Rhs, Output = Output> + AddAssign<Rhs> + SubAssign<Rhs>
+{
+}
+impl<T, Rhs, Output> ScalarMul<Rhs, Output> for T where T: Mul<Rhs, Output = Output> + MulAssign<Rhs>
+{}
 
 //////////////////////////////////////////  owned ops trait
 /// owned marker trait
@@ -87,7 +95,7 @@ pub trait Group:
     + for<'de> Deserialize<'de>
 {
     // field type: inner type representing scalar field of group element (#E(Fp))
-    type Scalar: PrimeField + PrimeFieldBits + Serialize + for<'de> Deserialize<'de>;
+    type Scalar: PrimeFieldExt + PrimeFieldBits + Serialize + for<'de> Deserialize<'de>;
 
     // field type: inner type representing base field of group element (Fp)
     type Base: PrimeField + PrimeFieldBits + Serialize + for<'de> Deserialize<'de>;
@@ -106,4 +114,32 @@ pub trait Group:
 
     // pcs type: inner type representing commitment scheme
     // type CE: CommitmentEngineTrait<Self> + Serialize + for<'de> Deserialize<'de>;
+
+    // multiexponentiation
+    // [s_1]b_1, [s_2]b_2, [s_3]b_3, ...
+    fn vartime_multiscalar_mul(
+        scalars: &[Self::Scalar],
+        bases: &[Self::PreprocessedGroupElement],
+    ) -> Self;
+
+    /// Compresses the group element, (x, y) -> (x, sign)
+    fn compress(&self) -> Self::CompressedGroupElement;
+
+    /// Produces a preprocessed element
+    fn preprocessed(&self) -> Self::PreprocessedGroupElement;
+
+    /// generate n points using a static label string
+    fn from_label(label: &'static [u8], n: usize) -> Vec<Self::PreprocessedGroupElement>;
+
+    /// Returns the affine coordinates (x, y, infinty) for the point
+    fn to_coordinates(&self) -> (Self::Base, Self::Base, bool);
+
+    /// Returns an element that is the additive identity of the group
+    fn zero() -> Self;
+
+    /// Returns the generator of the group
+    fn get_generator() -> Self;
+
+    /// Returns A, B, and the order of the group as a big integer
+    fn get_curve_params() -> (Self::Base, Self::Base, BigInt);
 }

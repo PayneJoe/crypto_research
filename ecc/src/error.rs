@@ -5,7 +5,9 @@ use thiserror::Error;
 /// Errors returned by Nova
 #[derive(Clone, Debug, Eq, PartialEq, Error)]
 pub enum MyError {
-    ///
+    /// group error
     #[error("group error")]
     GroupError,
+    #[error("keccak error")]
+    KeccakError,
 }
