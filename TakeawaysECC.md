@@ -383,3 +383,47 @@ It has a long story behind the number 486662, two major aspects need to be consi
 
 <br />
 
+## Pairing
+
+three cycle groups $\mathbb{G}_0, \mathbb{G}_1, \mathbb{G}_T$ share the same group order $p$
+
+#### symmetric vs asymmetric
+
+- DDH problem not hold in **symmetric pairing**, $\mathbb{G}_0 = \mathbb{G}_1$
+    
+
+- in **asymmetric pairing**, solving discrete log problem must be hard for $\mathbb{G}_T$, or it would be easy to get the solve for $\mathbb{G}_0$ and $\mathbb{G}_1$
+
+<br />
+
+so asymmetric pairing is prefered.
+
+<br />
+
+#### properties of three groups 
+
+- $\mathbb{G}_0$, subgroup $E(\mathbb{F}_p)$ with prime order $q$
+- $\mathbb{G}_1$, subgroup $E(\mathbb{F}_{p^d})$ with prime order $q$,  where $d > 0$ and $\mathbb{G}_0 \cap \mathbb{G}_1 = \mathcal{O}$
+- $\mathbb{G}_T$, **multiplicative subgroup** over $\mathbb{F}_{p^d}$ with prime order $q$
+
+<br />
+
+#### about embedding degree $d$
+
+- paring friendly, $d < 16$, need to be small for computing efficiency
+- since $p^d < p$, the bit size of $\mathbb{F}_p$ is smaller than $\mathbb{F}_{p^d}$, so computing on $\mathbb{G}_0$ is much cheaper than $\mathbb{G}_1$
+
+<br />
+
+#### bn256 vs bls381
+
+- both have embedding degree $d = 12$
+- both have group order $q$ with bit size 256
+- bit size of prime field $\mathbb{F}_p$ in bn254 is 254, and bls381 is 381
+- bls381 is more secure than bn256
+    
+    solving the DL problem for $\mathbb{G}_T$ in bls381 is harder, while computing pairing is more expensive
+
+<br />
+
+#### pairing and exponentiation
