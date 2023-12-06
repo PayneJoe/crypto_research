@@ -19,19 +19,20 @@ pub trait PrimeFieldExt: PrimeField {
 
 /////////////////////////////////////////// group operation traits
 /// basic marker trait for Add/AddAssign/Sub/SubAssign
-/// 1. a + b
-/// 2. a += b
-/// 3. a - b
-/// 4. a -= b
+/// a + b, a += b, a - b, a -= b
 pub trait GroupOps<Rhs = Self, Output = Self>:
     Add<Rhs, Output = Output> + Sub<Rhs, Output = Output> + AddAssign<Rhs> + SubAssign<Rhs>
 {
 }
 
 /// marker trait for Mul/MulAssign
-/// 1. a * b
-/// 2. a *= b
+/// a * b, a *= b
 pub trait ScalarMul<Rhs, Output = Self>: Mul<Rhs, Output = Output> + MulAssign<Rhs> {}
+
+/// a + &b, a += &b, a - &b, a -= &b
+pub trait GroupOpsOwned<Rhs = Self, Output = Self>: for<'r> GroupOps<&'r Rhs, Output> {}
+/// a * &b, a *= &b
+pub trait ScalarMulOwned<Rhs, Output = Self>: for<'r> ScalarMul<&'r Rhs, Output> {}
 
 ////////////////////////////////////////////  impl ops trait for any type T with Add/Sub/AddAssign/SubAssign/Mul/MulAssign implemented
 impl<T, Rhs, Output> GroupOps<Rhs, Output> for T where
@@ -41,14 +42,9 @@ impl<T, Rhs, Output> GroupOps<Rhs, Output> for T where
 impl<T, Rhs, Output> ScalarMul<Rhs, Output> for T where T: Mul<Rhs, Output = Output> + MulAssign<Rhs>
 {}
 
-//////////////////////////////////////////  owned ops trait
-/// owned marker trait
-// pub trait GroupOpsOwned<Rhs = Self, Output = Self>: for<'r> GroupOps<&'r Rhs, Output> {}
-// pub trait ScalarMulOwned<Rhs, Output = Self>: for<'r> ScalarMul<&'r Rhs, Output> {}
-
-///////////////////////////////////////////  impl owned ops trait for T
-// impl<T, Rhs, Output> GroupOpsOwned<Rhs, Output> for T where T: for<'r> GroupOps<&'r Rhs, Output> {}
-// impl<T, Rhs, Output> ScalarMulOwned<Rhs, Output> for T where T: for<'r> ScalarMul<&'r Rhs, Output> {}
+///////////////////////////////////////////  impl ops trait where right part is a reference for any type T with Add/Sub/AddAssign/SubAssign/Mul/MulAssign references implemented
+impl<T, Rhs, Output> GroupOpsOwned<Rhs, Output> for T where T: for<'r> GroupOps<&'r Rhs, Output> {}
+impl<T, Rhs, Output> ScalarMulOwned<Rhs, Output> for T where T: for<'r> ScalarMul<&'r Rhs, Output> {}
 
 ////////////////////////////////////////// transcript trait
 pub trait TranscriptReprTrait<G: Group> {
