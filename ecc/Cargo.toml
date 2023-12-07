@@ -16,3 +16,7 @@ thiserror = "1.0"
 sha3 = "0.10"
 halo2curves = { version = "0.4.0", features = ["derive_serde"] }
 pasta_curves = { version = "0.5", features = ["repr-c", "serde"] }
+rayon = "1.7"
+group = "0.13.0"
+num-traits = "0.2"
+digest = "0.10"
