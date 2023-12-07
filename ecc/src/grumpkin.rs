@@ -16,6 +16,7 @@ impl Group for GrumpkinPoint {
     type Scalar = GrumpkinScalar;
     type CompressedGroupElement = GrumpkinCompressed;
     type PreprocessedGroupElement = GrumpkinAffine;
+    // type RO = PoseidonRO<Self::Base, Self::Scalar>;
     type TE = Keccak256Transcript<Self>;
 
     fn vartime_multiscalar_mul(

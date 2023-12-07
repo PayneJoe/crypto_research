@@ -20,7 +20,7 @@ use std::io::Read;
 use rayon::prelude::*;
 
 // local libs
-use crate::group::{CompressedGroup, Group, PrimeFieldExt};
+use crate::group::{CompressedGroup, Group, PrimeFieldExt, TranscriptReprTrait};
 use crate::keccak::Keccak256Transcript;
 use crate::utils::*;
 
@@ -29,6 +29,7 @@ impl Group for Bn256Point {
     type Scalar = Bn256Scalar;
     type CompressedGroupElement = Bn256Compressed;
     type PreprocessedGroupElement = Bn256Affine;
+    // type RO = PoseidonRO<Self::Base, Self::Scalar>;
     type TE = Keccak256Transcript<Self>;
 
     fn vartime_multiscalar_mul(
@@ -153,5 +154,11 @@ impl CompressedGroup for Bn256Compressed {
         // from_bytes comes from trait pasta_curves::group::GroupEncoding
         // from_bytes -> impl pasta_curves::group::GroupEncoding for Bn256Point
         Some(Bn256Point::from_bytes(&self).unwrap())
+    }
+}
+
+impl<G: Group> TranscriptReprTrait<G> for Bn256Compressed {
+    fn to_transcript_bytes(&self) -> Vec<u8> {
+        self.as_ref().to_vec()
     }
 }

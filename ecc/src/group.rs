@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 // custom defined lib
 use crate::error::MyError;
 
-///////////////////////////////////////////
+/////////////////////////////////////////// PrimeField for scalar field
 /// truncate input bytes into fixed length bytes array before converting to PrimeField if necessary
 pub trait PrimeFieldExt: PrimeField {
     /// Returns a scalar representing the bytes
@@ -46,10 +46,40 @@ impl<T, Rhs, Output> ScalarMul<Rhs, Output> for T where T: Mul<Rhs, Output = Out
 impl<T, Rhs, Output> GroupOpsOwned<Rhs, Output> for T where T: for<'r> GroupOps<&'r Rhs, Output> {}
 impl<T, Rhs, Output> ScalarMulOwned<Rhs, Output> for T where T: for<'r> ScalarMul<&'r Rhs, Output> {}
 
-////////////////////////////////////////// transcript trait
+//////////////////////////////////////////// circuit-friendly hash trait, for the convenience of verification of folding
+pub trait ROConstantsTrait<Base> {
+    /// produces constants/parameters associated with the hash function
+    fn new() -> Self;
+}
+
+/// A helper trait that defines the constants associated with a hash function
+pub trait ROTrait<Base, Scalar> {
+    /// A type representing constants/parameters associated with the hash function
+    type Constants: ROConstantsTrait<Base> + Clone + Serialize + for<'de> Deserialize<'de>;
+
+    /// Initializes the hash function
+    fn new(constants: Self::Constants, num_absorbs: usize) -> Self;
+
+    /// Adds a scalar to the internal state
+    fn absorb(&mut self, e: Base);
+
+    /// Returns a challenge of `num_bits` by hashing the internal state
+    fn squeeze(&mut self, num_bits: usize) -> Scalar;
+}
+
+//////////////////////////////////////////// transcript trait, for non-interactive snark protocol through Fiat-Shamir
 pub trait TranscriptReprTrait<G: Group> {
     /// returns a byte representation of self to be added to the transcript
     fn to_transcript_bytes(&self) -> Vec<u8>;
+}
+
+// implement for array of any type T who implemented TranscriptReprTrait trait
+impl<G: Group, T: TranscriptReprTrait<G>> TranscriptReprTrait<G> for &[T] {
+    fn to_transcript_bytes(&self) -> Vec<u8> {
+        self.iter()
+            .flat_map(|t| t.to_transcript_bytes())
+            .collect::<Vec<u8>>()
+    }
 }
 
 pub trait TranscriptEngineTrait<G: Group> {
