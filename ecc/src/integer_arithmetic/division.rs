@@ -1,3 +1,5 @@
+///// Short division of positive multiple-precision integers
+///// referenced by Algorithm 10.28 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
 use core::fmt::Debug;
 
 #[derive(Debug, Clone, PartialEq)]
