@@ -1,0 +1,51 @@
+use core::fmt::{Debug, Display};
+use core::ops::{Add, Deref, Mul};
+use std::default::Default;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BigInteger<T> {
+    data: Vec<T>,
+    basis: T,
+}
+
+pub trait SinglePrecision<T> {
+    fn divide_by(self, denominator: T) -> (BigInteger<T>, T);
+}
+
+impl<T> SinglePrecision<T> for BigInteger<T>
+where
+    T: Default + Copy + Deref + Display,
+    for<'a> &'a T: Mul<&'a T>,
+    for<'a> <&'a T as Mul<&'a T>>::Output: Add<T>,
+{
+    fn divide_by(self, denominator: T) -> (BigInteger<T>, T) {
+        let n = self.data.len();
+        let b = self.basis;
+        let mut r0 = T::default();
+        let u_ref = &self.data;
+        let q = BigInteger {
+            data: vec![],
+            basis: b,
+        };
+        for i in (0..n).rev() {
+            let t = &r0 * &b + u_ref[i];
+            q.data.append(t / denominator);
+            r0 = t - q * denominator;
+        }
+        (q, r0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_single_division() {
+        let a = BigInteger {
+            data: vec![1255],
+            basis: 10,
+        };
+        println!("{:?}", a);
+    }
+}
