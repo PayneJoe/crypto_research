@@ -1,7 +1,7 @@
 pub mod addition;
 pub mod division;
 pub mod euclid_gcd;
-pub mod modular;
+pub mod modulo;
 pub mod multiplication;
 pub mod substraction;
 
