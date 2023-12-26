@@ -11,7 +11,7 @@ impl Substraction for BigInteger {
         let b = &self.basis;
         let (u, v) = (&self.data, &other.data);
         let (nu, nv) = (u.len(), v.len());
-        assert!((self.data[nu - 1] != 0) && (other.data[nv - 1] != 0));
+        assert!((nu != 0) && (nv != 0));
         if nu < nv {
             return false;
         } else if nu > nv {
@@ -48,16 +48,59 @@ impl Substraction for BigInteger {
                 -carrier as i32
             };
             let rht = if i <= nv - 1 { v[i] } else { 0 as i32 };
-            let remainder = if lft > rht { lft - rht } else { lft + b - rht };
-            carrier = if lft > rht { 0 } else { 1 };
+            let remainder = if lft >= rht { lft - rht } else { lft + b - rht };
+            carrier = if lft >= rht { 0 } else { 1 };
             w.data.push(remainder);
         }
+        assert!(carrier == 0);
         w
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn test_substraction() {}
+    fn test_substraction() {
+        let mut a_arr = vec![5, 8, 6, 4, 6];
+        let mut b_arr = vec![2, 1, 6, 5];
+        let mut c_arr = vec![5, 6, 4, 8, 1];
+        a_arr.reverse();
+        b_arr.reverse();
+        c_arr.reverse();
+        let a = BigInteger {
+            data: a_arr,
+            basis: 10,
+        };
+        let b = BigInteger {
+            data: b_arr,
+            basis: 10,
+        };
+        let c = BigInteger {
+            data: c_arr,
+            basis: 10,
+        };
+        let result = a.substract(&b);
+        assert_eq!(c, result);
+    }
+
+    #[test]
+    fn test_greater() {
+        let mut a_arr = vec![5, 8, 6, 4, 6];
+        let mut b_arr = vec![2, 1, 6, 5];
+        a_arr.reverse();
+        b_arr.reverse();
+        let a = BigInteger {
+            data: a_arr,
+            basis: 10,
+        };
+        let b = BigInteger {
+            data: b_arr,
+            basis: 10,
+        };
+        let result = a.greater(&b);
+        assert_eq!(result, true);
+        assert_eq!(b.greater(&a), false);
+    }
 }
