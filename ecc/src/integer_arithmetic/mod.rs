@@ -1,5 +1,6 @@
 pub mod addition;
 pub mod division;
+pub mod gcd;
 pub mod inversion;
 pub mod modulo;
 pub mod multiplication;
