@@ -3,6 +3,7 @@ pub mod division;
 pub mod euclid_gcd;
 pub mod modular;
 pub mod multiplication;
+pub mod substraction;
 
 use core::fmt::Debug;
 #[derive(Debug, Clone, PartialEq)]
