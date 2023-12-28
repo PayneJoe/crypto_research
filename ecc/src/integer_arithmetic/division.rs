@@ -4,7 +4,7 @@ use crate::integer_arithmetic::{
 };
 
 pub trait SinglePrecision {
-    fn divide_by_single_precision(&self, denominator: i32) -> (BigInteger, i32);
+    fn divide_by_single_precision(&self, denominator: u8) -> (BigInteger, u8);
 }
 
 pub trait MultiplePrecision {
@@ -15,13 +15,13 @@ pub trait MultiplePrecision {
 ///// referenced by Algorithm 10.28 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
 ///
 impl SinglePrecision for BigInteger {
-    fn divide_by_single_precision(&self, denominator: i32) -> (BigInteger, i32) {
+    fn divide_by_single_precision(&self, denominator: u8) -> (BigInteger, u8) {
         assert!(self.data.len() >= 1);
         assert!(denominator != 0);
 
         let n = self.data.len();
         let b = self.basis;
-        let mut carrier = 0 as i32;
+        let mut carrier = 0 as u8;
         let u = &self.data;
         let mut q = BigInteger {
             data: vec![],
@@ -57,13 +57,13 @@ impl MultiplePrecision for BigInteger {
         assert!(nu >= nv);
 
         // reset highest digit
-        u.data.push(0 as i32);
+        u.data.push(0 as u8);
 
         // normalization
         let mut d = 1;
         while v.data[nv - 1] < b / 2 {
-            v = v.multiply_single_precision(2 as i32);
-            u = u.multiply_single_precision(2 as i32);
+            v = v.multiply_single_precision(2 as u8);
+            u = u.multiply_single_precision(2 as u8);
             d = d * 2;
         }
         println!(

@@ -1,7 +1,7 @@
 use crate::integer_arithmetic::BigInteger;
 
 pub trait SinglePrecisionMultiplication {
-    fn multiply_single_precision(&self, multiplier: i32) -> BigInteger;
+    fn multiply_single_precision(&self, multiplier: u8) -> BigInteger;
 }
 
 pub trait MultiplePrecisionMultiplication {
@@ -30,17 +30,17 @@ impl MultiplePrecisionMultiplication for BigInteger {
         }
 
         let mut w = BigInteger {
-            data: vec![0 as i32; nu + nv],
+            data: vec![0 as u8; nu + nv],
             basis: self.basis,
         };
 
         // initialization
         for i in 0..nv {
-            w.data[i] = 0 as i32;
+            w.data[i] = 0 as u8;
         }
         // cross multiplication
         for i in 0..nv {
-            let mut carrier = 0 as i32;
+            let mut carrier = 0 as u8;
             if v[i] != 0 {
                 for j in 0..nu {
                     let t = w.data[i + j] + v[i] * u[j] + carrier;
@@ -62,7 +62,7 @@ impl MultiplePrecisionMultiplication for BigInteger {
 }
 
 impl SinglePrecisionMultiplication for BigInteger {
-    fn multiply_single_precision(&self, multiplier: i32) -> BigInteger {
+    fn multiply_single_precision(&self, multiplier: u8) -> BigInteger {
         assert!(multiplier < self.basis);
         let u = &self.data;
         let b = self.basis;
@@ -76,11 +76,11 @@ impl SinglePrecisionMultiplication for BigInteger {
 
         let n = self.data.len();
         let mut w = BigInteger {
-            // data: vec![0 as i32; n + 1],
+            // data: vec![0 as u8; n + 1],
             data: vec![],
             basis: self.basis,
         };
-        let mut carrier = 0 as i32;
+        let mut carrier = 0 as u8;
         for i in 0..n {
             let t = /*w.data[i] + */ u[i] * multiplier + carrier;
             carrier = t / b;

@@ -9,6 +9,6 @@ pub mod substraction;
 use core::fmt::Debug;
 #[derive(Debug, Clone, PartialEq)]
 pub struct BigInteger {
-    data: Vec<i32>,
-    basis: i32,
+    data: Vec<u8>,
+    basis: u8,
 }
