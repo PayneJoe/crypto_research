@@ -12,3 +12,10 @@ pub struct BigInteger {
     data: Vec<u8>,
     basis: u8,
 }
+
+impl BigInteger {
+    fn is_zero(&self) -> bool {
+        assert!(self.data.len() == 1);
+        self.data[0] == 0_u8
+    }
+}

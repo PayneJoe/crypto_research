@@ -1,9 +1,11 @@
 use crate::integer_arithmetic::{
-    addition::Addition, multiplication::SinglePrecisionMultiplication, substraction::Substraction,
-    BigInteger,
+    addition::Addition, division::MultiplePrecision, multiplication::SinglePrecisionMultiplication,
+    substraction::Substraction, BigInteger,
 };
 
-/// lehmer matrix
+/// lehmer matrix for lehmer extended gcd
+/// referenced by Algorithm 10.46 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
+#[derive(PartialEq, Eq)]
 pub struct LehmerMatrix(u8, u8, u8, u8, bool);
 
 impl LehmerMatrix {
@@ -137,9 +139,11 @@ impl LehmerMatrix {
     }
 }
 
-/// gcd for single precision of positive integer
-/// referenced by Algorithm 10.42 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
-pub trait SinglePrecisionGCD {
+/// gcd for multiple precision of positive integers
+/// referenced by Algorithm 10.45 and 10.46 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
+pub trait GCD {
+    /// native method of extended gcd, many more methods can be applied to achieve few iterations
+    /// referenced by Algorithm 10.42 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
     fn euclid_extended_gcd(x: u8, N: u8) -> (u8, u8, u8) {
         assert!(x < N);
         let (mut A, mut B) = (N, x);
@@ -154,18 +158,45 @@ pub trait SinglePrecisionGCD {
         let (d, u, v) = (A, Ua, Va);
         (u, v, d)
     }
-}
 
-/// gcd for multiple precision of positive integers
-/// referenced by Algorithm 10.45 and 10.46 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
-pub trait MultiplePrecisionGCD {
-    fn lehmer_extended_gcd(x: BigInteger, N: BigInteger) -> (BigInteger, BigInteger, BigInteger) {
-        todo!()
+    fn lehmer_extended_gcd(x: BigInteger, N: BigInteger) -> (u8, u8, u8) {
+        let (mut A, mut B) = (N, x);
+        let (mut U_A, mut U_B) = (0, 1);
+        let (mut V_A, mut V_B) = (1, 0);
+        assert!(!B.is_zero());
+
+        //// step 1: reduce A/B into single precisions through lehmer mixed approximation
+        while B.data.len() > 1 {
+            // get the optimal lehmer matrix
+            let mat = LehmerMatrix::MixedApproximation(&A, &B);
+            // update source input integers
+            (A, B) = if mat == LehmerMatrix::IDENTITY {
+                let (_, r) = A.divide_by_multiple_precision(&B);
+                (B, r)
+            } else {
+                (
+                    A.multiply_single_precision(mat.0)
+                        .add(&B.multiply_single_precision(mat.1)),
+                    A.multiply_single_precision(mat.2)
+                        .add(&B.multiply_single_precision(mat.3)),
+                )
+            };
+            // update coefficients of input integers
+            (U_A, U_B) = (U_A * mat.0 + U_B * mat.1, U_A * mat.2 + U_B * mat.3);
+            (V_A, V_B) = (V_A * mat.0 + V_B * mat.1, V_A * mat.2 + V_B * mat.3);
+        }
+
+        //// step 2: conduct euclide extended gcd
+        assert!(A.data.len() == B.data.len());
+        let (mut u, mut v, d) = Self::euclid_extended_gcd(A.data[0], B.data[0]);
+
+        //// step 3: coefficients combination
+        (u, v) = (u * U_A + v * U_B, u * V_A + v * V_B);
+        (u, v, d)
     }
 }
 
-impl SinglePrecisionGCD for BigInteger {}
-impl MultiplePrecisionGCD for BigInteger {}
+impl GCD for BigInteger {}
 
 #[cfg(test)]
 mod tests {
