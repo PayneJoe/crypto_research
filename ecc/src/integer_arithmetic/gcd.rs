@@ -30,7 +30,7 @@ impl LehmerMatrix {
         );
         // make sure the highest words are right
         assert!(hat_A >= hat_B);
-        if (hat_B == 0_u8) {
+        if hat_B == 0_u8 {
             return Self::IDENTITY;
         }
 
@@ -108,7 +108,7 @@ impl LehmerMatrix {
             },
         );
         assert!(hat_A >= hat_B);
-        if (hat_B == 0_u8) {
+        if hat_B == 0_u8 {
             return Self::IDENTITY;
         }
 

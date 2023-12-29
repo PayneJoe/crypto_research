@@ -4,6 +4,7 @@ pub mod gcd;
 pub mod inversion;
 pub mod modulo;
 pub mod multiplication;
+pub mod squre_root;
 pub mod substraction;
 
 use core::fmt::Debug;
@@ -15,7 +16,7 @@ pub struct BigInteger {
 
 impl BigInteger {
     fn is_zero(&self) -> bool {
-        assert!(self.data.len() == 1);
+        assert!(self.data.len() >= 1);
         self.data[0] == 0_u8
     }
 }
