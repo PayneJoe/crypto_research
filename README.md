@@ -12,7 +12,6 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
 
         - add/substruction/multiplication/division/inversion/modulo/gcd
 
-    - exponentiation [TODO]
     - finite_field_arithmetic  [TODO]
     - elliptic_curve_arithmetic [TODO]
     - hyperelliptic_curve_arithmetic [TODO] 
@@ -26,6 +25,7 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
     - ipa [TODO]
     - kzg [TODO]
 - recursive snark
+    ...
 
 <br />
 
