@@ -242,12 +242,12 @@ fn add_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> BigInteger<u8> {
     let (u, v) = (&lft.data, &rht.data);
     let (nu, nv) = (u.len(), v.len());
 
+    let max_n = std::cmp::max(nu, nv);
     let mut w = BigInteger {
-        data: vec![],
+        data: vec![0_u8; max_n + 1],
         sign: false,
         basis: *b,
     };
-    let max_n = std::cmp::max(nu, nv);
     let mut carrier = 0 as u8;
     let mut remainder = 0 as u8;
     // from right to left
@@ -259,11 +259,11 @@ fn add_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> BigInteger<u8> {
         let result = u16::from(lft) + u16::from(rht) + u16::from(carrier);
         (carrier, remainder) = ((result >> 8) as u8, (result & ((1 << 8) - 1)) as u8);
 
-        w.data.push(remainder);
+        w.data[i] = remainder;
     }
     // the highest digit must be non-zero
     if carrier > 0 {
-        w.data.push(carrier);
+        w.data[max_n] = carrier;
     }
     w.strip_leading_zeros();
     w
@@ -275,12 +275,12 @@ fn sub_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> BigInteger<u8> {
     let (u, v) = (&lft.data, &rht.data);
     let (nu, nv) = (u.len(), v.len());
 
+    let max_n = std::cmp::max(nu, nv);
     let mut w = BigInteger {
-        data: vec![],
+        data: vec![0_u8; max_n],
         sign: false,
         basis: *b,
     };
-    let max_n = std::cmp::max(nu, nv);
     let mut carrier = 0 as u8;
     let mut remainder = 0 as u8;
     // from right to left
@@ -297,13 +297,16 @@ fn sub_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> BigInteger<u8> {
             (result & ((1 << 8) - 1)) as u8,
         );
 
-        w.data.push(remainder);
-    }
-    // the highest digit must be non-zero
-    if carrier > 0 {
-        w.data.push(carrier);
+        w.data[i] = remainder;
     }
     w.strip_leading_zeros();
+    // we need to reverse the digits where the result has carrier
+    if carrier > 0 {
+        for i in 0..w.size() {
+            w.data[i] = (*b as u8) - w.data[i];
+        }
+        w.sign = true;
+    }
     w
 }
 
@@ -353,6 +356,7 @@ impl Mul<usize> for &BigInteger<u8> {
     fn mul(self, other: usize) -> BigInteger<u8> {
         assert!(other < 1 << 8);
         let mut result = mul_single_precision_internal(self, other);
+        result.sign = self.sign;
         result
     }
 }
@@ -362,7 +366,9 @@ impl Shl<usize> for &BigInteger<u8> {
 
     fn shl(self, rhs: usize) -> Self::Output {
         assert!(rhs < 8);
-        shl_internal(self, rhs)
+        let mut result = shl_internal(self, rhs)
+        result.sign = self.sign;
+        result
     }
 }
 
@@ -371,7 +377,9 @@ impl Shr<usize> for &BigInteger<u8> {
 
     fn shr(self, rhs: usize) -> Self::Output {
         assert!(rhs < 8);
-        shr_internal(self, rhs)
+        let mut result = shr_internal(self, rhs);
+        result.sign = self.sign;
+        result
     }
 }
 
@@ -381,6 +389,7 @@ impl Div<usize> for &BigInteger<u8> {
     fn div(self, other: usize) -> BigInteger<u8> {
         assert!(other < 1 << 8);
         let mut result = div_single_precision_internal(self, other);
+        result.sign = self.sign;
         result
     }
 }
