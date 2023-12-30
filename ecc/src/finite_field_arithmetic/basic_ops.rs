@@ -366,7 +366,7 @@ impl Shl<usize> for &BigInteger<u8> {
 
     fn shl(self, rhs: usize) -> Self::Output {
         assert!(rhs < 8);
-        let mut result = shl_internal(self, rhs)
+        let mut result = shl_internal(self, rhs);
         result.sign = self.sign;
         result
     }
