@@ -61,6 +61,10 @@ impl MultiplePrecision for BigInteger {
 
         // normalization
         let mut d = 1;
+        println!(
+            "**** Before normalization: u = {:?}, v = {:?}, d = {}",
+            u.data, v.data, d
+        );
         while v.data[nv - 1] < b / 2 {
             v = v.multiply_single_precision(2 as u8);
             u = u.multiply_single_precision(2 as u8);
@@ -139,6 +143,7 @@ impl MultiplePrecision for BigInteger {
             if ((q.data.len() == 0) && (q_prox > 0)) || (q.data.len() > 0) {
                 q.data.push(q_prox);
             }
+            println!("------------- \n");
         }
         q.data.reverse();
 
@@ -192,5 +197,38 @@ mod tests {
             basis: 10,
         };
         assert_eq!(a.divide_by_multiple_precision(&b).0, c);
+    }
+
+    #[test]
+    fn test_pow2_basis() {
+        let basis: u8 = 1 << 6;
+        let mut a_arr = vec![11, 15, 12];
+        let mut b_arr = vec![15, 48];
+        let mut c_arr = vec![45];
+        let mut d_arr = vec![10, 28];
+        a_arr.reverse();
+        b_arr.reverse();
+        c_arr.reverse();
+        d_arr.reverse();
+
+        let a = BigInteger {
+            data: a_arr,
+            basis: basis,
+        };
+        let b = BigInteger {
+            data: b_arr,
+            basis: basis,
+        };
+        let c = BigInteger {
+            data: c_arr,
+            basis: basis,
+        };
+        let d = BigInteger {
+            data: d_arr,
+            basis: basis,
+        };
+        let result = a.divide_by_multiple_precision(&b);
+        assert_eq!(result.0, c);
+        assert_eq!(result.1, d);
     }
 }

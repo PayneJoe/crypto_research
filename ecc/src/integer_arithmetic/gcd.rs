@@ -5,13 +5,13 @@ use crate::integer_arithmetic::{
 
 /// lehmer matrix for lehmer extended gcd
 /// referenced by Algorithm 10.46 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LehmerMatrix(u8, u8, u8, u8, bool);
 
 impl LehmerMatrix {
     pub const IDENTITY: Self = Self(1, 0, 0, 1, true);
-    pub const HALF_WORD: u8 = 1 << 7;
-    pub const HALF_SIZE_WORD: u8 = 1 << 4;
+    pub const HALF_WORD: u8 = 1 << 5;
+    pub const HALF_SIZE_WORD: u8 = 1 << 3;
 
     fn MixedApproximation(A: &BigInteger, B: &BigInteger) -> Self {
         assert!(A.basis == B.basis);
@@ -143,82 +143,145 @@ impl LehmerMatrix {
 pub trait GCD {
     /// native method of euclid extended gcd, many more methods can be applied to achieve few iterations
     /// referenced by Algorithm 10.42 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
-    fn euclid_extended_gcd(x: u8, N: u8) -> (u8, u8, u8) {
+    fn euclid_extended_gcd(x: u8, N: u8) -> (u8, u8, u8, bool) {
         assert!(x < N);
         let (mut A, mut B) = (N, x);
         let (mut Ua, mut Ub) = (0, 1);
         let (mut Va, mut Vb) = (1, 0);
+        let mut n_iter = 0_u8;
         while B != 0 {
             let q = A / B;
             (A, B) = (B, A - q * B);
-            (Ua, Ub) = (Ub, Ua - q * Ub);
-            (Va, Vb) = (Vb, Va - q * Vb);
+            (Ua, Ub) = (Ub, Ua + q * Ub);
+            (Va, Vb) = (Vb, Va + q * Vb);
+            n_iter = n_iter + 1;
         }
         let (d, u, v) = (A, Ua, Va);
-        (u, v, d)
+        (u, v, d, n_iter % 2 == 0)
     }
 
     /// one step forwards optimal gcd:
     /// euclid extended gcd with least remainder, which is approximately 30% faster than traditional euclid extended gcd
-    fn euclid_extended_gcd_least_remainder(x: u8, N: u8) -> (u8, u8, u8) {
+    fn euclid_extended_gcd_least_remainder(x: u8, N: u8) -> (u8, u8, u8, bool) {
         assert!(x < N);
 
         let (mut A, mut B) = (N, x);
         let (mut Ua, mut Ub) = (0, 1);
         let (mut Va, mut Vb) = (1, 0);
+        let mut n_iter = 0_u8;
         while B != 0 {
             let mut q = A / B;
             let r = A - q * B;
             // skip cases (iterations) specially when quotient satisfy 'q = 1'
             // therefore the overall iterations must be fewer than before
             (A, B, q) = if r > B / 2 {
+                n_iter = n_iter + 1;
                 (B, B - r, q + 1)
             } else {
                 (B, r, q)
             };
-            (Ua, Ub) = (Ub, Ua - q * Ub);
-            (Va, Vb) = (Vb, Va - q * Vb);
+            (Ua, Ub) = (Ub, Ua + q * Ub);
+            (Va, Vb) = (Vb, Va + q * Vb);
+            n_iter = n_iter + 1;
         }
         let (d, u, v) = (A, Ua, Va);
-        (u, v, d)
+        (u, v, d, n_iter % 2 == 0)
     }
 
     /// lehmer extended gcd for multi-precision of positive integers (big integer)
     /// referenced by Algorithm 10.45 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
-    fn lehmer_extended_gcd(x: BigInteger, N: BigInteger) -> (u8, u8, u8) {
-        let (mut A, mut B) = (N, x);
+    fn lehmer_extended_gcd(x: &BigInteger, N: &BigInteger) -> (u8, u8, u8, bool) {
+        let (mut A, mut B) = (N.clone(), x.clone());
         let (mut U_A, mut U_B) = (0, 1);
         let (mut V_A, mut V_B) = (1, 0);
         assert!(!B.is_zero());
 
         //// step 1: reduce A/B into single precisions through lehmer mixed approximation
+        println!("\n Reducing begins ...");
+        let mut signs: Vec<bool> = vec![];
+        let mut trial = 0_u8;
         while B.data.len() > 1 {
-            // get the optimal lehmer matrix
+            println!(" -------- {}th trial ---------\n", trial);
+            // get the optimal lehmer matrix along with its sign
             let mat = LehmerMatrix::MixedApproximation(&A, &B);
+            println!("lehmer matrix {:?}", mat);
             // update source input integers
             (A, B) = if mat == LehmerMatrix::IDENTITY {
+                println!("deadlock happened ...");
                 let (_, r) = A.divide_by_multiple_precision(&B);
                 (B, r)
             } else {
-                (
-                    A.multiply_single_precision(mat.0)
-                        .add(&B.multiply_single_precision(mat.1)),
-                    A.multiply_single_precision(mat.2)
-                        .add(&B.multiply_single_precision(mat.3)),
-                )
+                // sign must be considered while updating source input integers
+                println!("update with lehmer matrix ...");
+                if mat.4 {
+                    (
+                        A.multiply_single_precision(mat.0)
+                            .substract(&B.multiply_single_precision(mat.1)),
+                        B.multiply_single_precision(mat.3)
+                            .substract(&A.multiply_single_precision(mat.2)),
+                    )
+                } else {
+                    (
+                        B.multiply_single_precision(mat.1)
+                            .substract(&A.multiply_single_precision(mat.0)),
+                        A.multiply_single_precision(mat.2)
+                            .substract(&B.multiply_single_precision(mat.3)),
+                    )
+                }
             };
-            // update coefficients of input integers
-            (U_A, U_B) = (U_A * mat.0 + U_B * mat.1, U_A * mat.2 + U_B * mat.3);
-            (V_A, V_B) = (V_A * mat.0 + V_B * mat.1, V_A * mat.2 + V_B * mat.3);
+            println!("updated A = {:?}, B = {:?}", A, B);
+            // sign must be considered while updating coefficients of input integers
+            // (U_A, U_B, V_A, V_B) = if mat.4 {
+            //     (
+            //         U_A * mat.0 - U_B * mat.1,
+            //         U_B * mat.3 - U_A * mat.2,
+            //         V_A * mat.0 - V_B * mat.1,
+            //         V_B * mat.3 - V_A * mat.2,
+            //     )
+            // } else {
+            //     (
+            //         U_B * mat.1 - U_A * mat.0,
+            //         U_A * mat.2 - U_B * mat.3,
+            //         V_B * mat.1 - V_A * mat.0,
+            //         V_A * mat.2 - V_B * mat.3,
+            //     )
+            // };
+            (U_A, U_B, V_A, V_B) = (
+                U_A * mat.0 + U_B * mat.1,
+                U_A * mat.2 + U_B * mat.3,
+                V_A * mat.0 + V_B * mat.1,
+                V_A * mat.2 + V_B * mat.3,
+            );
+            signs.push(mat.4);
+            trial = trial + 1;
+            println!("--------------------------------- \n");
         }
+        // accumulate the signs for each of coefficients
+        let acc_sign = signs.into_iter().reduce(|a, b| a ^ b).unwrap();
+        let (sign_U_A, sign_U_B, sign_V_A, sign_V_B) = (
+            false ^ acc_sign,
+            true ^ acc_sign,
+            true ^ acc_sign,
+            false ^ acc_sign,
+        );
 
         //// step 2: conduct euclide extended gcd
+        println!("\n\n");
+        println!(
+            "---- After reduced through lehmer algorithm A = {:?}, B = {:?}",
+            A, B
+        );
         assert!(A.data.len() == B.data.len());
-        let (mut u, mut v, d) = Self::euclid_extended_gcd(A.data[0], B.data[0]);
+        let (mut u, mut v, d, mut sign) = Self::euclid_extended_gcd(B.data[0], A.data[0]);
+        // sign = true => u < 0, v > 0
+        // sign = false => u > 0, v < 0
+        let (sign_u, sign_v) = if sign { (false, true) } else { (true, false) };
 
         //// step 3: coefficients combination
-        (u, v) = (u * U_A + v * U_B, u * V_A + v * V_B);
-        (u, v, d)
+        sign = !(sign_U_A ^ sign_u);
+        (u, v) = (U_A * u + U_B * v, V_A * u + V_B * v);
+
+        (u, v, d, sign)
     }
 }
 
@@ -230,13 +293,32 @@ mod tests {
 
     #[test]
     fn test_not_coprime_gcd() {
-        let (u, v, d) = BigInteger::euclid_extended_gcd(54, 188);
-        assert_eq!(d, 6);
+        let (u, v, d, _) = BigInteger::euclid_extended_gcd(54, 189);
+        // println!("---- u = {}, v = {}", u, v);
+        assert_eq!(d, 27);
     }
 
     #[test]
     fn test_coprime_gcd() {
-        let (u, v, d) = BigInteger::euclid_extended_gcd(45, 127);
+        let (u, v, d, _) = BigInteger::euclid_extended_gcd(45, 127);
+        // println!("---- u = {}, v = {}", u, v);
         assert_eq!(d, 1);
+    }
+
+    #[test]
+    fn test_lehmer_extended_gcd() {
+        let mut a_arr = vec![33, 61, 20];
+        let mut b_arr = vec![45, 12, 32];
+        a_arr.reverse();
+        b_arr.reverse();
+        let a = BigInteger {
+            data: a_arr,
+            basis: 1 << 6,
+        };
+        let b = BigInteger {
+            data: b_arr,
+            basis: 1 << 6,
+        };
+        let result = BigInteger::lehmer_extended_gcd(&a, &b);
     }
 }
