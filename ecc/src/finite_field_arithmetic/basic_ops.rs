@@ -101,7 +101,25 @@ fn div_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> (BigInteger<u8>, 
 }
 
 fn div_single_precision_internal(lft: &BigInteger<u8>, rht: usize) -> BigInteger<u8> {
-    todo!()
+    assert!(rht != 0);
+    let (b, u, nu, v) = (&lft.basis, &lft.data, lft.size(), rht as u8);
+    let mut w = BigInteger {
+        data: vec![0 as u8; nu - 1 + 1],
+        sign: lft.sign,
+        basis: *b,
+    };
+
+    let mut carrier = 0_u8;
+    for i in (0..nu).rev() {
+        let (carrier_word, unit_word, nominator_word, denominator_word) =
+            (u16::from(carrier), *b as u16, u16::from(u[i]), u16::from(v));
+        let t = carrier_word * unit_word + nominator_word;
+        let quotient = t / denominator_word;
+        carrier = (t - quotient * denominator_word) as u8;
+        w.data[i] = quotient as u8;
+    }
+    w.strip_leading_zeros();
+    w
 }
 
 fn shl_internal(lft: &BigInteger<u8>, rht: usize) -> BigInteger<u8> {
@@ -374,6 +392,43 @@ impl<'a, 'b> Div<&'b BigInteger<u8>> for &'a BigInteger<u8> {
         let (mut quotient, _) = div_internal(self, other);
         quotient.sign = self.sign & other.sign;
         quotient
+    }
+}
+
+impl BigInteger<u8> {
+    fn squre_root(&self) -> BigInteger<u8> {
+        if self.is_zero() {
+            return self.clone();
+        }
+        assert!(self.is_positive());
+
+        // initialization
+        let n = self.data.len();
+        let nr = if n % 2 == 0 { n / 2 } else { (n + 1) / 2 };
+        let mut init_data = vec![0_u8; nr];
+        init_data[nr - 1] = 1_u8;
+        let mut t = BigInteger {
+            data: init_data,
+            sign: false,
+            basis: self.basis,
+        };
+        let mut v = BigInteger {
+            data: vec![0_u8],
+            sign: false,
+            basis: self.basis,
+        };
+
+        // iterate with newton method
+        loop {
+            v = t;
+            let delta = self / &v;
+            t = &(&v + &delta) / (2 as usize);
+            if t == v {
+                break;
+            }
+        }
+
+        v
     }
 }
 
