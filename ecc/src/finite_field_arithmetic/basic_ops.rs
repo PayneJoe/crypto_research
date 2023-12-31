@@ -10,24 +10,24 @@ fn div_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> (BigInteger<u8>, 
     let (nu, nv) = (u.data.len(), v.data.len());
     assert!(nu >= nv);
 
-    // reset highest digit
-    u.data.push(0 as u8);
-
     // normalization
     let mut d = 1_u8;
-    println!(
-        "**** Before normalization: u = {:?}, v = {:?}, d = {}",
-        u.data, v.data, d
-    );
+    // println!(
+    //     "**** Before normalization: u = {:?}, v = {:?}, d = {}",
+    //     u.data, v.data, d
+    // );
     while v.data[nv - 1] < (b / 2) as u8 {
-        v = &v << (2 as usize);
-        u = &u << (2 as usize);
+        v = &v << (1 as usize);
+        u = &u << (1 as usize);
         d = d * 2;
     }
-    println!(
-        "**** After normalization: u = {:?}, v = {:?}, d = {}",
-        u.data, v.data, d
-    );
+    // println!(
+    //     "**** After normalization: u = {:?}, v = {:?}, d = {}",
+    //     u.data, v.data, d
+    // );
+
+    // reset highest digit
+    u.data.push(0 as u8);
 
     // proximate quotient
     let mut q = BigInteger {
@@ -37,17 +37,17 @@ fn div_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> (BigInteger<u8>, 
     };
     for i in (0..(nu - nv + 1)).rev() {
         // two word proximate quotient
-        let u_2w = u16::from(u.data[nv + i] << 8 + u.data[nv + i - 1]);
+        let u_2w = (u16::from(u.data[nv + i]) << 8) + u16::from(u.data[nv + i - 1]);
         let v_1w = u16::from(v.data[nv - 1]);
         let mut q_prox = (std::cmp::min(u_2w / v_1w, (b - 1) as u16)) as u8;
 
-        println!(
-            "**** After 2-word approximation: q_prox = {}, q_2w = {}, u_2w = {}, v[n - 1] = {}",
-            q_prox,
-            u_2w / v_1w,
-            u_2w,
-            v_1w
-        );
+        // println!(
+        //     "**** After 2-word approximation: q_prox = {}, q_2w = {}, u_2w = {:?}, v[n - 1] = {:?}",
+        //     q_prox,
+        //     u_2w / v_1w,
+        //     u.data[nv + i - 1..nv + i + 1].to_vec(),
+        //     v.data[nv - 1..nv].to_vec(),
+        // );
 
         // three word proximate quotient
         let v_2w = BigInteger {
@@ -61,15 +61,19 @@ fn div_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> (BigInteger<u8>, 
             sign: u.sign,
             basis: b,
         };
+        // println!(
+        //     "**** Before 3-words approximation: q_prox = {}, u_3w = {:?}, u_3w_prox = {:?}",
+        //     q_prox, u_3w.data, u_3w_prox.data
+        // );
         while (&u_3w_prox - &u_3w).is_positive() {
             q_prox = q_prox - 1;
             u_3w_prox = &v_2w * (q_prox as usize);
         }
 
-        println!(
-            "**** After 3-words approximation: q_prox = {}, u_3w = {:?}, u_3w_prox = {:?}",
-            q_prox, u_3w.data, u_3w_prox.data
-        );
+        // println!(
+        //     "**** After 3-words approximation: q_prox = {}, u_3w = {:?}, u_3w_prox = {:?}",
+        //     q_prox, u_3w.data, u_3w_prox.data
+        // );
 
         // n_plus_one word proximate quotient
         let u_nplus1w_prox = &v * (q_prox as usize);
@@ -78,13 +82,19 @@ fn div_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> (BigInteger<u8>, 
             sign: u.sign,
             basis: b,
         };
-        let diff = &u_nplus1w - &u_nplus1w_prox;
-        if diff.is_positive() {
-            u.data[i..(i + nv + 1)].copy_from_slice(diff.data.as_slice());
-        } else {
-            q_prox = q_prox - 1;
-            u.data[i..(i + nv + 1)].copy_from_slice((&diff + &v).data.as_slice());
+        let mut diff = &u_nplus1w - &u_nplus1w_prox;
+        if diff.is_negative() {
+            diff = &diff + &v;
         }
+        // println!("***** Updated upper words: u[i..(i + nv + 1)] = {:?}", diff);
+        let updated_upper: Vec<u8> = diff
+            .data
+            .clone()
+            .into_iter()
+            .chain(vec![0_u8; nv + 1 - diff.size()].into_iter())
+            .collect();
+        u.data[i..(i + nv + 1)].copy_from_slice(updated_upper.as_slice());
+
         println!(
             "***** After last proximation: q_prox = {}, u[i..i+n-1] = {:?}",
             q_prox,
@@ -136,7 +146,7 @@ fn shl_internal(lft: &BigInteger<u8>, rht: usize) -> BigInteger<u8> {
         carrier = lft.data[i] >> (8 - rht);
         w.data[i] = remainder;
     }
-    if (carrier > 0) {
+    if carrier > 0 {
         w.data[n] = carrier;
     }
     w.strip_leading_zeros();
@@ -271,6 +281,14 @@ fn add_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> BigInteger<u8> {
 
 fn sub_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> BigInteger<u8> {
     assert!(lft.basis == rht.basis);
+    if lft.is_zero() {
+        return BigInteger {
+            data: rht.data.clone(),
+            sign: !rht.sign,
+            basis: rht.basis,
+        };
+    }
+
     let b = &lft.basis;
     let (u, v) = (&lft.data, &rht.data);
     let (nu, nv) = (u.len(), v.len());
@@ -303,7 +321,11 @@ fn sub_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> BigInteger<u8> {
     // we need to reverse the digits where the result has carrier
     if carrier > 0 {
         for i in 0..w.size() {
-            w.data[i] = (*b as u8) - w.data[i];
+            if i == 0 {
+                w.data[i] = ((*b as u16) - w.data[i] as u16) as u8;
+            } else {
+                w.data[i] = u8::MAX - w.data[i];
+            }
         }
         w.sign = true;
     }
@@ -315,6 +337,13 @@ impl<'a, 'b> Add<&'b BigInteger<u8>> for &'a BigInteger<u8> {
     type Output = BigInteger<u8>;
 
     fn add(self, other: &'b BigInteger<u8>) -> BigInteger<u8> {
+        if self.is_zero() {
+            return other.clone();
+        }
+        if other.is_zero() {
+            return self.clone();
+        }
+
         if self.sign ^ other.sign {
             let (lft, rht) = if self.sign == true {
                 (other, self)
@@ -446,89 +475,61 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_add_1() {
+    fn test_add() {
         let basis = (1 << 8) as usize;
-        let mut a_arr: Vec<u8> = vec![12, 246];
-        let mut b_arr: Vec<u8> = vec![55];
-        let mut c_arr: Vec<u8> = vec![13, 45];
-        a_arr.reverse();
-        b_arr.reverse();
-        c_arr.reverse();
+        let (a_arr, b_arr, c_arr) = (vec![12_u8, 246_u8], vec![55_u8], vec![13_u8, 45_u8]);
         let (a, b, c) = (
-            BigInteger {
-                data: a_arr.to_vec(),
-                sign: false,
-                basis: basis,
-            },
-            BigInteger {
-                data: b_arr.to_vec(),
-                sign: false,
-                basis: basis,
-            },
-            BigInteger {
-                data: c_arr.to_vec(),
-                sign: false,
-                basis: basis,
-            },
+            BigInteger::new(&a_arr, false, basis),
+            BigInteger::new(&b_arr, false, basis),
+            BigInteger::new(&c_arr, false, basis),
         );
         assert_eq!(&a + &b, c);
     }
 
     #[test]
-    fn test_sub_1() {
+    fn test_sub() {
         let basis = (1 << 8) as usize;
-        let mut a_arr: Vec<u8> = vec![12, 46];
-        let mut b_arr: Vec<u8> = vec![55];
-        let mut c_arr: Vec<u8> = vec![11, 247];
-        a_arr.reverse();
-        b_arr.reverse();
-        c_arr.reverse();
+        let (a_arr, b_arr, c_arr) = (vec![12_u8, 46_u8], vec![55_u8], vec![11_u8, 247_u8]);
         let (a, b, c) = (
-            BigInteger {
-                data: a_arr.to_vec(),
-                sign: false,
-                basis: basis,
-            },
-            BigInteger {
-                data: b_arr.to_vec(),
-                sign: false,
-                basis: basis,
-            },
-            BigInteger {
-                data: c_arr.to_vec(),
-                sign: false,
-                basis: basis,
-            },
+            BigInteger::new(&a_arr, false, basis),
+            BigInteger::new(&b_arr, false, basis),
+            BigInteger::new(&c_arr, false, basis),
         );
         assert_eq!(&a - &b, c);
     }
 
     #[test]
-    fn test_mul_1() {
+    fn test_mul() {
         let basis = (1 << 8) as usize;
-        let mut a_arr: Vec<u8> = vec![12, 46];
-        let mut b_arr: Vec<u8> = vec![6];
-        let mut c_arr: Vec<u8> = vec![73, 20];
-        a_arr.reverse();
-        b_arr.reverse();
-        c_arr.reverse();
+        let (a_arr, b_arr, c_arr) = (vec![12_u8, 46_u8], vec![6_u8], vec![73_u8, 20_u8]);
         let (a, b, c) = (
-            BigInteger {
-                data: a_arr.to_vec(),
-                sign: false,
-                basis: basis,
-            },
-            BigInteger {
-                data: b_arr.to_vec(),
-                sign: false,
-                basis: basis,
-            },
-            BigInteger {
-                data: c_arr.to_vec(),
-                sign: false,
-                basis: basis,
-            },
+            BigInteger::new(&a_arr, false, basis),
+            BigInteger::new(&b_arr, false, basis),
+            BigInteger::new(&c_arr, false, basis),
         );
         assert_eq!(&a * &b, c);
+    }
+
+    #[test]
+    fn test_div() {
+        let basis = (1 << 8) as usize;
+        let (a_arr, b_arr, c_arr) = (vec![44_u8, 60_u8, 48_u8], vec![63_u8, 0_u8], vec![179_u8]);
+        let (a, b, c) = (
+            BigInteger::new(&a_arr, false, basis),
+            BigInteger::new(&b_arr, false, basis),
+            BigInteger::new(&c_arr, false, basis),
+        );
+        assert_eq!(&a / &b, c);
+    }
+
+    #[test]
+    fn test_squre_root() {
+        let basis = (1 << 8) as usize;
+        let (a_arr, c_arr) = (vec![44_u8, 60_u8, 48_u8], vec![6_u8, 166_u8]);
+        let (a, c) = (
+            BigInteger::new(&a_arr, false, basis),
+            BigInteger::new(&c_arr, false, basis),
+        );
+        assert_eq!(a.squre_root(), c);
     }
 }
