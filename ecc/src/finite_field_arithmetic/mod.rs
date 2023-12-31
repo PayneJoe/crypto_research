@@ -1,4 +1,8 @@
 pub mod basic_ops;
+pub mod gcd;
+
+// implemendted BigInteger<u8> for external usage
+type BigInt8 = BigInteger<u8>;
 
 use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
@@ -29,19 +33,6 @@ pub struct BigInteger<T> {
     data: Vec<T>,
     sign: bool,
     basis: usize,
-}
-
-impl<T> Default for BigInteger<T>
-where
-    T: Default,
-{
-    fn default() -> Self {
-        BigInteger {
-            data: vec![T::default()],
-            sign: false,
-            basis: 1 as usize,
-        }
-    }
 }
 
 impl<T> BigInteger<T>

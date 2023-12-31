@@ -8,12 +8,15 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
 - ecc 
     - integer_arithmetic
 
-        specificially for arithmetics on big integers
+        specificially for basic arithmetics on big integers
+
+    - finite_field_arithmetic
+
+        specificailly for basic arithmetics on finite field
 
         - add/substruction/multiplication/division/inversion/modulo/gcd
 
-    - finite_field_arithmetic  [TODO]
-    - elliptic_curve_arithmetic [TODO]
+    - elliptic_curve_arithmetic [Ongoing]
     - hyperelliptic_curve_arithmetic [TODO] 
     - special_curve_arithmetic [TODO]
     - pairings [TODO]
@@ -29,7 +32,7 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
 
 <br />
 
-## Docs
+## Notes 
 
 - [Integer Arithmetic](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/rkF-5hHwT)
 - [Foundations of Elliptic Curves

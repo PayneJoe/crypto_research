@@ -1,3 +1,5 @@
+////// Implementation of Basic Arithmetics for BigInteger<u8>
+///
 use std::ops::{Add, Div, Mul, Shl, Shr, Sub};
 
 use crate::finite_field_arithmetic::BigInteger;
@@ -95,14 +97,14 @@ fn div_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> (BigInteger<u8>, 
             .collect();
         u.data[i..(i + nv + 1)].copy_from_slice(updated_upper.as_slice());
 
-        println!(
-            "***** After last proximation: q_prox = {}, u[i..i+n-1] = {:?}",
-            q_prox,
-            u.data[i..(i + nv + 1)].to_vec(),
-        );
+        // println!(
+        //     "***** After last proximation: q_prox = {}, u[i..i+n-1] = {:?}",
+        //     q_prox,
+        //     u.data[i..(i + nv + 1)].to_vec(),
+        // );
 
         q.data[i] = q_prox;
-        println!("------------- \n");
+        // println!("------------- \n");
     }
     q.strip_leading_zeros();
 
@@ -430,6 +432,16 @@ impl<'a, 'b> Div<&'b BigInteger<u8>> for &'a BigInteger<u8> {
         let (mut quotient, _) = div_internal(self, other);
         quotient.sign = self.sign & other.sign;
         quotient
+    }
+}
+
+impl Default for BigInteger<u8> {
+    fn default() -> Self {
+        BigInteger {
+            data: vec![u8::default()],
+            sign: false,
+            basis: (1 << 8) as usize,
+        }
     }
 }
 
