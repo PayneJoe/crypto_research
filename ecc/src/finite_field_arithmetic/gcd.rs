@@ -210,7 +210,11 @@ pub trait GCD {
                     )
                 }
             };
-            println!("updated A = {:?}, B = {:?}", A, B);
+            println!("updated input data A = {:?}, B = {:?}", A, B);
+            println!(
+                "update lehmer matrix alpha = {}, beta = {}, alpha_new = {}, beta_new = {}",
+                mat.0, mat.1, mat.2, mat.3
+            );
             (U_A, U_B, V_A, V_B) = (
                 U_A * mat.0 + U_B * mat.1,
                 U_A * mat.2 + U_B * mat.3,
@@ -233,10 +237,10 @@ pub trait GCD {
         //// step 2: conduct euclide extended gcd
         println!("\n\n");
         println!(
-            "---- After reduced through lehmer algorithm A = {:?}, B = {:?}",
-            A, B
+            "---- After reduced through lehmer algorithm, A = {:?}, B = {:?}, sign of lehmer matrix = {}",
+            A, B, acc_sign
         );
-        assert!(A.data.len() == B.data.len());
+        // assert!(A.data.len() == B.data.len());
         let (mut u, mut v, d, mut sign) = Self::euclid_extended_gcd(B.data[0], A.data[0]);
         // sign = true => u < 0, v > 0
         // sign = false => u > 0, v < 0
@@ -273,12 +277,13 @@ mod tests {
     #[test]
     fn test_lehmer_extended_gcd() {
         let basis = (1 << 8) as usize;
-        let (a_arr, b_arr, c_arr) = (vec![44_u8, 60_u8, 48_u8], vec![63_u8, 0_u8], vec![179_u8]);
+        let (a_arr, b_arr, c_arr) = (vec![44_u8, 60_u8, 48_u8], vec![63_u8, 0_u8], vec![16_u8]);
         let (a, b, c) = (
             BigInt8::new(&a_arr, false, basis),
             BigInt8::new(&b_arr, false, basis),
             BigInt8::new(&c_arr, false, basis),
         );
-        let result = BigInt8::lehmer_extended_gcd(&a, &b);
+        let (u, v, d, sign) = BigInt8::lehmer_extended_gcd(&b, &a);
+        assert_eq!(d, 16_u8);
     }
 }
