@@ -146,8 +146,9 @@ pub trait GCD {
 
     /// one step forwards optimal gcd:
     /// euclid extended gcd with least remainder, which is approximately 30% faster than traditional euclid extended gcd
-    fn euclid_extended_gcd_least_remainder(x: u8, N: u8) -> (u8, u8, u8, bool) {
-        assert!(x < N);
+    fn euclid_extended_gcd_least_remainder(x: u16, N: u16) -> (u16, u16, u8, bool) {
+        // make sure the smaller one is single precision, the larger one maybe double precision 
+        assert!((x < N) && (x < (1 << 8) as u16));
 
         let (mut A, mut B) = (N, x);
         let (mut Ua, mut Ub) = (0, 1);
@@ -169,35 +170,91 @@ pub trait GCD {
             n_iter = n_iter + 1;
         }
         let (d, u, v) = (A, Ua, Va);
+        (u, v, d as u8, n_iter % 2 == 0)
+    }
+
+    // specially for reduced precisions, a single precision along with a double precision at most 
+    fn euclid_extended_gcd_bigint(x: BigInt8, N: BigInt8) -> (BigInt8, BigInt8, BigInt8, bool) {
+        assert!((&N - &x).is_positive());
+
+        let (mut A, mut B) = (N, x);
+        let (mut Ua, mut Ub) = (
+            BigInt8::new(vec![0_u8].as_slice(), false, 1 << 8),
+            BigInt8::new(vec![1_u8].as_slice(), true, 1 << 8),
+        );
+        let (mut Va, mut Vb) = (
+            BigInt8::new(vec![1_u8].as_slice(), true, 1 << 8),
+            BigInt8::new(vec![0_u8].as_slice(), false, 1 << 8),
+        );
+        let mut n_iter = 0;
+        while B.is_zero() == false {
+            let mut q = &A / &B;
+            let r = &A - &(&q * &B);
+            (A, B, q) = if (&r - &(&B >> 1 as usize)).is_positive() {
+                n_iter = n_iter + 1;
+                (B.clone(), &B - &r, &q + 1 as usize)
+            } else {
+                (B, r, q)
+            };
+            (Ua, Ub) = (Ub.clone(), &Ua + &(&q * &Ub));
+            (Va, Vb) = (Vb.clone(), &Va + &(&q * &Vb));
+            n_iter = n_iter + 1;
+        }
+        let (d, u, v) = (A, Ua, Va);
         (u, v, d, n_iter % 2 == 0)
     }
 
     /// lehmer extended gcd for multi-precision of positive integers (big integer)
     /// referenced by Algorithm 10.45 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
-    fn lehmer_extended_gcd(x: &BigInt8, N: &BigInt8) -> (u8, u8, u8, bool) {
+    fn lehmer_extended_gcd(x: &BigInt8, N: &BigInt8) -> (BigInt8, BigInt8, BigInt8, bool) {
         let (mut A, mut B) = (N.clone(), x.clone());
-        let (mut U_A, mut U_B) = (0, 1);
-        let (mut V_A, mut V_B) = (1, 0);
+        let (mut U_A, mut U_B) = (
+            BigInt8::new(vec![0_u8].as_slice(), false, 1 << 8), 
+            BigInt8::new(vec![1_u8].as_slice(), true, 1 << 8)
+        );
+        let (mut V_A, mut V_B) = (
+            BigInt8::new(vec![1_u8].as_slice(), true, 1 << 8),
+            BigInt8::new(vec![0_u8].as_slice(), false, 1 << 8)
+        );
         assert!(!B.is_zero());
 
         //// step 1: reduce A/B into single precisions through lehmer mixed approximation
         println!("\n Reducing begins ...");
-        let mut signs: Vec<bool> = vec![];
+        // let mut signs: Vec<bool> = vec![];
+        let mut accumulated_sign = true;
         let mut trial = 0_u8;
         while B.data.len() > 1 {
             println!(" -------- {}th trial ---------\n", trial);
             // get the optimal lehmer matrix along with its sign
-            let mat = LehmerMatrix::MixedApproximation(&A, &B);
+            let mut mat = LehmerMatrix::MixedApproximation(&A, &B);
             println!("lehmer matrix {:?}", mat);
-            // update source input integers
             (A, B) = if mat == LehmerMatrix::IDENTITY {
                 println!("deadlock happened, restarting outter loop is a neccessary step ...");
+                // update accumulated sign
+                accumulated_sign = !accumulated_sign;
                 let quotient = &A / &B;
                 let remainder = &A - &(&quotient * &B);
+
+                // update coefficients of gcd
+                (U_A, U_B) = (U_B.clone(), &U_A + &(&U_B * &quotient));
+
+                // update source input integers
                 (B, remainder)
             } else {
                 // sign must be considered while updating source input integers
-                println!("update with lehmer matrix ...");
+                println!("lehmer matrix has already been updated ...");
+                // update accumulated sign
+                accumulated_sign = !(accumulated_sign ^ mat.4);
+
+                // update coefficients of gcd
+                (U_A, U_B, V_A, V_B) = (
+                    &(&U_A * mat.0 as usize) + &(&U_B * mat.1 as usize),
+                    &(&U_A * mat.2 as usize) + &(&U_B * mat.3 as usize),
+                    &(&V_A * mat.0 as usize) + &(&V_B * mat.1 as usize),
+                    &(&V_A * mat.2 as usize) + &(&V_B * mat.3 as usize),
+                );
+
+                // update source input integers
                 if mat.4 {
                     (
                         &(&A * mat.0 as usize) - &(&B * mat.1 as usize),
@@ -212,45 +269,28 @@ pub trait GCD {
             };
             println!("updated input data A = {:?}, B = {:?}", A, B);
             println!(
-                "update lehmer matrix alpha = {}, beta = {}, alpha_new = {}, beta_new = {}",
-                mat.0, mat.1, mat.2, mat.3
+                "updated lehmer matrix alpha = {}, beta = {}, alpha_new = {}, beta_new = {}, sign = {}",
+                mat.0, mat.1, mat.2, mat.3, mat.4
             );
-            (U_A, U_B, V_A, V_B) = (
-                U_A * mat.0 + U_B * mat.1,
-                U_A * mat.2 + U_B * mat.3,
-                V_A * mat.0 + V_B * mat.1,
-                V_A * mat.2 + V_B * mat.3,
-            );
-            signs.push(mat.4);
             trial = trial + 1;
             println!("--------------------------------- \n");
         }
-        // accumulate the signs for each of coefficients
-        let acc_sign = signs.into_iter().reduce(|a, b| a ^ b).unwrap();
-        let (sign_U_A, sign_U_B, sign_V_A, sign_V_B) = (
-            false ^ acc_sign,
-            true ^ acc_sign,
-            true ^ acc_sign,
-            false ^ acc_sign,
-        );
 
-        //// step 2: conduct euclide extended gcd
+        //// step 2: conduct euclide extended gcd with reduced A and B
         println!("\n\n");
         println!(
             "---- After reduced through lehmer algorithm, A = {:?}, B = {:?}, sign of lehmer matrix = {}",
-            A, B, acc_sign
+            A, B, accumulated_sign 
         );
-        // assert!(A.data.len() == B.data.len());
-        let (mut u, mut v, d, mut sign) = Self::euclid_extended_gcd(B.data[0], A.data[0]);
-        // sign = true => u < 0, v > 0
-        // sign = false => u > 0, v < 0
-        let (sign_u, sign_v) = if sign { (false, true) } else { (true, false) };
+        let (mut u, mut v, d, reduced_sign) = Self::euclid_extended_gcd_bigint(
+            B, A
+        );
 
         //// step 3: coefficients combination
-        sign = !(sign_U_A ^ sign_u);
-        (u, v) = (U_A * u + U_B * v, V_A * u + V_B * v);
+        (u, v) = (&(&U_A * &u) + &(&U_B * &v), &(&V_A * &u) + &(&V_B * &v));
+        let final_sign = !(accumulated_sign ^ reduced_sign);
 
-        (u, v, d, sign)
+        (u, v, d, final_sign)
     }
 }
 
@@ -284,6 +324,6 @@ mod tests {
             BigInt8::new(&c_arr, false, basis),
         );
         let (u, v, d, sign) = BigInt8::lehmer_extended_gcd(&b, &a);
-        assert_eq!(d, 16_u8);
+        assert_eq!(d, c);
     }
 }

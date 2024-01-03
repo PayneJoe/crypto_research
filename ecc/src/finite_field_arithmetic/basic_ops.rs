@@ -52,24 +52,22 @@ fn div_internal(lft: &BigInteger<u8>, rht: &BigInteger<u8>) -> (BigInteger<u8>, 
         // );
 
         // three word proximate quotient
-        let v_2w = BigInteger {
-            data: v.data[nv - 2..nv].to_vec(),
-            sign: v.sign,
-            basis: b,
-        };
-        let mut u_3w_prox = &v_2w * (q_prox as usize);
-        let u_3w = BigInteger {
-            data: u.data[nv + i - 2..nv + i + 1].to_vec(),
-            sign: u.sign,
-            basis: b,
-        };
-        // println!(
-        //     "**** Before 3-words approximation: q_prox = {}, u_3w = {:?}, u_3w_prox = {:?}",
-        //     q_prox, u_3w.data, u_3w_prox.data
-        // );
-        while (&u_3w_prox - &u_3w).is_positive() {
-            q_prox = q_prox - 1;
-            u_3w_prox = &v_2w * (q_prox as usize);
+        if v.size() >= 2 {
+            let v_2w = BigInteger {
+                data: v.data[nv - 2..nv].to_vec(),
+                sign: v.sign,
+                basis: b,
+            };
+            let mut u_3w_prox = &v_2w * (q_prox as usize);
+            let u_3w = BigInteger {
+                data: u.data[nv + i - 2..nv + i + 1].to_vec(),
+                sign: u.sign,
+                basis: b,
+            };
+            while (&u_3w_prox - &u_3w).is_positive() {
+                q_prox = q_prox - 1;
+                u_3w_prox = &v_2w * (q_prox as usize);
+            }
         }
 
         // println!(
@@ -358,6 +356,15 @@ impl<'a, 'b> Add<&'b BigInteger<u8>> for &'a BigInteger<u8> {
             result.sign = self.sign & other.sign;
             result
         }
+    }
+}
+
+impl Add<usize> for &BigInteger<u8> {
+    type Output = BigInteger<u8>;
+
+    fn add(self, other: usize) -> BigInteger<u8> {
+        assert!(other < 1 << 8);
+        self + &(BigInteger::new(vec![other as u8].as_slice(), false, self.basis))
     }
 }
 
