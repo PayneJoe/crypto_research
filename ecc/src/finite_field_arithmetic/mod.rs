@@ -1,8 +1,8 @@
-pub mod basic_ops;
-pub mod gcd;
+pub mod bigint16;
+pub mod gcd16;
 
-// implemendted BigInteger<u8> for external usage
-type BigInt8 = BigInteger<u8>;
+// implemendted BigInteger<u16> for external usage
+type BigInt16 = BigInteger<u16>;
 
 use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
@@ -40,9 +40,11 @@ where
     T: Default + PartialEq + Clone,
 {
     #[inline(always)]
-    fn new(v: &[T], sign: bool, basis: usize) -> Self {
+    fn new(v: &[T], sign: bool, basis: usize, rev: Option<bool>) -> Self {
         let mut data = v.to_vec();
-        data.reverse();
+        if let Some(true) = rev {
+            data.reverse();
+        }
         BigInteger {
             data: data,
             sign: sign,
