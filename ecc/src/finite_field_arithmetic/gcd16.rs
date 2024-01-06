@@ -426,8 +426,8 @@ mod tests {
 
     #[test]
     fn test_euclid_extended_gcd_1() {
-        let (N, x) = (BigInt16::from("106431"), BigInt16::from("64256"));
-        // let (N, x) = (BigInt16::from("197"), BigInt16::from("64"));
+        // let (N, x) = (BigInt16::from("106431"), BigInt16::from("64256"));
+        let (N, x) = (BigInt16::from("256"), BigInt16::from("5"));
         let (u, v, d, sign) = BigInt16::euclid_extended_gcd_bigint(&x, &N);
         println!("u = {:?}, v = {:?}, d = {:?}, sign = {}", &u, &v, &d, sign);
         if sign {

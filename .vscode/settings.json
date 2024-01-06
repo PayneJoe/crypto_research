@@ -9,6 +9,7 @@
         "./ecc/Cargo.toml",
         "./ecc/Cargo.toml",
         "./ecc/Cargo.toml",
+        "./ecc/Cargo.toml",
         "./ecc/Cargo.toml"
     ]
 }
