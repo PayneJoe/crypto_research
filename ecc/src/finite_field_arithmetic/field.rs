@@ -185,7 +185,7 @@ impl FromStr for Foo<2> {
         );
 
         // apply reduce through mul_reduce
-        println!("\n******* parse {}", text);
+        // println!("\n******* parse {}", text);
         let (high_bi, low_bi) = (apply_parse(high_words), apply_parse(low_words));
         if high_bi == BI::zero() {
             Ok(Self::reduce(&low_bi, Some(false)))
@@ -249,9 +249,9 @@ impl Div for Foo<2> {
 
 // define custom finite field
 impl Field<2> for Foo<2> {
-    // fabricated configure parameters of custom finite field
+    // fabricated precomputable parameters of custom finite field
     // these parameters need to determined at compile time
-    // W = 256, M = 517, R = 256^2 % M = 394, M0 = -M[0]^{-1} % W = 51
+    // W = 256, MODULUS/M = 517, R = 256^2 % M = 394, M0 = -M[0]^{-1} % W = 51
     const MODULUS: BI<2> = BI([5, 2]);
     const R: BI<2> = BI([138, 1]);
     const R2: BI<2> = BI([136, 0]);
@@ -286,7 +286,7 @@ impl Field<2> for Foo<2> {
 
     // abR % N <- (aR * bR) * R^{-1} % N
     fn mul_reduce(lft: &BI<2>, rht: &BI<2>) -> Self {
-        println!("------ lft = {:?}, rht = {:?}", lft, rht);
+        // println!("------ lft = {:?}, rht = {:?}", lft, rht);
 
         let s = 2;
         let mut t = BI([0_u8; 2]);
@@ -300,10 +300,10 @@ impl Field<2> for Foo<2> {
             if overflow {
                 c2 += 1_u8;
             }
-            println!(
-                "stage 1: i = {}, t = {},{},{:?}, ({:?}, {}) = {:?} * {}",
-                i, c2, c1, t, ab, tmp_c1, lft, rht.0[i]
-            );
+            // println!(
+            //     "stage 1: i = {}, t = {},{},{:?}, ({:?}, {}) = {:?} * {}",
+            //     i, c2, c1, t, ab, tmp_c1, lft, rht.0[i]
+            // );
 
             // t = t + ((t[0] * N'[0]) mod W) * N
             let (mut tmp_c3, mut tmp_c4, mut mn) = (0_u8, 0_u8, BI([0_u8; 2]));
@@ -314,22 +314,22 @@ impl Field<2> for Foo<2> {
             if overflow {
                 c2 += 1_u8;
             }
-            println!(
-                "stage 2: i = {}, t = {},{},{:?}, {:?} * {}",
-                i,
-                c2,
-                c1,
-                t,
-                Self::MODULUS,
-                m
-            );
+            // println!(
+            //     "stage 2: i = {}, t = {},{},{:?}, {:?} * {}",
+            //     i,
+            //     c2,
+            //     c1,
+            //     t,
+            //     Self::MODULUS,
+            //     m
+            // );
 
             // t >> 1
             for j in 0..(s - 1) {
                 t.0[j] = t.0[j + 1];
             }
             (t.0[s - 1], c1, c2) = (c1, c2, 0_u8);
-            println!("stage 3: i = {}, t = {},{},{:?}", i, c2, c1, t,);
+            // println!("stage 3: i = {}, t = {},{},{:?}", i, c2, c1, t,);
         }
 
         Self(t)
@@ -342,31 +342,29 @@ mod tests {
 
     #[test]
     fn test_conversion() {
-        let result: BI<2> = Foo::<2>::from_str("259").unwrap().into();
-        let actual = BI([3, 1]);
+        let a = 259_u16;
+        let result: BI<2> = Foo::<2>::from_str(a.to_string().as_str()).unwrap().into();
+        let actual = BI([(a % 256) as u8, (a / 256) as u8]);
         assert_eq!(result, actual);
     }
 
     #[test]
     fn test_add() {
-        let a = Foo::<2>::from_str("259").unwrap();
-        let b = Foo::<2>::from_str("258").unwrap();
-        let c = Foo::<2>::from_str("517").unwrap();
-        assert_eq!(a + b, c);
+        let (a, b) = (259_u16, 258_u16);
+        let c = u32::from(a) + u32::from(b);
+        let lft = Foo::<2>::from_str(a.to_string().as_str()).unwrap();
+        let rht = Foo::<2>::from_str(b.to_string().as_str()).unwrap();
+        let result = Foo::<2>::from_str(c.to_string().as_str()).unwrap();
+        assert_eq!(lft + rht, result);
     }
 
     #[test]
     fn test_mul() {
-        let a = Foo::<2>::from_str("259").unwrap();
-        let b = Foo::<2>::from_str("258").unwrap();
-        let c = Foo::<2>::from_str("66822").unwrap();
-        println!(
-            "a = {:?}, b = {:?}, c = {:?}, M = {:?}",
-            a,
-            b,
-            c,
-            Foo::<2>::MODULUS
-        );
-        assert_eq!(a * b, c);
+        let (a, b) = (259_u16, 258_u16);
+        let c = u32::from(a) * u32::from(b);
+        let lft = Foo::<2>::from_str(a.to_string().as_str()).unwrap();
+        let rht = Foo::<2>::from_str(b.to_string().as_str()).unwrap();
+        let result = Foo::<2>::from_str(c.to_string().as_str()).unwrap();
+        assert_eq!(lft * rht, result);
     }
 }
