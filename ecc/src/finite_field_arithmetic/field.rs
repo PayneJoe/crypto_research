@@ -1,11 +1,59 @@
-use std::ops::{Add, Div, Mul, Sub};
+use std::cmp::Ordering;
+use std::ops::{Add, Div, Mul, Shl, Shr, Sub};
 use std::str::FromStr;
 
 //////////////////////////////////// Implementation of BigInteger Specially for Finite Field
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq)]
 pub struct BI<const N: usize>(pub [u8; N]);
 
+impl PartialOrd for BI<2> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for BI<2> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let n = 2;
+        let mut ord = Ordering::Equal;
+        for i in (0..n).rev() {
+            ord = self.0[i].cmp(&other.0[i]);
+            if ord != Ordering::Equal {
+                return ord;
+            }
+        }
+        ord
+    }
+}
+
 impl BI<2> {
+    fn bits(self) -> usize {
+        let mut num_bits = 0 as usize;
+        let n = 2;
+        let (mut a, mut b) = (0 as usize, 0 as usize);
+        let mut found = false;
+        for i in (0..n).rev() {
+            if self.0[i] > 0 {
+                for j in (0..8).rev() {
+                    if self.0[i] & (1 << j) > 0 {
+                        (a, b) = (i, j);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if found {
+                break;
+            }
+        }
+        a * 8 + b + 1
+    }
+
+    #[inline(always)]
+    fn MAX() -> Self {
+        BI(vec![((1 << 8) - 1) as u8; 2].try_into().unwrap())
+    }
+
     #[inline(always)]
     fn zero() -> Self {
         BI([0, 0])
@@ -15,6 +63,21 @@ impl BI<2> {
     fn one() -> Self {
         BI([1, 0])
     }
+
+    #[inline(always)]
+    fn is_even(self) -> bool {
+        self.0[0] % 2 == 0
+    }
+
+    #[inline(always)]
+    fn is_zero(self) -> bool {
+        let n = self.0.len();
+        let mut zero = true;
+        for i in 0..n {
+            zero = zero & (self.0[i] == 0);
+        }
+        zero
+    }
 }
 
 impl FromStr for BI<2> {
@@ -22,6 +85,43 @@ impl FromStr for BI<2> {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         unimplemented!()
+    }
+}
+
+impl Shl<u8> for BI<2> {
+    type Output = (BI<2>, u8);
+    fn shl(self, other: u8) -> Self::Output {
+        assert!(other < 8);
+        let n = 2;
+        let mut w = Self([0_u8; 2]);
+        let mut carrier = 0_u8;
+        // from the lowest word to the highest word
+        for i in 0..n {
+            let remainder = (self.0[i] << other) | carrier;
+            carrier = self.0[i] >> (8 - other);
+            w.0[i] = remainder;
+        }
+        (w, carrier)
+    }
+}
+
+impl Shr<u8> for BI<2> {
+    type Output = (BI<2>, u8);
+    fn shr(self, other: u8) -> Self::Output {
+        assert!(other < 8);
+        let n = 2;
+        let mut w = Self([0_u8; 2]);
+        let (mut carrier, mut ov) = (0_u8, 0_u8);
+        // from the lowest word to the highest word
+        for i in 0..n {
+            let remainder = (self.0[i] >> other) | carrier;
+            carrier = self.0[i] << (8 - other);
+            w.0[i] = remainder;
+            if i == 0 {
+                ov = carrier;
+            }
+        }
+        (w, ov)
     }
 }
 
@@ -141,6 +241,8 @@ pub trait Field<const N: usize>: FromStr + From<BI<N>> + Into<BI<N>> {
     // one
     fn one() -> Self;
 
+    fn zero() -> Self;
+
     // reduce a bigint into the specified range [0, modulus)
     fn reduce(u: &BI<N>, inv: Option<bool>) -> Self;
     // convert a reduced number into a unreduced bigint
@@ -167,7 +269,6 @@ impl FromStr for Foo<2> {
         let mut large_number = text.parse::<u32>().map_err(|_| ParseStrErr).unwrap();
 
         let apply_parse = |word: u16| -> BI<2> {
-            // retain the lowest N words, ignore the high words
             let mut large_word = word;
             let num_bits = 8 as usize;
             let mut w = vec![0_u8; 2];
@@ -217,8 +318,14 @@ impl Add for Foo<2> {
     type Output = Foo<2>;
 
     fn add(self, other: Self) -> Foo<2> {
-        let (w, _) = self.0 + other.0;
-        Self(w)
+        let (w, carrier) = self.0 + other.0;
+        if carrier > 0 {
+            Self(((BI::<2>::MAX() - Self::MODULUS).0 + w).0)
+        } else if w >= Self::MODULUS {
+            Self((w - Self::MODULUS).0)
+        } else {
+            Self(w)
+        }
     }
 }
 
@@ -226,8 +333,11 @@ impl Sub for Foo<2> {
     type Output = Foo<2>;
 
     fn sub(self, other: Self) -> Foo<2> {
-        let (w, _) = self.0 - other.0;
-        Self(w)
+        if self.0 > other.0 {
+            Self((self.0 - other.0).0)
+        } else {
+            Self((other.0 - self.0).0)
+        }
     }
 }
 
@@ -270,13 +380,54 @@ impl Field<2> for Foo<2> {
         Self(BI([1_u8, 0_u8]))
     }
 
-    // (aR)^{-1} % N
+    fn zero() -> Self {
+        Self(BI([0_u8, 0_u8]))
+    }
+
+    // (aR)^{-1} % N <- ((aR)^{-1} * R^2) * R^{-1} % N
     fn inv(&self) -> Self {
-        // let (mut A, mut B) = (Self::M0, self.0);
-        // let (mut Ua, mut Ub) = (BI([0, 0]), BI([1, 0]));
-        // let (mut Va, mut Vb) = (BI([1, 0]), BI([0, 0]));
-        // let mut n_iter = 0;
-        unimplemented!()
+        let (mut r, mut s, mut t, mut v) = (self.0, Self::one().0, Self::MODULUS, Self::zero().0);
+        let m = (2 * 8 + 1) as usize;
+        let mut k = 0 as usize;
+        while r.is_zero() == false {
+            if t.is_even() {
+                (t, s) = ((t >> 2).0, (s << 2).0);
+            } else if (r.is_even()) {
+                (r, v) = ((r >> 2).0, (v << 2).0);
+                ///////////// debug
+                assert!((v << 2).1 == 0);
+            } else if (t > r) {
+                (t, v, s) = (((t - r).0 >> 2).0, (v + s).0, (s << 2).0);
+                ///////////// debug
+                assert!((v + s).1 == 0);
+            } else {
+                (r, s, v) = (((r - t).0 >> 2).0, (s + v).0, (v << 2).0);
+                ///////////// debug
+                assert!((s + v).1 == 0);
+            }
+            k = k + 1;
+        }
+
+        // make sure v is within range [0, MODULUS)
+        if v >= Self::MODULUS {
+            v = (v - Self::MODULUS).0;
+        }
+        v = (Self::MODULUS - v).0;
+
+        /////////////// debug
+        assert!((Self::MODULUS - v).1 == 0);
+        if k < m {
+            (v, k) = (Self::mul_reduce(&v, &Self::R2).0, k + m);
+        }
+        let h_bit = 2 * m - k;
+        let x: Vec<u8> = [(1 << (h_bit % 8) - 1) as u8]
+            .into_iter()
+            .chain(vec![0_u8; h_bit / 8].to_vec().into_iter())
+            .collect();
+
+        v = Self::mul_reduce(&v, &Self::R2).0;
+        v = Self::mul_reduce(&v, &BI(x.try_into().unwrap())).0;
+        Self(v)
     }
 
     // a % N <- aR * R^{-1} % N
