@@ -97,9 +97,10 @@ impl Shl<u8> for BI<2> {
         let mut carrier = 0_u8;
         // from the lowest word to the highest word
         for i in 0..n {
+            let tmp_carrier = self.0[i] >> (8 - other);
             let remainder = (self.0[i] << other) | carrier;
-            carrier = self.0[i] >> (8 - other);
             w.0[i] = remainder;
+            carrier = tmp_carrier;
         }
         (w, carrier)
     }
@@ -111,17 +112,15 @@ impl Shr<u8> for BI<2> {
         assert!(other < 8);
         let n = 2;
         let mut w = Self([0_u8; 2]);
-        let (mut carrier, mut ov) = (0_u8, 0_u8);
+        let mut carrier = 0_u8;
         // from the lowest word to the highest word
-        for i in 0..n {
-            let remainder = (self.0[i] >> other) | carrier;
-            carrier = self.0[i] << (8 - other);
+        for i in (0..n).rev() {
+            let tmp_carrier = self.0[i] & (((1 << other) - 1) as u8);
+            let remainder = (self.0[i] >> other) | (carrier << (8 - other));
             w.0[i] = remainder;
-            if i == 0 {
-                ov = carrier;
-            }
+            carrier = tmp_carrier;
         }
-        (w, ov)
+        (w, carrier)
     }
 }
 
@@ -163,8 +162,11 @@ impl Sub for BI<2> {
         for i in 0..n {
             let (lft_w, rht_w, carrier_w) =
                 (u16::from(lft[i]), u16::from(rht[i]), u16::from(carrier));
-            let t = lft_w - (rht_w + carrier_w);
-            (carrier, remainder) = ((t >> 8) as u8, (t & ((1 << 8) - 1)) as u8);
+            (carrier, remainder) = if lft_w >= rht_w + carrier_w {
+                (0_u8, (lft_w - (rht_w + carrier_w)) as u8)
+            } else {
+                (1_u8, (lft_w + (1 << 8) - (rht_w + carrier_w)) as u8)
+            };
             w.0[i] = remainder;
         }
         (w, carrier)
@@ -225,7 +227,7 @@ impl<'a, 'b> Div<&'b BI<2>> for &'a BI<2> {
     }
 }
 
-// field configurations including basic behavious on fields
+////////////////////////////////// Constant configurations of field including some core behavious on field
 pub trait Field<const N: usize>: FromStr + From<BI<N>> + Into<BI<N>> {
     // finite field modulus
     const MODULUS: BI<N>;
@@ -239,9 +241,9 @@ pub trait Field<const N: usize>: FromStr + From<BI<N>> + Into<BI<N>> {
     const M0: u8;
 
     // one
-    fn one() -> Self;
+    fn ONE() -> Self;
 
-    fn zero() -> Self;
+    fn ZERO() -> Self;
 
     // reduce a bigint into the specified range [0, modulus)
     fn reduce(u: &BI<N>, inv: Option<bool>) -> Self;
@@ -254,13 +256,14 @@ pub trait Field<const N: usize>: FromStr + From<BI<N>> + Into<BI<N>> {
     fn mul_reduce(lft: &BI<N>, rht: &BI<N>) -> Self;
 }
 
-//////////////////////////////////////// custom finite field
+//////////////////////////////////////// Custom Finite Field
 #[derive(Debug)]
 pub struct ParseStrErr;
 
 #[derive(Debug, PartialEq)]
 pub struct Foo<const T: usize>(BI<T>);
 
+/////////////////////////////////////// Implementation of Custom Finite Field
 impl FromStr for Foo<2> {
     type Err = ParseStrErr;
 
@@ -286,7 +289,6 @@ impl FromStr for Foo<2> {
         );
 
         // apply reduce through mul_reduce
-        // println!("\n******* parse {}", text);
         let (high_bi, low_bi) = (apply_parse(high_words), apply_parse(low_words));
         if high_bi == BI::zero() {
             Ok(Self::reduce(&low_bi, Some(false)))
@@ -353,14 +355,14 @@ impl Div for Foo<2> {
     type Output = Foo<2>;
 
     fn div(self, other: Self) -> Foo<2> {
-        unimplemented!()
+        Self::mul_reduce(&self.0, &other.inv().0)
     }
 }
 
 // define custom finite field
 impl Field<2> for Foo<2> {
-    // fabricated precomputable parameters of custom finite field
-    // these parameters need to determined at compile time
+    // fabricated precomputable parameters of custom finite field,
+    // these constant parameters need to determined at compile time
     // W = 256, MODULUS/M = 517, R = 256^2 % M = 394, M0 = -M[0]^{-1} % W = 51
     const MODULUS: BI<2> = BI([5, 2]);
     const R: BI<2> = BI([138, 1]);
@@ -376,69 +378,100 @@ impl Field<2> for Foo<2> {
         }
     }
 
-    fn one() -> Self {
-        Self(BI([1_u8, 0_u8]))
+    fn ONE() -> Self {
+        Self(Self::R)
     }
 
-    fn zero() -> Self {
-        Self(BI([0_u8, 0_u8]))
+    fn ZERO() -> Self {
+        Self(BI::<2>::zero())
     }
 
+    // referenced from Algorithm 11.12 of "handbook of elliptic and hyperelliptic curve cryptography"
     // (aR)^{-1} % N <- ((aR)^{-1} * R^2) * R^{-1} % N
     fn inv(&self) -> Self {
-        let (mut r, mut s, mut t, mut v) = (self.0, Self::one().0, Self::MODULUS, Self::zero().0);
-        let m = (2 * 8 + 1) as usize;
+        let (mut r, mut s, mut t, mut v) = (self.0, BI::<2>::one(), Self::MODULUS, BI::<2>::zero());
+
+        /////////////////////////////////////////////// STAGE ONE
         let mut k = 0 as usize;
+        let mut tmp_carrier = 0_u8;
         while r.is_zero() == false {
             if t.is_even() {
-                (t, s) = ((t >> 2).0, (s << 2).0);
-            } else if (r.is_even()) {
-                (r, v) = ((r >> 2).0, (v << 2).0);
-                ///////////// debug
-                assert!((v << 2).1 == 0);
-            } else if (t > r) {
-                (t, v, s) = (((t - r).0 >> 2).0, (v + s).0, (s << 2).0);
-                ///////////// debug
-                assert!((v + s).1 == 0);
+                // (t, s) = ((t >> 1).0, (s << 1).0);
+                t = (t >> 1).0;
+                (s, tmp_carrier) = s << 1;
+                // FOR DEBUG
+                assert!(tmp_carrier == 0);
+            } else if r.is_even() {
+                // (r, v) = ((r >> 1).0, (v << 1).0);
+                r = (r >> 1).0;
+                (v, tmp_carrier) = v << 1;
+                // FOR DEBUG
+                assert!(tmp_carrier == 0);
+            } else if t > r {
+                // (t, v, s) = (((t - r).0 >> 1).0, (v + s).0, (s << 1).0);
+                t = ((t - r).0 >> 1).0;
+                (v, tmp_carrier) = v + s;
+                s = (s << 1).0;
+                // FOR DEBUG
+                assert!(tmp_carrier == 0);
             } else {
-                (r, s, v) = (((r - t).0 >> 2).0, (s + v).0, (v << 2).0);
-                ///////////// debug
-                assert!((s + v).1 == 0);
+                // (r, s, v) = (((r - t).0 >> 1).0, (s + v).0, (v << 1).0);
+                r = ((r - t).0 >> 1).0;
+                (s, tmp_carrier) = s + v;
+                v = (v << 1).0;
+                // FOR DEBUG
+                assert!(tmp_carrier == 0);
             }
             k = k + 1;
         }
 
-        // make sure v is within range [0, MODULUS)
+        // v <- v mod MODULUS, make sure v is within range [0, MODULUS)
         if v >= Self::MODULUS {
             v = (v - Self::MODULUS).0;
         }
-        v = (Self::MODULUS - v).0;
+        (v, tmp_carrier) = Self::MODULUS - v;
+        // FOR DEBUG
+        assert!(tmp_carrier == 0);
+        // println!("-----------*****---------- First stage finished!");
 
-        /////////////// debug
-        assert!((Self::MODULUS - v).1 == 0);
+        //////////////////////////////////////////// STAGE TWO
+        let m = 2 * 8 as usize;
         if k < m {
             (v, k) = (Self::mul_reduce(&v, &Self::R2).0, k + m);
         }
         let h_bit = 2 * m - k;
-        let x: Vec<u8> = [(1 << (h_bit % 8) - 1) as u8]
-            .into_iter()
-            .chain(vec![0_u8; h_bit / 8].to_vec().into_iter())
-            .collect();
 
+        // 2^{2m - k}
+        let mut x: Vec<u8> = vec![0_u8; h_bit / 8]
+            .to_vec()
+            .into_iter()
+            .chain([(1 << (h_bit % 8)) as u8].into_iter())
+            .collect();
+        let tmp_len = x.len();
+        if tmp_len < self.0 .0.len() {
+            x = x
+                .into_iter()
+                .chain(vec![0_u8; self.0 .0.len() - tmp_len].into_iter())
+                .collect();
+        }
+        println!("------- h_bit = {}, x = {:?}, v = {:?}", h_bit, x, v);
+
+        // REDC(v * R2)
         v = Self::mul_reduce(&v, &Self::R2).0;
+        // REDC(v * 2^{2m - k})
         v = Self::mul_reduce(&v, &BI(x.try_into().unwrap())).0;
+
         Self(v)
     }
 
     // a % N <- aR * R^{-1} % N
     fn rev_reduce(&self) -> BI<2> {
-        Self::mul_reduce(&self.0, &Self::one().0).0
+        Self::mul_reduce(&self.0, &BI::<2>::one()).0
     }
 
+    // referenced from Algorithm 11.3 of "handbook of elliptic and hyperelliptic curve cryptography"
     // abR % N <- (aR * bR) * R^{-1} % N
     fn mul_reduce(lft: &BI<2>, rht: &BI<2>) -> Self {
-        // println!("------ lft = {:?}, rht = {:?}", lft, rht);
-
         let s = 2;
         let mut t = BI([0_u8; 2]);
         let (mut c1, mut c2, mut overflow) = (0_u8, 0_u8, false);
@@ -451,10 +484,6 @@ impl Field<2> for Foo<2> {
             if overflow {
                 c2 += 1_u8;
             }
-            // println!(
-            //     "stage 1: i = {}, t = {},{},{:?}, ({:?}, {}) = {:?} * {}",
-            //     i, c2, c1, t, ab, tmp_c1, lft, rht.0[i]
-            // );
 
             // t = t + ((t[0] * N'[0]) mod W) * N
             let (mut tmp_c3, mut tmp_c4, mut mn) = (0_u8, 0_u8, BI([0_u8; 2]));
@@ -465,22 +494,12 @@ impl Field<2> for Foo<2> {
             if overflow {
                 c2 += 1_u8;
             }
-            // println!(
-            //     "stage 2: i = {}, t = {},{},{:?}, {:?} * {}",
-            //     i,
-            //     c2,
-            //     c1,
-            //     t,
-            //     Self::MODULUS,
-            //     m
-            // );
 
             // t >> 1
             for j in 0..(s - 1) {
                 t.0[j] = t.0[j + 1];
             }
             (t.0[s - 1], c1, c2) = (c1, c2, 0_u8);
-            // println!("stage 3: i = {}, t = {},{},{:?}", i, c2, c1, t,);
         }
 
         Self(t)
@@ -490,6 +509,32 @@ impl Field<2> for Foo<2> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // referenced from Algorithm 10.42 of "handbook of elliptic and hyperelliptic curve cryptography"
+    fn gcd(a: u16, b: u16) -> (u16, u16, u16, bool) {
+        assert!(a < b);
+        let (mut A, mut B) = (b, a);
+        let (mut Ua, mut Ub) = (0, 1);
+        let (mut Va, mut Vb) = (1, 0);
+        let mut n_iter = 0_u16;
+        while B != 0 {
+            let q = A / B;
+            (A, B) = (B, A - q * B);
+            (Ua, Ub) = (Ub, Ua + q * Ub);
+            (Va, Vb) = (Vb, Va + q * Vb);
+            n_iter = n_iter + 1;
+        }
+        let (d, u, v) = (A, Ua, Va);
+        (u, v, d, n_iter % 2 == 0)
+    }
+
+    #[test]
+    fn test_shift() {
+        let a = BI([64_u8, 1_u8]);
+        assert_eq!((a >> 1).0, BI([160_u8, 0_u8]));
+        let b = BI([129_u8, 2_u8]);
+        assert_eq!((b << 1).0, BI([2_u8, 5_u8]));
+    }
 
     #[test]
     fn test_conversion() {
@@ -517,5 +562,20 @@ mod tests {
         let rht = Foo::<2>::from_str(b.to_string().as_str()).unwrap();
         let result = Foo::<2>::from_str(c.to_string().as_str()).unwrap();
         assert_eq!(lft * rht, result);
+    }
+
+    #[test]
+    fn test_inv() {
+        let (a, M) = (259_u16, 517_u16);
+        let (mut c, _, d, sign) = gcd(a, M);
+        assert!(d == 1);
+        c = if sign { M - c } else { c };
+        println!("a = {}, a^-1 = {}, M = {}", a, c, M);
+        let lft = Foo::<2>::from_str(a.to_string().as_str()).unwrap();
+        let result = Foo::<2>::from_str(c.to_string().as_str()).unwrap();
+        println!("aR % M = {:?}, a^-1R % M = {:?}", lft, result);
+        assert_eq!(Foo::<2>::mul_reduce(&lft.0, &result.0), Foo::<2>::ONE());
+        assert_eq!(lft.inv(), result);
+        // assert_eq!(Foo::<2>::mul_reduce(&lft.0, &lft.inv().0), Foo::<2>::ONE());
     }
 }
