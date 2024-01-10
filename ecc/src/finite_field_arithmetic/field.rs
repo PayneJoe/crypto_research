@@ -467,7 +467,7 @@ impl Sqrt for Foo<2> {
         let tmp_x = a * x.clone();
         (b, x) = (tmp_x.clone() * x, tmp_x);
         while b != Self::ONE() {
-            let mut m = 1 as u8;
+            let mut m = 0 as u8;
             let mut tmp_b = b.clone();
             while tmp_b != Self::ONE() {
                 tmp_b.square_inplace();
@@ -509,12 +509,12 @@ impl Field<2> for Foo<2> {
     const R: BI<2> = BI([237, 8]);
     const R2: BI<2> = BI([73, 5]);
     const R3: BI<2> = BI([245, 8]);
-    const M0: u8 = 1_u8;
+    const M0: u8 = 255_u8;
     // 2^E * RODD = MODULUS - 1
     const E: u8 = 8_u8;
     const RODD: u8 = 13_u8;
-    // N is a sampled non-quadratic residual number
-    const N: BI<2> = BI([4, 0]);
+    // N is a sampled non-quadratic residual number, 3/6/11/12/...
+    const N: BI<2> = BI([3, 0]);
 
     fn legendre_symbol(self) -> bool {
         let mut k = 1;
@@ -690,7 +690,7 @@ mod tests {
 
     // referenced from Algorithm 10.42 of "handbook of elliptic and hyperelliptic curve cryptography"
     // GCD of two single precision positive integers
-    fn gcd(a: u16, b: u16) -> (u16, u16, u16, bool) {
+    fn gcd(a: u32, b: u32) -> (u32, u32, u32, bool) {
         assert!(a < b);
         let (mut A, mut B) = (b, a);
         let (mut Ua, mut Ub) = (0, 1);
@@ -705,6 +705,18 @@ mod tests {
         }
         let (d, u, v) = (A, Ua, Va);
         (u, v, d, n_iter % 2 == 0)
+    }
+
+    #[test]
+    fn test_gcd() {
+        let (a, b) = (3329, 65536);
+        let (u, v, d, sign) = gcd(a, b);
+        println!("u = {}, v = {}, d = {}, sign = {}", u, v, d, sign);
+        if sign {
+            assert_eq!(b * v - a * u, d)
+        } else {
+            assert_eq!(a * u - b * v, d);
+        }
     }
 
     #[test]
@@ -730,6 +742,15 @@ mod tests {
     }
 
     #[test]
+    fn test_reduce() {
+        let (a, b) = (4 as u16, ((4 * 256 * 256) % 3329) as u16);
+        let lft = Foo::<2>::from_str(a.to_string().as_str()).unwrap();
+        // let rht = Foo::<2>::from_str(b.to_string().as_str()).unwrap();
+        let rht = Foo(BI::<2>::from_str(b.to_string().as_str()).unwrap());
+        assert_eq!(lft, rht);
+    }
+
+    #[test]
     fn test_add() {
         let (a, b) = (259_u16, 258_u16);
         let c = u32::from(a) + u32::from(b);
@@ -751,8 +772,8 @@ mod tests {
 
     #[test]
     fn test_inv() {
-        let (a, M) = (259_u16, 3329_u16);
-        let (mut c, _, d, sign) = gcd(a, M);
+        let (a, M) = (259_u32, 3329_u32);
+        let (mut c, _, d, sign) = gcd(a as u32, M as u32);
         assert!(d == 1);
         c = if sign { M - c } else { c };
         let lft = Foo::<2>::from_str(a.to_string().as_str()).unwrap();
@@ -775,14 +796,23 @@ mod tests {
 
     #[test]
     fn test_is_quadratic_residual() {
-        for i in (1..3329) {
-            let lft = Foo::<2>::from_str(i.to_string().as_str()).unwrap();
-            let e = ((Foo::<2>::MODULUS - BI::<2>::one()).0 >> 1).0;
-            if lft.exp(e) == Foo::<2>::ONE() {
-                println!("{} is quadratic residual", i);
-                // assert_eq!(u128::from(i as u32).pow(3328 / 2) % 3329, 0);
-            }
-        }
+        let residual_numbers: Vec<i32> = (1..3329)
+            .map(|i| {
+                let lft = Foo::<2>::from_str(i.to_string().as_str()).unwrap();
+                let e = ((Foo::<2>::MODULUS - BI::<2>::one()).0 >> 1).0;
+                if lft.exp(e) == Foo::<2>::ONE() {
+                    i
+                } else {
+                    0
+                }
+            })
+            .filter(|x| x > &0)
+            .collect();
+        println!(
+            "samples of quadratic residual number: {:?}",
+            residual_numbers[..200].to_vec()
+        );
+        assert_eq!(residual_numbers.len(), (3329 - 1) / 2);
     }
 
     #[test]
