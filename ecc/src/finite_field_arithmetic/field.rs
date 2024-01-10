@@ -27,7 +27,16 @@ impl Ord for BI<2> {
 }
 
 impl BI<2> {
-    fn bits(self) -> usize {
+    fn to_bits(self) -> Vec<u8> {
+        (0..self.0.len())
+            .map(|i| ((0..8).map(|j| ((self.0[i] >> j) & 1) as u8)).collect::<Vec<u8>>())
+            .collect::<Vec<Vec<u8>>>()
+            .into_iter()
+            .flatten()
+            .collect::<Vec<u8>>()
+    }
+
+    fn bit_size(self) -> usize {
         let mut num_bits = 0 as usize;
         let n = 2;
         let (mut a, mut b) = (0 as usize, 0 as usize);
@@ -83,8 +92,24 @@ impl BI<2> {
 impl FromStr for BI<2> {
     type Err = ParseStrErr;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        unimplemented!()
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        // parse the large number
+        let mut large_number = text.parse::<u16>().map_err(|_| ParseStrErr).unwrap();
+
+        let apply_parse = |word: u16| -> BI<2> {
+            let mut large_word = word;
+            let num_bits = 8 as usize;
+            let mut w = vec![0_u8; 2];
+            let mask = ((1 << num_bits) - 1) as u16;
+            for i in 0..2 {
+                w[i] = (large_word & mask) as u8;
+                large_word = large_word >> 8;
+            }
+            BI(w.try_into().unwrap())
+        };
+
+        // apply reduce through mul_reduce
+        Ok(apply_parse(large_number))
     }
 }
 
@@ -359,6 +384,29 @@ impl Div for Foo<2> {
     }
 }
 
+pub trait Exponentiation {
+    type Output;
+
+    fn exp(self, n: &BI<2>) -> Self;
+}
+
+impl Exponentiation for Foo<2> {
+    type Output = Foo<2>;
+
+    // referenced from Algorithm 11.7 of "handbook of elliptic and hyperelliptic curve cryptography"
+    fn exp(self, n: &BI<2>) -> Self {
+        let n_bits = n.to_bits();
+        let (mut y, x) = (Self::ONE().0, self.0);
+        for i in (0..n_bits.len()).rev() {
+            y = Self::mul_reduce(&y, &y).0;
+            if n_bits[i] == 1 {
+                y = Self::mul_reduce(&x, &y).0;
+            }
+        }
+        Self(y)
+    }
+}
+
 // define custom finite field
 impl Field<2> for Foo<2> {
     // fabricated precomputable parameters of custom finite field,
@@ -385,6 +433,8 @@ impl Field<2> for Foo<2> {
     fn ZERO() -> Self {
         Self(BI::<2>::zero())
     }
+
+    //
 
     // referenced from Algorithm 11.12 of "handbook of elliptic and hyperelliptic curve cryptography"
     // (aR)^{-1} % N <- ((aR)^{-1} * R^2) * R^{-1} % N
@@ -575,6 +625,17 @@ mod tests {
         let result = Foo::<2>::from_str(c.to_string().as_str()).unwrap();
         assert_eq!(Foo::<2>::mul_reduce(&lft.0, &result.0), Foo::<2>::ONE());
         assert_eq!(lft.inv(), result);
-        // assert_eq!(Foo::<2>::mul_reduce(&lft.0, &lft.inv().0), Foo::<2>::ONE());
+    }
+
+    #[test]
+    fn test_exp() {
+        let (a, b) = (259_u32, 3_u32);
+        let (c, n) = (
+            a.pow(b.into()),
+            BI::<2>::from_str(b.to_string().as_str()).unwrap(),
+        );
+        let lft = Foo::<2>::from_str(a.to_string().as_str()).unwrap();
+        let result = Foo::<2>::from_str(c.to_string().as_str()).unwrap();
+        assert_eq!(lft.exp(&n), result);
     }
 }
