@@ -10,11 +10,15 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
 
         specificially for basic arithmetics on big integers
 
+        - add/substruction/multiplication/division
+
+        - euclid extended gcd/lehmer extended gcd
+
     - finite_field_arithmetic
 
         specificailly for basic arithmetics on finite field
 
-        - add/substruction/multiplication/division/inversion/modulo/gcd
+        - add/substruction/multiplication/division/inversion/modulo/exponentiation/sqrt/square
 
     - elliptic_curve_arithmetic [Ongoing]
     - hyperelliptic_curve_arithmetic [TODO] 
@@ -41,6 +45,7 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
 <br />
 
 ## Credits
+
 [1] Handbook of Elliptic and Hyperelliptic Curve Cryptography
 
 [2] Guide to Elliptic Curve Cryptography
