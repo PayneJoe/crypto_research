@@ -504,7 +504,7 @@ impl Field<2> for Foo<2> {
     // const R3: BI<2> = BI([77, 1]);
     // const M0: u8 = 51_u8;
 
-    // W = 256, MODULUS/M = 3329 = 2^8 * 13 + 1, R = 256^2 % MODULUS = 982, M0 = -M[0]^{-1} % MODULUS = 1
+    // W = 256, MODULUS/M = 3329 = 2^8 * 13 + 1, R = 256^2 % MODULUS = 982, M0 = (-M^{-1} % 256^2) % W = 255
     const MODULUS: BI<2> = BI([1, 13]);
     const R: BI<2> = BI([237, 8]);
     const R2: BI<2> = BI([73, 5]);
