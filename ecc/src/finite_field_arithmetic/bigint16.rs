@@ -17,19 +17,11 @@ fn div_internal(
 
     // normalization
     let mut d = 1_u16;
-    // println!(
-    //     "**** Before normalization: u = {:?}, v = {:?}, d = {}",
-    //     u.data, v.data, d
-    // );
     while v.data[nv - 1] < (b / 2) as u16 {
         v = &v << (1 as usize);
         u = &u << (1 as usize);
         d = d * 2;
     }
-    // println!(
-    //     "**** After normalization: u = {:?}, v = {:?}, d = {}",
-    //     u.data, v.data, d
-    // );
 
     // reset highest digit
     u.data.push(0 as u16);
@@ -45,14 +37,6 @@ fn div_internal(
         let u_2w = (u32::from(u.data[nv + i]) << 16) + u32::from(u.data[nv + i - 1]);
         let v_1w = u32::from(v.data[nv - 1]);
         let mut q_prox = (std::cmp::min(u_2w / v_1w, (b - 1) as u32)) as u16;
-
-        // println!(
-        //     "**** After 2-word approximation: q_prox = {}, q_2w = {}, u_2w = {:?}, v[n - 1] = {:?}",
-        //     q_prox,
-        //     u_2w / v_1w,
-        //     u.data[nv + i - 1..nv + i + 1].to_vec(),
-        //     v.data[nv - 1..nv].to_vec(),
-        // );
 
         // three word proximate quotient
         if v.size() >= 2 {
@@ -73,11 +57,6 @@ fn div_internal(
             }
         }
 
-        // println!(
-        //     "**** After 3-words approximation: q_prox = {}, u_3w = {:?}, u_3w_prox = {:?}",
-        //     q_prox, u_3w.data, u_3w_prox.data
-        // );
-
         // n_plus_one word proximate quotient
         let u_nplus1w_prox = &v * (q_prox as usize);
         let u_nplus1w = BigInteger {
@@ -89,7 +68,6 @@ fn div_internal(
         if diff.is_negative() {
             diff = &diff + &v;
         }
-        // println!("***** Updated upper words: u[i..(i + nv + 1)] = {:?}", diff);
         let updated_upper: Vec<u16> = diff
             .data
             .clone()
@@ -97,15 +75,7 @@ fn div_internal(
             .chain(vec![0_u16; nv + 1 - diff.size()].into_iter())
             .collect();
         u.data[i..(i + nv + 1)].copy_from_slice(updated_upper.as_slice());
-
-        // println!(
-        //     "***** After last proximation: q_prox = {}, u[i..i+n-1] = {:?}",
-        //     q_prox,
-        //     u.data[i..(i + nv + 1)].to_vec(),
-        // );
-
         q.data[i] = q_prox;
-        // println!("------------- \n");
     }
     q.strip_leading_zeros();
 

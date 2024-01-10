@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::ops::{Add, Div, Mul, Shl, Shr, Sub};
+use std::ops::{Add, Div, Mul, Rem, Shl, Shr, Sub};
 use std::str::FromStr;
 
 //////////////////////////////////// Implementation of BigInteger Specially for Finite Field
@@ -110,6 +110,27 @@ impl FromStr for BI<2> {
 
         // apply reduce through mul_reduce
         Ok(apply_parse(large_number))
+    }
+}
+
+// naive implementation of modular for bigint
+impl Rem<Self> for BI<2> {
+    type Output = BI<2>;
+    fn rem(self, other: Self) -> Self::Output {
+        if self < other {
+            return other;
+        }
+        let (asize, bsize) = (self.bit_size(), other.bit_size());
+        assert!(asize >= bsize);
+        let mut prox_lft = (other << (asize - bsize) as u8).0;
+        if prox_lft > self {
+            prox_lft = (prox_lft >> 1).0;
+        }
+        let mut remainder = (self - prox_lft).0;
+        while remainder >= other {
+            remainder = (remainder - other).0;
+        }
+        remainder
     }
 }
 
@@ -264,11 +285,18 @@ pub trait Field<const N: usize>: FromStr + From<BI<N>> + Into<BI<N>> {
     const R3: BI<N>;
     // inversion of least significant word of modulus, also convenient for Montgomery reduce
     const M0: u8;
+    // for the convenient of square root
+    const E: u8;
+    const RODD: u8;
+    const N: BI<N>;
 
-    // one
     fn ONE() -> Self;
-
     fn ZERO() -> Self;
+
+    // legendre symbol
+    fn legendre_symbol(self) -> bool;
+
+    fn is_quadratic_residual(self) -> bool;
 
     // reduce a bigint into the specified range [0, modulus)
     fn reduce(u: &BI<N>, inv: Option<bool>) -> Self;
@@ -276,6 +304,9 @@ pub trait Field<const N: usize>: FromStr + From<BI<N>> + Into<BI<N>> {
     fn rev_reduce(&self) -> BI<N>;
     // inversion of a reduced number
     fn inv(&self) -> Self;
+
+    //
+    fn square_inplace(&mut self);
 
     // Montgomery Reduction
     fn mul_reduce(lft: &BI<N>, rht: &BI<N>) -> Self;
@@ -285,7 +316,7 @@ pub trait Field<const N: usize>: FromStr + From<BI<N>> + Into<BI<N>> {
 #[derive(Debug)]
 pub struct ParseStrErr;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Foo<const T: usize>(BI<T>);
 
 /////////////////////////////////////// Implementation of Custom Finite Field
@@ -387,15 +418,22 @@ impl Div for Foo<2> {
 pub trait Exponentiation {
     type Output;
 
-    fn exp(self, n: &BI<2>) -> Self;
+    fn exp(&self, n: BI<2>) -> Self;
+
+    fn exp_raw(&self, n: &[u8]) -> Self;
 }
 
 impl Exponentiation for Foo<2> {
     type Output = Foo<2>;
 
     // referenced from Algorithm 11.7 of "handbook of elliptic and hyperelliptic curve cryptography"
-    fn exp(self, n: &BI<2>) -> Self {
+    fn exp(&self, n: BI<2>) -> Self {
         let n_bits = n.to_bits();
+        self.exp_raw(n_bits.as_slice())
+    }
+
+    fn exp_raw(&self, n: &[u8]) -> Self {
+        let n_bits = n;
         let (mut y, x) = (Self::ONE().0, self.0);
         for i in (0..n_bits.len()).rev() {
             y = Self::mul_reduce(&y, &y).0;
@@ -407,16 +445,108 @@ impl Exponentiation for Foo<2> {
     }
 }
 
+pub trait Sqrt: Sized {
+    type Output;
+
+    fn sqrt(self) -> Option<Self>;
+}
+
+impl Sqrt for Foo<2> {
+    type Output = Option<Foo<2>>;
+
+    // referenced from Algorithm 11.23 of "handbook of elliptic and hyperelliptic curve cryptography"
+    fn sqrt(self) -> Self::Output {
+        let (n, r) = (Self::reduce(&Self::N, Some(false)), BI([Self::RODD, 0_u8]));
+        let (a, z) = (self.clone(), n.exp(r));
+        let (mut y, mut s, mut x, mut b) = (
+            z,
+            Self::E,
+            a.exp(((r - BI::<2>::one()).0 >> 1).0),
+            Self::ZERO(),
+        );
+        let tmp_x = a * x.clone();
+        (b, x) = (tmp_x.clone() * x, tmp_x);
+        while b != Self::ONE() {
+            let mut m = 1 as u8;
+            let mut tmp_b = b.clone();
+            while tmp_b != Self::ONE() {
+                tmp_b.square_inplace();
+                m = m + 1;
+            }
+            // non-quadratic residual
+            if m == Self::E {
+                return None;
+            }
+            let ss = s - m - 1;
+            let mut t = y.clone();
+            for i in 0..ss {
+                t.square_inplace();
+            }
+            y = t * t;
+            (s, x, b) = (m, t * x, y * b);
+        }
+        // FOR DEBUG
+        if self.is_quadratic_residual() {
+            assert!(x * x == self);
+        }
+        Some(x)
+    }
+}
+
 // define custom finite field
 impl Field<2> for Foo<2> {
     // fabricated precomputable parameters of custom finite field,
     // these constant parameters need to determined at compile time
     // W = 256, MODULUS/M = 517, R = 256^2 % M = 394, M0 = -M[0]^{-1} % W = 51
-    const MODULUS: BI<2> = BI([5, 2]);
-    const R: BI<2> = BI([138, 1]);
-    const R2: BI<2> = BI([136, 0]);
-    const R3: BI<2> = BI([77, 1]);
-    const M0: u8 = 51_u8;
+    // const MODULUS: BI<2> = BI([5, 2]);
+    // const R: BI<2> = BI([138, 1]);
+    // const R2: BI<2> = BI([136, 0]);
+    // const R3: BI<2> = BI([77, 1]);
+    // const M0: u8 = 51_u8;
+
+    // W = 256, MODULUS/M = 3329 = 2^8 * 13 + 1, R = 256^2 % MODULUS = 982, M0 = -M[0]^{-1} % MODULUS = 1
+    const MODULUS: BI<2> = BI([1, 13]);
+    const R: BI<2> = BI([237, 8]);
+    const R2: BI<2> = BI([73, 5]);
+    const R3: BI<2> = BI([245, 8]);
+    const M0: u8 = 1_u8;
+    // 2^E * RODD = MODULUS - 1
+    const E: u8 = 8_u8;
+    const RODD: u8 = 13_u8;
+    // N is a sampled non-quadratic residual number
+    const N: BI<2> = BI([4, 0]);
+
+    fn legendre_symbol(self) -> bool {
+        let mut k = 1;
+        let (mut p, mut a) = (Self::MODULUS.clone(), self.0.clone());
+        while p != BI::<2>::one() {
+            if a.is_zero() {
+                return false;
+            }
+            let mut v = 0;
+            while a.is_even() {
+                a = (a >> 1).0;
+                v = v + 1;
+            }
+            if (v % 2 == 1) && ((p.0[0] % 8 == 3) || (p.0[0] % 8 == 5)) {
+                k = -k;
+            }
+            if (a.0[0] % 4 == 3) && (p.0[0] % 4 == 3) {
+                k = -k;
+            }
+            // time-consuming
+            (a, p) = (p % a, a)
+        }
+        k == 1
+    }
+
+    fn is_quadratic_residual(self) -> bool {
+        self.exp(((Self::MODULUS - BI::<2>::one()).0 >> 1).0) == Self::ONE()
+    }
+
+    fn square_inplace(&mut self) {
+        *self = Self::mul_reduce(&(*self).0, &(*self).0);
+    }
 
     fn reduce(u: &BI<2>, inv: Option<bool>) -> Self {
         if let Some(true) = inv {
@@ -433,8 +563,6 @@ impl Field<2> for Foo<2> {
     fn ZERO() -> Self {
         Self(BI::<2>::zero())
     }
-
-    //
 
     // referenced from Algorithm 11.12 of "handbook of elliptic and hyperelliptic curve cryptography"
     // (aR)^{-1} % N <- ((aR)^{-1} * R^2) * R^{-1} % N
@@ -588,7 +716,13 @@ mod tests {
     }
 
     #[test]
-    fn test_conversion() {
+    fn test_bitsize() {
+        let b = BI([129_u8, 2_u8]);
+        assert_eq!(b.bit_size(), 10);
+    }
+
+    #[test]
+    fn test_fromstr() {
         let a = 259_u16;
         let result: BI<2> = Foo::<2>::from_str(a.to_string().as_str()).unwrap().into();
         let actual = BI([(a % 256) as u8, (a / 256) as u8]);
@@ -617,7 +751,7 @@ mod tests {
 
     #[test]
     fn test_inv() {
-        let (a, M) = (259_u16, 517_u16);
+        let (a, M) = (259_u16, 3329_u16);
         let (mut c, _, d, sign) = gcd(a, M);
         assert!(d == 1);
         c = if sign { M - c } else { c };
@@ -636,6 +770,32 @@ mod tests {
         );
         let lft = Foo::<2>::from_str(a.to_string().as_str()).unwrap();
         let result = Foo::<2>::from_str(c.to_string().as_str()).unwrap();
-        assert_eq!(lft.exp(&n), result);
+        assert_eq!(lft.exp(n), result);
+    }
+
+    #[test]
+    fn test_is_quadratic_residual() {
+        for i in (1..3329) {
+            let lft = Foo::<2>::from_str(i.to_string().as_str()).unwrap();
+            let e = ((Foo::<2>::MODULUS - BI::<2>::one()).0 >> 1).0;
+            if lft.exp(e) == Foo::<2>::ONE() {
+                println!("{} is quadratic residual", i);
+                // assert_eq!(u128::from(i as u32).pow(3328 / 2) % 3329, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn test_square_root() {
+        let (a, b) = (180_u32, 181_u32);
+        let pos = Foo::<2>::from_str(a.to_string().as_str()).unwrap();
+        let neg = Foo::<2>::from_str(b.to_string().as_str()).unwrap();
+        if pos.is_quadratic_residual() {
+            let result = pos.sqrt().unwrap();
+            assert_eq!(result * result, pos);
+        }
+        if neg.is_quadratic_residual() {
+            assert_eq!(neg.sqrt(), None);
+        }
     }
 }
