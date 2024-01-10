@@ -511,6 +511,7 @@ mod tests {
     use super::*;
 
     // referenced from Algorithm 10.42 of "handbook of elliptic and hyperelliptic curve cryptography"
+    // GCD of two single precision positive integers
     fn gcd(a: u16, b: u16) -> (u16, u16, u16, bool) {
         assert!(a < b);
         let (mut A, mut B) = (b, a);
@@ -570,10 +571,8 @@ mod tests {
         let (mut c, _, d, sign) = gcd(a, M);
         assert!(d == 1);
         c = if sign { M - c } else { c };
-        println!("a = {}, a^-1 = {}, M = {}", a, c, M);
         let lft = Foo::<2>::from_str(a.to_string().as_str()).unwrap();
         let result = Foo::<2>::from_str(c.to_string().as_str()).unwrap();
-        println!("aR % M = {:?}, a^-1R % M = {:?}", lft, result);
         assert_eq!(Foo::<2>::mul_reduce(&lft.0, &result.0), Foo::<2>::ONE());
         assert_eq!(lft.inv(), result);
         // assert_eq!(Foo::<2>::mul_reduce(&lft.0, &lft.inv().0), Foo::<2>::ONE());
