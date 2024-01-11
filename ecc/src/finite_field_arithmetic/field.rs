@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::ops::{Add, Div, Mul, Rem, Shl, Shr, Sub};
+use std::ops::{Add, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 use std::str::FromStr;
 
 //////////////////////////////////// Implementation of BigInteger Specially for Finite Field
@@ -317,7 +317,7 @@ pub trait Field<const N: usize>: FromStr + From<BI<N>> + Into<BI<N>> {
 pub struct ParseStrErr;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Foo<const T: usize>(BI<T>);
+pub struct Foo<const T: usize>(pub BI<T>);
 
 /////////////////////////////////////// Implementation of Custom Finite Field
 impl FromStr for Foo<2> {
@@ -394,7 +394,7 @@ impl Sub for Foo<2> {
         if self.0 > other.0 {
             Self((self.0 - other.0).0)
         } else {
-            Self((other.0 - self.0).0)
+            Self((Self::MODULUS - (other.0 - self.0).0).0)
         }
     }
 }
@@ -407,11 +407,30 @@ impl Mul for Foo<2> {
     }
 }
 
+impl Mul<u8> for Foo<2> {
+    type Output = Foo<2>;
+
+    fn mul(self, other: u8) -> Foo<2> {
+        Self::mul_reduce(
+            &self.0,
+            &Self::from_str(other.to_string().as_str()).unwrap().0,
+        )
+    }
+}
+
 impl Div for Foo<2> {
     type Output = Foo<2>;
 
     fn div(self, other: Self) -> Foo<2> {
         Self::mul_reduce(&self.0, &other.inv().0)
+    }
+}
+
+impl Neg for Foo<2> {
+    type Output = Foo<2>;
+
+    fn neg(self) -> Foo<2> {
+        Self::ZERO() - self
     }
 }
 

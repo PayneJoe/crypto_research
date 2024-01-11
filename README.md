@@ -21,6 +21,11 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
         - add/substruction/multiplication/division/inversion/modulo/exponentiation/sqrt/square
 
     - elliptic_curve_arithmetic [Ongoing]
+
+        specially for neccessary arithmetics on elliptic curves
+
+        - add/doubling/scalar_mul/...
+
     - hyperelliptic_curve_arithmetic [TODO] 
     - special_curve_arithmetic [TODO]
     - pairings [TODO]

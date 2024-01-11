@@ -2,8 +2,11 @@ pub mod bigint16;
 pub mod field;
 pub mod gcd16;
 
+pub type BigInt = field::BI<2>;
+pub type PrimeField = field::Foo<2>;
+
 // implemendted BigInteger<u16> for external usage
-type BigInt16 = BigInteger<u16>;
+pub type BigInt16 = BigInteger<u16>;
 
 use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
