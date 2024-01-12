@@ -27,13 +27,24 @@ impl Ord for BI<2> {
 }
 
 impl BI<2> {
-    fn to_bits(self) -> Vec<u8> {
-        (0..self.0.len())
+    pub fn to_bits(self) -> Vec<u8> {
+        let num_leading_zeros = self.0.iter().rev().fold(0, |acc, n| {
+            if acc == 0 {
+                acc + n.leading_zeros()
+            } else if (acc % 8) == 0 {
+                acc + n.leading_zeros()
+            } else {
+                acc
+            }
+        });
+        let bits = (0..self.0.len())
             .map(|i| ((0..8).map(|j| ((self.0[i] >> j) & 1) as u8)).collect::<Vec<u8>>())
             .collect::<Vec<Vec<u8>>>()
             .into_iter()
             .flatten()
-            .collect::<Vec<u8>>()
+            .collect::<Vec<u8>>();
+        let end = bits.len() - (num_leading_zeros as usize);
+        bits[..end].to_vec()
     }
 
     fn bit_size(self) -> usize {
@@ -636,27 +647,27 @@ impl Field<2> for Foo<2> {
         if k < m {
             (v, k) = (Self::mul_reduce(&v, &Self::R2).0, k + m);
         }
-        let h_bit = 2 * m - k;
 
         // 2^{2m - k}
-        let mut x: Vec<u8> = vec![0_u8; h_bit / 8]
-            .to_vec()
-            .into_iter()
-            .chain([(1 << (h_bit % 8)) as u8].into_iter())
+        let mut h_bit = 2 * m - k;
+        let x: Vec<u8> = (0..self.0 .0.len())
+            .map(|i| {
+                if h_bit >= 8 {
+                    h_bit -= 8;
+                    0_u8
+                } else {
+                    1 << h_bit
+                }
+            })
             .collect();
-        let tmp_len = x.len();
-        if tmp_len < self.0 .0.len() {
-            x = x
-                .into_iter()
-                .chain(vec![0_u8; self.0 .0.len() - tmp_len].into_iter())
-                .collect();
-        }
-        println!("------- h_bit = {}, x = {:?}, v = {:?}", h_bit, x, v);
 
         // REDC(v * R2)
         v = Self::mul_reduce(&v, &Self::R2).0;
         // REDC(v * 2^{2m - k})
-        v = Self::mul_reduce(&v, &BI(x.try_into().unwrap())).0;
+        let res = BI(x.try_into().unwrap());
+        if res.is_zero() == false {
+            v = Self::mul_reduce(&v, &res).0;
+        }
 
         Self(v)
     }
@@ -669,6 +680,9 @@ impl Field<2> for Foo<2> {
     // referenced from Algorithm 11.3 of "handbook of elliptic and hyperelliptic curve cryptography"
     // abR % N <- (aR * bR) * R^{-1} % N
     fn mul_reduce(lft: &BI<2>, rht: &BI<2>) -> Self {
+        if (*lft == BI::zero()) || (*rht == BI::zero()) {
+            return Self::ZERO();
+        }
         let s = 2;
         let mut t = BI([0_u8; 2]);
         let (mut c1, mut c2, mut overflow) = (0_u8, 0_u8, false);
@@ -753,6 +767,12 @@ mod tests {
     }
 
     #[test]
+    fn test_to_bits() {
+        let b = BI([129_u8, 2_u8]);
+        assert_eq!(b.to_bits(), vec![1, 0, 0, 0, 0, 0, 0, 1, 0, 1]);
+    }
+
+    #[test]
     fn test_fromstr() {
         let a = 259_u16;
         let result: BI<2> = Foo::<2>::from_str(a.to_string().as_str()).unwrap().into();
@@ -791,12 +811,14 @@ mod tests {
 
     #[test]
     fn test_inv() {
-        let (a, M) = (259_u32, 3329_u32);
+        // let (a, M) = (259_u32, 3329_u32);
+        let (a, M) = (1174_u32, 3329_u32);
         let (mut c, _, d, sign) = gcd(a as u32, M as u32);
         assert!(d == 1);
         c = if sign { M - c } else { c };
         let lft = Foo::<2>::from_str(a.to_string().as_str()).unwrap();
         let result = Foo::<2>::from_str(c.to_string().as_str()).unwrap();
+        println!("\n\nresult = {:?}", result);
         assert_eq!(Foo::<2>::mul_reduce(&lft.0, &result.0), Foo::<2>::ONE());
         assert_eq!(lft.inv(), result);
     }

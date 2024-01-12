@@ -2,15 +2,21 @@ use std::str::FromStr;
 
 use crate::finite_field_arithmetic::field::{Field, Foo, BI};
 use crate::finite_field_arithmetic::{BigInt, PrimeField};
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Neg};
 
 pub trait Curve {
+    // parameters of standard weierstrass curve
     const a1: PrimeField;
     const a3: PrimeField;
     const a2: PrimeField;
     const a4: PrimeField;
     const a6: PrimeField;
+    // identity point on curve
     const IDENTITY: AffinePoint;
+    // generator
+    const GENERATOR: AffinePoint;
+    // order
+    const ORDER: BigInt;
 
     // referenced from Definition 13.2 of "handbook of elliptic and hyperelliptic curve cryptography"
     fn is_nonsingular() -> bool {
@@ -67,10 +73,18 @@ impl Curve for Bar {
     const a2: PrimeField = Foo(BI([158, 5]));
     const a4: PrimeField = Foo(BI([165, 9]));
     const a6: PrimeField = Foo(BI([43, 6]));
+    // faked identity representing the point at infinity
     const IDENTITY: AffinePoint = AffinePoint {
         x: Foo(BI([0, 0])),
         y: Foo(BI([0, 0])),
     };
+    // generator of this elliptic curve, g = (2535, 2835)
+    const GENERATOR: AffinePoint = AffinePoint {
+        x: Foo(BI([15, 0])),
+        y: Foo(BI([254, 11])),
+    };
+    // order of this elliptic curve is 3295, which is not a prime number
+    const ORDER: BigInt = BI([223, 12]);
 
     fn is_on_curve(p: &AffinePoint) -> bool {
         let (x, y) = (p.x, p.y);
@@ -94,6 +108,7 @@ impl Curve for Bar {
         (p1.x == p2.x) && (p1.y + p2.y == -Self::a1 * p1.x - Self::a3)
     }
 
+    // referenced from P.270 of "handbook of elliptic and hyperelliptic curve cryptography"
     fn addition(p1: &AffinePoint, p2: &AffinePoint) -> AffinePoint {
         if *p1 == Self::IDENTITY {
             return p2.clone();
@@ -114,6 +129,7 @@ impl Curve for Bar {
         } else {
             (y1 - y2, x1 - x2)
         };
+        // let tmp_nom: BI<2> = nominator.into();
         let lambda = denominator * nominator.inv();
         let x3 = lambda * lambda + Self::a1 * lambda - Self::a2 - x1 - x2;
         AffinePoint {
@@ -122,9 +138,55 @@ impl Curve for Bar {
         }
     }
 
+    // referenced from Algorithm 13.6 of "handbook of elliptic and hyperelliptic curve cryptography"
     fn scalar_mul(base: &AffinePoint, scalar: &BigInt) -> AffinePoint {
-        unimplemented!()
+        // k < 8, make sure u8 is big enough for store precomputated points
+        let k = 4;
+        let n = scalar.to_bits();
+
+        // precomputation table
+        let mut table = vec![base.clone()];
+        let double_base = base + base;
+        for i in 1..(1 << (k - 1)) {
+            table.push(&table[i - 1] + &double_base)
+        }
+
+        let (mut q, mut i) = (Self::IDENTITY, n.len() - 1);
+        while i != 0 {
+            if n[i] == 0 {
+                (q, i) = (&q + &q, i - 1);
+            } else {
+                // double
+                let mut s = std::cmp::max(i as i32 - k as i32 + 1, 0) as usize;
+                while n[s] == 0 {
+                    s = s + 1;
+                }
+                for h in 1..(i - s + 1) {
+                    q = &q + &q;
+                }
+                // println!("i = {}, after double q = {:?}", i, q);
+                // add with precomputated table
+                let u = bits_to_u8(&n[s..(i + 1)]);
+                q = &q + &table[((u - 1) / 2) as usize];
+                // println!("i = {}, after addition q = {:?}, u = {}", i, q, u);
+                i = if s >= 1 { s - 1 } else { 0 }
+            }
+        }
+
+        q
     }
+}
+
+// little-endian
+fn bits_to_u8(bits: &[u8]) -> u8 {
+    assert!(bits.len() < 8);
+    let mut result = 0;
+    for i in 0..bits.len() {
+        if bits[i] == 1_u8 {
+            result = result + (1 << i);
+        }
+    }
+    result
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -159,11 +221,27 @@ impl Add for AffinePoint {
     }
 }
 
+impl<'a, 'b> Add<&'b AffinePoint> for &'a AffinePoint {
+    type Output = AffinePoint;
+
+    fn add(self, other: &'b AffinePoint) -> Self::Output {
+        Bar::addition(self, other)
+    }
+}
+
 impl Mul<BigInt> for AffinePoint {
     type Output = AffinePoint;
 
     fn mul(self, other: BigInt) -> Self::Output {
         Bar::scalar_mul(&self, &other)
+    }
+}
+
+impl Neg for AffinePoint {
+    type Output = AffinePoint;
+
+    fn neg(self) -> Self::Output {
+        Bar::neg(&self)
     }
 }
 
@@ -178,14 +256,16 @@ mod tests {
 
     #[test]
     fn test_is_on_curve() {
-        let a = ("", "");
+        // 2 * g
+        let a = ("2251", "2594");
         let lft = AffinePoint::from_str(a.0.to_string().as_str(), a.1.to_string().as_str());
         assert_eq!(lft.is_on_curve(), true);
     }
 
     #[test]
     fn test_addition() {
-        let (a, b, c) = (("", ""), ("", ""), ("", ""));
+        // 2 * g + 3 * g == 5 * g
+        let (a, b, c) = (("2251", "2594"), ("2820", "805"), ("70", "1903"));
         let lft = AffinePoint::from_str(a.0.to_string().as_str(), a.1.to_string().as_str());
         let rht = AffinePoint::from_str(b.0.to_string().as_str(), b.1.to_string().as_str());
         let result = AffinePoint::from_str(c.0.to_string().as_str(), c.1.to_string().as_str());
@@ -193,8 +273,27 @@ mod tests {
     }
 
     #[test]
+    fn test_is_negate() {
+        let (a, c) = (("2251", "2594"), ("2251", "2883"));
+        let lft = AffinePoint::from_str(a.0.to_string().as_str(), a.1.to_string().as_str());
+        let result = AffinePoint::from_str(c.0.to_string().as_str(), c.1.to_string().as_str());
+        assert_eq!(-lft, result);
+    }
+
+    #[test]
     fn test_scalar_mul() {
-        let (a, b, c) = (("", ""), "", ("", ""));
+        // (2 * g) * 3 == 6 * g
+        let (a, b, c) = (("2251", "2594"), "3", ("1323", "1896"));
+        let lft = AffinePoint::from_str(a.0.to_string().as_str(), a.1.to_string().as_str());
+        let rht = BigInt::from_str(b.to_string().as_str()).unwrap();
+        let result = AffinePoint::from_str(c.0.to_string().as_str(), c.1.to_string().as_str());
+        assert_eq!(lft * rht, result);
+    }
+
+    #[test]
+    fn test_scalar_mul_2() {
+        // (2 * g) * 325 == 650 * g
+        let (a, b, c) = (("2251", "2594"), "325", ("1103", "2591"));
         let lft = AffinePoint::from_str(a.0.to_string().as_str(), a.1.to_string().as_str());
         let rht = BigInt::from_str(b.to_string().as_str()).unwrap();
         let result = AffinePoint::from_str(c.0.to_string().as_str(), c.1.to_string().as_str());
