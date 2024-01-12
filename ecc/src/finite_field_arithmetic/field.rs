@@ -316,7 +316,7 @@ pub trait Field<const N: usize>: FromStr + From<BI<N>> + Into<BI<N>> {
 #[derive(Debug)]
 pub struct ParseStrErr;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Foo<const T: usize>(pub BI<T>);
 
 /////////////////////////////////////// Implementation of Custom Finite Field
