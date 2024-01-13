@@ -640,10 +640,10 @@ impl Field<2> for Foo<2> {
         (v, tmp_carrier) = Self::MODULUS - v;
         // FOR DEBUG
         assert!(tmp_carrier == 0);
-        // println!("-----------*****---------- First stage finished!");
 
         //////////////////////////////////////////// STAGE TWO
         let m = 2 * 8 as usize;
+        // println!("------ k = {}, m = {}, v = {:?}", k, m, v);
         if k < m {
             (v, k) = (Self::mul_reduce(&v, &Self::R2).0, k + m);
         }
@@ -656,13 +656,24 @@ impl Field<2> for Foo<2> {
                     h_bit -= 8;
                     0_u8
                 } else {
-                    1 << h_bit
+                    let tmp_bit = h_bit;
+                    h_bit = 0;
+                    if tmp_bit > 0 {
+                        1 << tmp_bit
+                    } else {
+                        0_u8
+                    }
                 }
             })
             .collect();
 
+        // println!("------- before reduce R2: v = {:?}", v);
         // REDC(v * R2)
         v = Self::mul_reduce(&v, &Self::R2).0;
+        // println!(
+        //     "------- before reduce 2^2m-k: v = {:?}, x = {:?}, k = {}",
+        //     v, x, k
+        // );
         // REDC(v * 2^{2m - k})
         let res = BI(x.try_into().unwrap());
         if res.is_zero() == false {
@@ -812,7 +823,8 @@ mod tests {
     #[test]
     fn test_inv() {
         // let (a, M) = (259_u32, 3329_u32);
-        let (a, M) = (1174_u32, 3329_u32);
+        // let (a, M) = (1174_u32, 3329_u32);
+        let (a, M) = (2009_u32, 3329_u32);
         let (mut c, _, d, sign) = gcd(a as u32, M as u32);
         assert!(d == 1);
         c = if sign { M - c } else { c };

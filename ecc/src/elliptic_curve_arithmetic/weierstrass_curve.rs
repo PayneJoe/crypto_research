@@ -130,6 +130,8 @@ impl Curve for Bar {
             (y1 - y2, x1 - x2)
         };
         // let tmp_nom: BI<2> = nominator.into();
+        // let tmp_inv: BI<2> = nominator.inv().into();
+        // println!("******* inv({:?}) = {:?}", tmp_nom, tmp_inv);
         let lambda = denominator * nominator.inv();
         let x3 = lambda * lambda + Self::a1 * lambda - Self::a2 - x1 - x2;
         AffinePoint {
@@ -150,25 +152,51 @@ impl Curve for Bar {
         for i in 1..(1 << (k - 1)) {
             table.push(&table[i - 1] + &double_base)
         }
+        // for i in 0..table.len() {
+        //     let tmp_x: BI<2> = table[i].x.into();
+        //     let tmp_y: BI<2> = table[i].y.into();
+        //     print!("[{}]p = ({:?}, {:?}) \t", 2 * i + 1, tmp_x, tmp_y);
+        // }
+        // println!("n = {:?} \n\n", n);
 
         let (mut q, mut i) = (Self::IDENTITY, n.len() - 1);
         while i != 0 {
+            // left shift skipping zeros, doubling
             if n[i] == 0 {
                 (q, i) = (&q + &q, i - 1);
+                // let tmp_x_3: BI<2> = q.x.into();
+                // let tmp_y_3: BI<2> = q.y.into();
+                // println!(
+                //     "**** Doubling: i = {}, after doubliing q = ({:?}, {:?})",
+                //     i, tmp_x_3, tmp_y_3
+                // );
             } else {
-                // double
+                // left shift, doubling
                 let mut s = std::cmp::max(i as i32 - k as i32 + 1, 0) as usize;
+                let right_bound = s;
                 while n[s] == 0 {
                     s = s + 1;
                 }
-                for h in 1..(i - s + 1) {
+                let left_bound = s;
+                for _ in 0..(i - s + 1) {
                     q = &q + &q;
                 }
-                // println!("i = {}, after double q = {:?}", i, q);
-                // add with precomputated table
+                // let tmp_x_1: BI<2> = q.x.into();
+                // let tmp_y_1: BI<2> = q.y.into();
+                // println!(
+                //     "**** Doubling: i = {}, after doubling q = ({:?}, {:?}), {}-{}",
+                //     i, tmp_x_1, tmp_y_1, left_bound, right_bound
+                // );
+
+                // then addition with precomputated table
                 let u = bits_to_u8(&n[s..(i + 1)]);
                 q = &q + &table[((u - 1) / 2) as usize];
-                // println!("i = {}, after addition q = {:?}, u = {}", i, q, u);
+                // let tmp_x_2: BI<2> = q.x.into();
+                // let tmp_y_2: BI<2> = q.y.into();
+                // println!(
+                //     "**** Addition: i = {}, after addition q = ({:?}, {:?}), u = {}",
+                //     i, tmp_x_2, tmp_y_2, u
+                // );
                 i = if s >= 1 { s - 1 } else { 0 }
             }
         }
@@ -265,10 +293,14 @@ mod tests {
     #[test]
     fn test_addition() {
         // 2 * g + 3 * g == 5 * g
-        let (a, b, c) = (("2251", "2594"), ("2820", "805"), ("70", "1903"));
+        // let (a, b, c) = (("2251", "2594"), ("2820", "805"), ("70", "1903"));
+
+        // 10 * g + 4 * g == 14 * g
+        let (a, b, c) = (("2158", "2165"), ("149", "130"), ("1889", "431"));
         let lft = AffinePoint::from_str(a.0.to_string().as_str(), a.1.to_string().as_str());
         let rht = AffinePoint::from_str(b.0.to_string().as_str(), b.1.to_string().as_str());
         let result = AffinePoint::from_str(c.0.to_string().as_str(), c.1.to_string().as_str());
+        println!("lft = {:?}, rht = {:?}, result = {:?}", lft, rht, result);
         assert_eq!(lft + rht, result);
     }
 
@@ -281,7 +313,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_mul() {
+    fn test_scalar_mul_simple() {
         // (2 * g) * 3 == 6 * g
         let (a, b, c) = (("2251", "2594"), "3", ("1323", "1896"));
         let lft = AffinePoint::from_str(a.0.to_string().as_str(), a.1.to_string().as_str());
@@ -291,7 +323,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_mul_2() {
+    fn test_scalar_mul_bigger() {
         // (2 * g) * 325 == 650 * g
         let (a, b, c) = (("2251", "2594"), "325", ("1103", "2591"));
         let lft = AffinePoint::from_str(a.0.to_string().as_str(), a.1.to_string().as_str());
