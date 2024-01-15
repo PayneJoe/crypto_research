@@ -1,5 +1,6 @@
 pub mod bigint16;
 pub mod field;
+pub mod field_mont_friendly;
 pub mod gcd16;
 
 pub type BigInt = field::BI<2>;
