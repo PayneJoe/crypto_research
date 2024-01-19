@@ -5,6 +5,8 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
 <br />
 
 ## Code Structure
+- abstract_algebraic
+    - group
 - ecc 
     - integer_arithmetic
 
