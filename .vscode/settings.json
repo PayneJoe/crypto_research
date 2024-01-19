@@ -1,18 +1,7 @@
 {
     "rust-analyzer.linkedProjects": [
         "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml",
-        "./ecc/Cargo.toml"
+	"./abstract_algebraic/Cargo.toml",
+	"./pcs/Cargo.toml",
     ]
 }
