@@ -1,7 +1,8 @@
 {
     "rust-analyzer.linkedProjects": [
         "./ecc/Cargo.toml",
-	"./abstract_algebraic/Cargo.toml",
-	"./pcs/Cargo.toml",
+        "./abstract_algebraic/Cargo.toml",
+        "./pcs/Cargo.toml",
+        "./hash/Cargo.toml",
     ]
 }
