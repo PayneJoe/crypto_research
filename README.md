@@ -33,10 +33,11 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
     - pairings [TODO]
     - ...
 - hash
-    - sha256 [TODO]
+    - keccak [Ongoing]
     - poseidon [TODO]
 - pcs
-    - ipa [TODO]
+    - polynomial [Ongoing]
+    - ipa [Ongoing]
     - kzg [TODO]
 - recursive snark
     ...
