@@ -61,3 +61,5 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
 [3] Pairings For Beginners
 
 [4] [Algorithms for Modern Hardware](https://en.algorithmica.org/hpc/)
+
+[5] [IPA PCS](https://hackmd.io/@arijitdutta67/r1ZFKoHy2#Accumulation-of-IPA-PCS-and-Recursive-Process-in-Aztec-3)
