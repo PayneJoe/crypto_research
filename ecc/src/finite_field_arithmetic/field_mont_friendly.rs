@@ -1,4 +1,6 @@
+use crate::finite_field_arithmetic::traits::Field;
 use std::cmp::Ordering;
+use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 use std::str::FromStr;
 
@@ -284,45 +286,6 @@ impl<'a, 'b> Div<&'b BI<2>> for &'a BI<2> {
     }
 }
 
-////////////////////////////////// Constant configurations of field including some core behavious on field
-pub trait Field<const N: usize>: FromStr + From<BI<N>> + Into<BI<N>> {
-    // finite field modulus
-    const MODULUS: BI<N>;
-    // W^s % MODULUS, for Montgomery reduce
-    const R: BI<N>;
-    // W^2s % MODULUS, for Montgomery reduce
-    const R2: BI<N>;
-    // W^3s % MODULUS, for Montgomery reduce
-    const R3: BI<N>;
-    // inversion of least significant word of modulus, also convenient for Montgomery reduce
-    const M0: u8;
-    // for the convenient of square root (Tonelli and Shanks Algorithm)
-    // const E: u8;
-    // const RODD: u8;
-    // const N: BI<N>;
-
-    fn ONE() -> Self;
-    fn ZERO() -> Self;
-
-    // legendre symbol
-    fn legendre_symbol(self) -> bool;
-
-    fn is_quadratic_residual(self) -> bool;
-
-    // reduce a bigint into the specified range [0, modulus)
-    fn reduce(u: &BI<N>, inv: Option<bool>) -> Self;
-    // convert a reduced number into a unreduced bigint
-    fn rev_reduce(&self) -> BI<N>;
-    // inversion of a reduced number
-    fn inv(&self) -> Self;
-
-    fn square_inplace(&mut self);
-    fn square(&self) -> Self;
-
-    // Montgomery Reduction
-    fn mul_reduce(lft: &BI<N>, rht: &BI<N>) -> Self;
-}
-
 //////////////////////////////////////// Custom Finite Field
 #[derive(Debug)]
 pub struct ParseStrErr;
@@ -380,6 +343,24 @@ impl From<BI<2>> for Foo<2> {
 impl Into<BI<2>> for Foo<2> {
     fn into(self) -> BI<2> {
         self.rev_reduce()
+    }
+}
+
+impl<'a> Sum<&'a Self> for Foo<2> {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = &'a Self>,
+    {
+        iter.fold(Foo::<2>::ZERO(), |a, b| a + *b)
+    }
+}
+
+impl Sum<Self> for Foo<2> {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self>,
+    {
+        iter.fold(Foo::<2>::ZERO(), |a, b| a + b)
     }
 }
 
@@ -448,6 +429,7 @@ impl Neg for Foo<2> {
 pub trait Exponentiation {
     type Output;
 
+    // outdated interface
     fn exp(&self, n: BI<2>) -> Self;
 
     fn exp_raw(&self, n: &[u8]) -> Self;
@@ -573,6 +555,12 @@ impl Field<2> for Foo<2> {
     #[inline(always)]
     fn ZERO() -> Self {
         Self(BI::<2>::zero())
+    }
+
+    // F^e
+    fn pow(&self, e: BI<2>) -> Self {
+        let n_bits = e.to_bits();
+        self.exp_raw(n_bits.as_slice())
     }
 
     // referenced from Algorithm 11.12 of "handbook of elliptic and hyperelliptic curve cryptography"

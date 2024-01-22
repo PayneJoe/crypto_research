@@ -2,6 +2,7 @@ pub mod bigint16;
 pub mod field;
 pub mod field_mont_friendly;
 pub mod gcd16;
+pub mod traits;
 
 pub type BigInt = field::BI<2>;
 pub type PrimeField = field::Foo<2>;
@@ -50,11 +51,7 @@ where
         if let Some(true) = rev {
             data.reverse();
         }
-        BigInteger {
-            data: data,
-            sign: sign,
-            basis: basis,
-        }
+        BigInteger { data, sign, basis }
     }
 
     #[inline(always)]

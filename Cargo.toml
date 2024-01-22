@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "abstract_algebraic",
+    "ecc",
+    "hash",
+    "pcs"
+]
+resolver = "2"

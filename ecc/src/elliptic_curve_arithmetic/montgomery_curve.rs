@@ -1,7 +1,10 @@
 use std::ops::Mul;
 use std::str::FromStr;
 
-use crate::finite_field_arithmetic::field_mont_friendly::{Field, Foo, BI};
+use crate::finite_field_arithmetic::{
+    field_mont_friendly::{Foo, BI},
+    traits::Field,
+};
 
 type BigInt = BI<2>;
 type PrimeField = Foo<2>;
