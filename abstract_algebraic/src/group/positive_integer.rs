@@ -28,12 +28,12 @@ impl PositiveInteger {
 }
 
 /// functionalities of multiplicative cyclic subgroup
-pub trait MultiplicativeGroup {
+pub trait AdditiveGroup {
     fn generators(self) -> Vec<u8>;
     fn subgroup_order(self, b: u8) -> u8;
 }
 
-impl MultiplicativeGroup for PositiveInteger {
+impl AdditiveGroup for PositiveInteger {
     // referenced from Corollary 4.7 of "Abstract Algebra Theory and Applications"
     fn generators(self) -> Vec<u8> {
         (1..self.0)
