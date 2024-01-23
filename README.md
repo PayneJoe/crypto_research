@@ -5,10 +5,11 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
 <br />
 
 ## Code Structure
-- abstract_algebraic
+- abstract_algebraic [Ongoing]
     - group
+
 - ecc 
-    - integer_arithmetic
+    - integer_arithmetic [Done]
 
         specificially for basic arithmetics on big integers
 
@@ -16,13 +17,13 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
 
         - euclid extended gcd/lehmer extended gcd
 
-    - finite_field_arithmetic
+    - finite_field_arithmetic [Done]
 
         specificailly for basic arithmetics on finite field
 
         - add/substruction/multiplication/division/inversion/modulo/exponentiation/sqrt/square
 
-    - elliptic_curve_arithmetic 
+    - elliptic_curve_arithmetic [Done]
 
         specially for neccessary arithmetics on elliptic curves
 
@@ -32,13 +33,16 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
     - special_curve_arithmetic [TODO]
     - pairings [TODO]
     - ...
+
 - hash
-    - keccak(sha256) [Ongoing]
+    - shake128(variable output length) [Done]
     - poseidon [TODO]
+
 - pcs
-    - sparse_polynomial [Ongoing]
+    - sparse_polynomial [Done]
     - ipa [Ongoing]
-    - kzg [TODO]
+    - pb [Ongoing]
+
 - recursive snark
     ...
 
