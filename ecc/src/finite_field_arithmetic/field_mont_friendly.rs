@@ -346,6 +346,19 @@ impl Into<BI<2>> for Foo<2> {
     }
 }
 
+// non-reduced transformation between bytes and field
+impl From<[u8; 2]> for Foo<2> {
+    fn from(bytes: [u8; 2]) -> Self {
+        Foo(BI(bytes))
+    }
+}
+
+impl Into<[u8; 2]> for Foo<2> {
+    fn into(self) -> [u8; 2] {
+        self.0 .0
+    }
+}
+
 impl<'a> Sum<&'a Self> for Foo<2> {
     fn sum<I>(iter: I) -> Self
     where

@@ -11,6 +11,8 @@ pub trait Field<const N: usize>:
     FromStr
     + From<BI<N>>
     + Into<BI<N>>
+    + From<[u8; N]>
+    + Into<[u8; N]>
     + Clone
     + Add<Self, Output = Self>
     + Mul<Self, Output = Self>

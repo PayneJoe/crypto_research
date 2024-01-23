@@ -4,5 +4,6 @@
         "./abstract_algebraic/Cargo.toml",
         "./pcs/Cargo.toml",
         "./hash/Cargo.toml",
-    ]
+    ],
+    "rust-analyzer.showUnlinkedFileNotification": false
 }
