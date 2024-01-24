@@ -1,3 +1,5 @@
+pub mod weierstrass_field;
+
 use crate::finite_field_arithmetic::field_mont_friendly::{Foo, BI};
 use std::{
     ops::{Add, Div, Mul, Shl, Shr, Sub},

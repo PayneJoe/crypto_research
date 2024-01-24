@@ -3,6 +3,7 @@ pub mod bigint64;
 pub mod field;
 pub mod field_mont_friendly;
 pub mod gcd16;
+pub mod pallas;
 pub mod traits;
 
 pub type BigInt = field::BI<2>;
