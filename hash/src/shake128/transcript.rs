@@ -1,4 +1,4 @@
-// for the purpose of research we use Shake128 at this moment instead,
+// for the purpose of research we use Shake128 which has variable output length at this moment instead,
 // since keccak256 hasher which has fixed output length (32 bytes)
 use ecc::finite_field_arithmetic::traits::{Field, PrimeField};
 use sha3::{
@@ -10,14 +10,14 @@ use std::marker::PhantomData;
 const STATE_SIZE: usize = 2;
 
 #[derive(Clone, Debug)]
-pub struct Shake128Transcript<F: Field<2>> {
+pub struct Shake128Transcript<F: Field<STATE_SIZE>> {
     round: u8,
     state: [u8; STATE_SIZE],
     hasher: Shake128,
     _p: PhantomData<F>,
 }
 
-impl<F: Field<2>> Shake128Transcript<F> {
+impl<F: Field<STATE_SIZE>> Shake128Transcript<F> {
     fn hash(hasher: Shake128, input_bytes: &[u8]) -> [u8; STATE_SIZE] {
         let mut output_bytes = [0u8; STATE_SIZE];
         let mut local_hasher = hasher.clone();
