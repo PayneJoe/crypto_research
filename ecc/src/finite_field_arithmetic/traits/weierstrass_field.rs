@@ -1,50 +1,9 @@
 use crate::finite_field_arithmetic::bigint::BigInt;
-use std::marker::PhantomData;
 
 use std::{
     ops::{Add, Div, Mul, Shl, Shr, Sub},
     str::FromStr,
 };
-
-// pub trait PrimeFieldConfig<const N: usize> {
-//     const MODULUS: BigInt<N>;
-//     const R: BigInt<N>;
-//     const R2: BigInt<N>;
-//     const R3: BigInt<N>;
-//     const M0: u64;
-//     const E: u64;
-//     const RODD: u64;
-//     const N: BigInt<N>;
-
-//     fn inv(f: &PrimeField<Self, N>) -> PrimeField<Self, N>;
-//     fn square(f: &PrimeField<Self, N>) -> PrimeField<Self, N>;
-//     fn square_in_place(f: &mut PrimeField<Self, N>);
-//     fn pow(f: &PrimeField<Self, N>, exp: &BigInt<N>) -> PrimeField<Self, N>;
-
-//     fn add(lft: &PrimeField<Self, N>, rht: &PrimeField<Self, N>) -> PrimeField<Self, N>;
-//     fn mul(lft: &PrimeField<Self, N>, rht: &PrimeField<Self, N>) -> PrimeField<Self, N>;
-// }
-
-// #[derive(Clone, Debug)]
-// pub struct PrimeField<P: PrimeFieldConfig<N>, const N: usize>(pub BigInt<N>, pub PhantomData<P>);
-
-// impl<const N: usize> PrimeFieldConfig<N> for PrimeField<Self, N> {
-
-// }
-
-// impl<P: PrimeFieldConfig, const N: usize> Add for PrimeField<P, N> {
-//     type Output = PrimeField<P, N>;
-//     fn add(self, other: PrimeField<P, N>) -> Self::Output {
-//         Self::add(&self, &other)
-//     }
-// }
-
-// impl<P: PrimeFieldConfig, const N: usize> Mul for PrimeField<P, N> {
-//     type Output = PrimeField<P, N>;
-//     fn mul(self, other: PrimeField<P, N>) -> Self::Output {
-//         Self::mul(&self, &other)
-//     }
-// }
 
 pub trait PrimeField<const N: usize>:
     FromStr
@@ -88,6 +47,8 @@ pub trait PrimeField<const N: usize>:
     fn rev_reduce(&self) -> BigInt<N>;
 
     //////////////////////////// basic operations on field
+    /// F^{1/2}
+    fn sqrt(&self) -> Self;
     // F^-1
     fn inv(&self) -> Self;
     // F^2

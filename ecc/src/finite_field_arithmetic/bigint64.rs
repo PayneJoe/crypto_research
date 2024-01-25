@@ -625,13 +625,21 @@ impl BigInteger<Word> {
 mod tests {
     use super::*;
     use num_bigint::BigInt as TestBigInt;
-    use num_bigint::BigUint as TestBigUInt;
     use std::str::FromStr;
 
     #[test]
     fn test_from() {
         let Fr = "28948022309329048855892746252171976963363056481941647379679742748393362948097";
         let R = "28948022309329048855892746252171976963180815219815621900418355762733040795645";
+        let R2 = "4263855311957679929489659445116329028194309752796460188622876710448966664207";
+        let R3 = "3557709630315679472311684181007729646594247341237824434526702614836137537100";
+        println!(
+            "Fr = {:?}, R = {:?}, R2 = {:?}, R3 = {:?}",
+            BigInteger::from(Fr).data,
+            BigInteger::from(R).data,
+            BigInteger::from(R2).data,
+            BigInteger::from(R3).data,
+        );
         assert_eq!(
             TestBigInt::from_str(Fr).unwrap().to_u64_digits().1,
             BigInteger::from(Fr).data

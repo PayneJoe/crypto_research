@@ -8,20 +8,26 @@ use std::str::FromStr;
 #[derive(Debug)]
 pub struct BigIntParseErr;
 
+const WORD_SIZE: usize = 64;
+const DOUBLE_WORD_SIZE: usize = 64 * 2;
+type Word = u64;
+type DoubleWord = u128;
+const WORD_BASE: DoubleWord = (1 as DoubleWord) << WORD_SIZE;
+
 pub trait BigInteger<const N: usize>:
-    FromStr + PartialOrd + Into<Vec<u8>> + Ord + Add + Mul<u64> + Shl<usize> + Shr<usize> + Sub
+    FromStr + PartialOrd + Into<Vec<u8>> + Ord + Add + Mul<Word> + Shl<usize> + Shr<usize> + Sub
 {
 }
 impl<const N: usize> BigInteger<N> for BigInt<N> {}
 
 #[derive(Debug, PartialEq, Clone, Copy, Eq)]
-pub struct BigInt<const N: usize>(pub [u64; N]);
+pub struct BigInt<const N: usize>(pub [Word; N]);
 
 impl<const N: usize> BigInt<N> {
     #[inline(always)]
     pub fn MAX() -> Self {
         Self(
-            vec![(((1 as u128) << 64) - 1) as u64; N]
+            vec![(((1 as DoubleWord) << WORD_SIZE) - 1) as Word; N]
                 .try_into()
                 .unwrap(),
         )
@@ -29,13 +35,13 @@ impl<const N: usize> BigInt<N> {
 
     #[inline(always)]
     pub fn ZERO() -> Self {
-        BigInt([0 as u64; N])
+        BigInt([0 as Word; N])
     }
 
     #[inline(always)]
     pub fn ONE() -> Self {
-        let mut data = vec![0 as u64];
-        data.extend(vec![0 as u64; N - 1]);
+        let mut data = vec![0 as Word; N];
+        data[0] = 1 as Word;
         BigInt(data.try_into().unwrap())
     }
 
@@ -49,7 +55,7 @@ impl<const N: usize> BigInt<N> {
         let n = self.0.len();
         let mut zero = true;
         for i in 0..n {
-            zero = zero & (self.0[i] == 0 as u64);
+            zero = zero & (self.0[i] == 0 as Word);
         }
         zero
     }
@@ -76,15 +82,15 @@ impl<const N: usize> Ord for BigInt<N> {
 }
 
 impl<const N: usize> Shl<usize> for BigInt<N> {
-    type Output = (BigInt<N>, u64);
+    type Output = (BigInt<N>, Word);
     fn shl(self, other: usize) -> Self::Output {
-        let n = 64 as usize;
-        assert!(other < n);
-        let mut w = Self([0 as u64; N]);
-        let mut carrier = 0 as u64;
+        let n = N;
+        assert!(other < WORD_SIZE);
+        let mut w = Self([0 as Word; N]);
+        let mut carrier = 0 as Word;
         // from the lowest word to the highest word
         for i in 0..n {
-            let tmp_carrier = self.0[i] >> (n - other);
+            let tmp_carrier = self.0[i] >> (WORD_SIZE - other);
             let remainder = (self.0[i] << other) | carrier;
             w.0[i] = remainder;
             carrier = tmp_carrier;
@@ -94,16 +100,16 @@ impl<const N: usize> Shl<usize> for BigInt<N> {
 }
 
 impl<const N: usize> Shr<usize> for BigInt<N> {
-    type Output = (BigInt<N>, u64);
+    type Output = (BigInt<N>, Word);
     fn shr(self, other: usize) -> Self::Output {
-        let n = 64 as usize;
-        assert!(other < n);
-        let mut w = Self([0 as u64; N]);
-        let mut carrier = 0 as u64;
+        let n = N;
+        assert!(other < WORD_SIZE);
+        let mut w = Self([0 as Word; N]);
+        let mut carrier = 0 as Word;
         // from the lowest word to the highest word
         for i in (0..n).rev() {
-            let tmp_carrier = self.0[i] & (((1 << other) - 1) as u64);
-            let remainder = (self.0[i] >> other) | (carrier << (n - other));
+            let tmp_carrier = self.0[i] & (((1 << other) - 1) as Word);
+            let remainder = (self.0[i] >> other) | (carrier << (WORD_SIZE - other));
             w.0[i] = remainder;
             carrier = tmp_carrier;
         }
@@ -112,18 +118,24 @@ impl<const N: usize> Shr<usize> for BigInt<N> {
 }
 
 impl<const N: usize> Add for BigInt<N> {
-    type Output = (BigInt<N>, u64);
+    type Output = (BigInt<N>, Word);
     fn add(self, other: BigInt<N>) -> Self::Output {
         let n = N;
         let lft = &self.0;
         let rht = &other.0;
-        let (mut carrier, mut remainder) = (0 as u64, 0 as u64);
-        let mut w = BigInt([0 as u64; N]);
+        let (mut carrier, mut remainder) = (0 as Word, 0 as Word);
+        let mut w = BigInt([0 as Word; N]);
         for i in 0..n {
-            let (lft_w, rht_w, carrier_w) =
-                (u128::from(lft[i]), u128::from(rht[i]), u128::from(carrier));
+            let (lft_w, rht_w, carrier_w) = (
+                DoubleWord::from(lft[i]),
+                DoubleWord::from(rht[i]),
+                DoubleWord::from(carrier),
+            );
             let t = lft_w + (rht_w + carrier_w);
-            (carrier, remainder) = ((t >> n) as u64, (t & ((1 << n) - 1)) as u64);
+            (carrier, remainder) = (
+                (t >> WORD_SIZE) as Word,
+                (t & ((1 << WORD_SIZE) - 1)) as Word,
+            );
             w.0[i] = remainder;
         }
         (w, carrier)
@@ -131,20 +143,26 @@ impl<const N: usize> Add for BigInt<N> {
 }
 
 impl<const N: usize> Sub for BigInt<N> {
-    type Output = (BigInt<N>, u64);
+    type Output = (BigInt<N>, Word);
     fn sub(self, other: BigInt<N>) -> Self::Output {
         let n = N;
         let lft = &self.0;
         let rht = &other.0;
-        let (mut carrier, mut remainder) = (0 as u64, 0 as u64);
-        let mut w = BigInt([0 as u64; N]);
+        let (mut carrier, mut remainder) = (0 as Word, 0 as Word);
+        let mut w = BigInt([0 as Word; N]);
         for i in 0..n {
-            let (lft_w, rht_w, carrier_w) =
-                (u128::from(lft[i]), u128::from(rht[i]), u128::from(carrier));
+            let (lft_w, rht_w, carrier_w) = (
+                DoubleWord::from(lft[i]),
+                DoubleWord::from(rht[i]),
+                DoubleWord::from(carrier),
+            );
             (carrier, remainder) = if lft_w >= rht_w + carrier_w {
-                (0_u64, (lft_w - (rht_w + carrier_w)) as u64)
+                (0 as Word, (lft_w - (rht_w + carrier_w)) as Word)
             } else {
-                (1_u64, (lft_w + (1 << n) - (rht_w + carrier_w)) as u64)
+                (
+                    1 as Word,
+                    (lft_w + (1 << WORD_SIZE) - (rht_w + carrier_w)) as Word,
+                )
             };
             w.0[i] = remainder;
         }
@@ -152,19 +170,25 @@ impl<const N: usize> Sub for BigInt<N> {
     }
 }
 
-impl<const N: usize> Mul<u64> for BigInt<N> {
-    type Output = (BigInt<N>, u64);
+impl<const N: usize> Mul<Word> for BigInt<N> {
+    type Output = (BigInt<N>, Word);
 
-    fn mul(self, other: u64) -> Self::Output {
+    fn mul(self, other: Word) -> Self::Output {
         let n = N;
         let lft = &self.0;
-        let (mut carrier, mut remainder) = (0 as u64, 0 as u64);
-        let mut w = BigInt([0 as u64; N]);
+        let (mut carrier, mut remainder) = (0 as Word, 0 as Word);
+        let mut w = BigInt([0 as Word; N]);
         for i in 0..n {
-            let (lft_w, rht_w, carrier_w) =
-                (u128::from(lft[i]), u128::from(other), u128::from(carrier));
+            let (lft_w, rht_w, carrier_w) = (
+                DoubleWord::from(lft[i]),
+                DoubleWord::from(other),
+                DoubleWord::from(carrier),
+            );
             let t = lft_w * rht_w + carrier_w;
-            (carrier, remainder) = ((t >> n) as u64, (t & ((1 << n) - 1)) as u64);
+            (carrier, remainder) = (
+                (t >> WORD_SIZE) as Word,
+                (t & ((1 << WORD_SIZE) - 1)) as Word,
+            );
             w.0[i] = remainder;
         }
         (w, carrier)
@@ -173,18 +197,17 @@ impl<const N: usize> Mul<u64> for BigInt<N> {
 
 impl<const N: usize> Into<Vec<u8>> for BigInt<N> {
     fn into(self) -> Vec<u8> {
-        let n = N as u32;
         let num_leading_zeros = self.0.iter().rev().fold(0 as u32, |acc, v| {
             if acc == 0 {
                 acc + v.leading_zeros()
-            } else if (acc % n) == 0 {
+            } else if (acc % (WORD_SIZE as u32)) == 0 {
                 acc + v.leading_zeros()
             } else {
                 acc
             }
         });
         let bits = (0..self.0.len())
-            .map(|i| ((0..n).map(|j| ((self.0[i] >> j) & 1) as u8)).collect::<Vec<u8>>())
+            .map(|i| ((0..WORD_SIZE).map(|j| ((self.0[i] >> j) & 1) as u8)).collect::<Vec<u8>>())
             .collect::<Vec<Vec<u8>>>()
             .into_iter()
             .flatten()
@@ -200,20 +223,20 @@ impl<const N: usize> FromStr for BigInt<N> {
     fn from_str(text: &str) -> Result<Self, Self::Err> {
         // big-endian bytes array
         let bound_be_bytes = {
-            let bound = u64::MAX.to_string();
+            let bound = Word::MAX.to_string();
             bound.as_bytes().to_vec()
         };
         let text_be_bytes = text.as_bytes().to_vec();
 
-        // functionality for converting a byte string into an u64 integer
+        // functionality for converting a byte string into an Word integer
         let extract_one_word = |bytes: &[u8]| {
             bytes
                 .iter()
-                .fold(0_u64, |acc, &v| (acc * 10 + (v as u64 - '0' as u64)))
+                .fold(0 as Word, |acc, &v| (acc * 10 + (v as Word - '0' as Word)))
         };
 
         let (bound_size, text_size) = (bound_be_bytes.len() - 1, text_be_bytes.len());
-        let max_bound = 10_u64.pow(bound_size as u32);
+        let max_bound = (10 as Word).pow(bound_size as u32);
 
         // initialize with the highest residual word
         let residual_len = text_size % bound_size;
@@ -222,36 +245,36 @@ impl<const N: usize> FromStr for BigInt<N> {
         } else {
             residual_len
         };
-        let mut result_words: Vec<u64> = vec![extract_one_word(text[..first_word_len].as_bytes())];
+        let mut result_words: Vec<Word> = vec![extract_one_word(text[..first_word_len].as_bytes())];
         let mut pos = first_word_len;
         while pos < text_size {
             // reserve a empty position for single-precision multiplication and addition
-            if result_words.last() != Some(&0_u64) {
-                result_words.push(0_u64);
+            if result_words.last() != Some(&(0 as Word)) {
+                result_words.push(0 as Word);
             }
             // single-precision multiplication, left-shifting a max_bound
-            let mut carrier = 0_u64;
+            let mut carrier = 0 as Word;
             for word in result_words.iter_mut() {
-                let acc = (*word as u128) * (max_bound as u128) + carrier as u128;
-                *word = (acc & ((1_u128 << 64) - 1)) as u64;
-                carrier = (acc >> 64) as u64;
+                let acc = (*word as DoubleWord) * (max_bound as DoubleWord) + carrier as DoubleWord;
+                *word = (acc & (((1 as DoubleWord) << WORD_SIZE) - 1)) as Word;
+                carrier = (acc >> WORD_SIZE) as Word;
             }
-            if carrier != 0_u64 {
+            if carrier != 0 as Word {
                 return Err(BigIntParseErr);
             }
             // single-precision addition
             let cur_word = extract_one_word(text[pos..(pos + bound_size)].as_bytes());
-            carrier = 0_u64;
+            carrier = 0 as Word;
             for (i, word) in result_words.iter_mut().enumerate() {
                 let acc = if i == 0 {
-                    (*word) as u128 + cur_word as u128
+                    (*word) as DoubleWord + cur_word as DoubleWord
                 } else {
-                    (*word) as u128 + carrier as u128
+                    (*word) as DoubleWord + carrier as DoubleWord
                 };
-                *word = acc as u64;
-                carrier = (acc >> 64) as u64;
+                *word = acc as Word;
+                carrier = (acc >> WORD_SIZE) as Word;
             }
-            if carrier != 0_u64 {
+            if carrier != 0 as Word {
                 return Err(BigIntParseErr);
             }
             pos = pos + bound_size;
@@ -261,7 +284,7 @@ impl<const N: usize> FromStr for BigInt<N> {
         if result_words.len() > N {
             return Err(BigIntParseErr);
         }
-        let padding_words = vec![0_u64; N - result_words.len()];
+        let padding_words = vec![0 as Word; N - result_words.len()];
         result_words.extend(padding_words);
 
         Ok(BigInt(result_words.try_into().unwrap()))
@@ -280,10 +303,10 @@ mod tests {
         let R2 = "4263855311957679929489659445116329028194309752796460188622876710448966664207";
         let R3 = "3557709630315679472311684181007729646594247341237824434526702614836137537100";
 
-        let FrVec: Vec<u64> = BigInt::<4>::from_str(Fr).unwrap().0.try_into().unwrap();
-        let RVec: Vec<u64> = BigInt::<4>::from_str(R).unwrap().0.try_into().unwrap();
-        let R2Vec: Vec<u64> = BigInt::<4>::from_str(R2).unwrap().0.try_into().unwrap();
-        let R3Vec: Vec<u64> = BigInt::<4>::from_str(R3).unwrap().0.try_into().unwrap();
+        let FrVec: Vec<Word> = BigInt::<4>::from_str(Fr).unwrap().0.try_into().unwrap();
+        let RVec: Vec<Word> = BigInt::<4>::from_str(R).unwrap().0.try_into().unwrap();
+        let R2Vec: Vec<Word> = BigInt::<4>::from_str(R2).unwrap().0.try_into().unwrap();
+        let R3Vec: Vec<Word> = BigInt::<4>::from_str(R3).unwrap().0.try_into().unwrap();
 
         println!(
             "pallas fr = {:?} \n R = {:?} \n R2 = {:?} \n R3 = {:?}\n",
@@ -295,4 +318,25 @@ mod tests {
         assert_eq!(R2Vec, TestBigInt::from_str(R2).unwrap().to_u64_digits().1);
         assert_eq!(R3Vec, TestBigInt::from_str(R3).unwrap().to_u64_digits().1);
     }
+
+    #[test]
+    fn test_addition() {}
+
+    #[test]
+    fn test_substraction() {}
+
+    #[test]
+    fn test_multiplication() {
+        let (a, b) = (
+            "10828745280282393011948633936436145363160692580455384354038716315440980557097",
+            "18200867980676431887",
+        );
+        let lft = BigInt::<4>::from_str(a).unwrap();
+        let rht = Word::from_str(b).unwrap();
+        let result = lft * rht;
+        println!("{:?}, {} = {:?} * {}", result.0 .0, result.1, lft.0, rht);
+    }
+
+    #[test]
+    fn test_division() {}
 }

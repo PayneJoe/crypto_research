@@ -5,8 +5,11 @@ use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::str::FromStr;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct FieldParseErr;
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct NoneQuadraticResidualErr;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Fr<const N: usize>(pub BigInt<N>);
@@ -168,6 +171,43 @@ impl PrimeField<4> for Fr<4> {
         Self(v)
     }
 
+    // Tonelli and Shanks Algorithm adapted for a special modulus p, satisfying: p MOD 8 == 1
+    // referenced from Algorithm 11.23 of "handbook of elliptic and hyperelliptic curve cryptography"
+    fn sqrt(&self) -> Self {
+        let (n, r) = (Self::reduce(&Self::N, Some(false)), Self::RODD);
+        let (a, z) = (self.clone(), n.pow(r));
+        let (mut y, mut s, mut x, mut b) = (
+            z,
+            Self::E,
+            a.pow(((r - BigInt::<4>::ONE()).0 >> 1).0),
+            Self::ZERO(),
+        );
+        let tmp_x = a * x.clone();
+        (b, x) = (tmp_x.clone() * x, tmp_x);
+        while b != Self::ONE() {
+            let mut m = 0 as u64;
+            let mut tmp_b = b.clone();
+            while tmp_b != Self::ONE() {
+                tmp_b.square_inplace();
+                m = m + 1;
+            }
+            // non-quadratic residual
+            assert!(m != Self::E);
+            let ss = s - m - 1;
+            let mut t = y.clone();
+            for i in 0..ss {
+                t.square_inplace();
+            }
+            y = t * t;
+            (s, x, b) = (m, t * x, y * b);
+        }
+        // FOR DEBUG
+        if self.is_quadratic_residual() {
+            assert!(x * x == *self);
+        }
+        x
+    }
+
     fn pow(&self, e: BigInt<4>) -> Self {
         let n_bits: Vec<u8> = e.into();
         let (mut y, x) = (Self::ONE().0, self.0);
@@ -206,6 +246,7 @@ impl PrimeField<4> for Fr<4> {
         let s = 4;
         let mut t = BigInt([0 as u64; 4]);
         let (mut c1, mut c2, mut overflow) = (0 as u64, 0 as u64, false);
+        // println!("lft = {:?}, rht = {:?}", lft.0, rht.0);
         for i in 0..s {
             // t = t + self * other[i]
             let (mut tmp_c1, mut tmp_c2, mut ab) = (0 as u64, 0 as u64, BigInt([0 as u64; 4]));
@@ -215,6 +256,7 @@ impl PrimeField<4> for Fr<4> {
             if overflow {
                 c2 += 1_u64;
             }
+            // println!("i = {}, #1: t = {:?}, c1 = {:?}, c2 = {:?}", i, t.0, c1, c2);
 
             // t = t + ((t[0] * N'[0]) mod W) * N
             let (mut tmp_c3, mut tmp_c4, mut mn) = (0 as u64, 0 as u64, BigInt([0 as u64; 4]));
@@ -225,12 +267,14 @@ impl PrimeField<4> for Fr<4> {
             if overflow {
                 c2 += 1_u64;
             }
+            // println!("i = {} #2: t = {:?}, c1 = {:?}, c2 = {:?}", i, t.0, c1, c2);
 
             // t >> 1
             for j in 0..(s - 1) {
                 t.0[j] = t.0[j + 1];
             }
             (t.0[s - 1], c1, c2) = (c1, c2, 0 as u64);
+            // println!("i = {} #3: t = {:?}, c1 = {:?}, c2 = {:?}", i, t.0, c1, c2);
         }
 
         Self(t)
@@ -360,6 +404,112 @@ impl FromStr for Fr<4> {
     type Err = FieldParseErr;
 
     fn from_str(text: &str) -> Result<Self, Self::Err> {
-        unimplemented!()
+        let num = BigInt::<4>::from_str(text)
+            .map_err(|_| FieldParseErr)
+            .unwrap();
+        Ok(Self::reduce(&num, Some(false)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_str() {
+        let a = "10828745280282393011948633936436145363160692580455384354038716315440980557097";
+        let a_bigint: BigInt<4> = Fr::<4>::from_str(a).unwrap().into();
+        assert_eq!(a_bigint, BigInt::<4>::from_str(a).unwrap());
+
+        let c = "591287673063831099393508774001657241885700464961659518539444896981632376260";
+        let a_field: [u64; 4] = Fr::<4>::from_str(a).unwrap().into();
+        assert_eq!(a_field, BigInt::<4>::from_str(c).unwrap().0);
+    }
+
+    #[test]
+    fn test_addition() {
+        let (a, b, c) = (
+            "10828745280282393011948633936436145363160692580455384354038716315440980557097",
+            "12983359841706137811367631271868112279657727965035633245325863046483061891040",
+            "23812105121988530823316265208304257642818420545491017599364579361924042448137",
+        );
+        assert_eq!(
+            Fr::<4>::from_str(a).unwrap() + Fr::<4>::from_str(b).unwrap(),
+            Fr::<4>::from_str(c).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_substraction() {
+        let a = "21426167871899790663146927947666624753013764602916297221764179118297811791824";
+        let b = "9973449002990857279361928142663956117381682723201036506158891067077462904966";
+        let c = "11452718868908933383784999805002668635632081879715260715605288051220348886858";
+        assert_eq!(
+            Fr::<4>::from_str(a).unwrap() - Fr::<4>::from_str(b).unwrap(),
+            Fr::<4>::from_str(c).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_multiplication() {
+        let a = "6375934151890180205297706674895575483273624160874557874408840128846376412200";
+        let b = "28506874097417334274247958454240234974963135381959712862126761049363843908851";
+        let c = "2254763930843862400398034612573101569234819393442628390705778063269694551656";
+        assert_eq!(
+            Fr::<4>::from_str(a).unwrap() * Fr::<4>::from_str(b).unwrap(),
+            Fr::<4>::from_str(c).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_inversion() {
+        let a = "20478396197580483737789014158498979272870169265875691728003315572952274387533";
+        let c = "21365542069856238450486712807496128750008055205983289024270465755393517385826";
+        assert_eq!(
+            Fr::<4>::from_str(a).unwrap().inv(),
+            Fr::<4>::from_str(c).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_division() {
+        let a = "14315174832808638358939415012100039300513997680125272328694713606701545168752";
+        let b = "20478396197580483737789014158498979272870169265875691728003315572952274387533";
+        let c = "12111416690556434289459724424510259843801075164687209321777184926968376934270";
+        assert_eq!(
+            Fr::<4>::from_str(a).unwrap() / Fr::<4>::from_str(b).unwrap(),
+            Fr::<4>::from_str(c).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_sqrt() {
+        let a = "23200564883514806523406480047239983027714487432999116974664880975079440510063";
+        let c = "1411005539847194286406933453517763875751600735672730633893962034603782311192";
+        let lft = Fr::<4>::from_str(a).unwrap();
+        let result_1 = Fr::<4>::from_str(c).unwrap();
+
+        assert_eq!(lft.is_quadratic_residual(), true);
+        assert_eq!(result_1.pow(BigInt::<4>::from_str("2").unwrap()), lft);
+
+        let result_2 = lft.sqrt();
+        assert_eq!(result_2 * result_2, lft);
+        println!(
+            "two solutions for square root of {:?}: result_1 = {:?}, result_2 = {:?}",
+            lft.0, result_1.0, result_2.0
+        );
+    }
+
+    #[test]
+    fn test_pow() {
+        let a = "6667848649771366462575212241344760382420686144778213847978229720783476026494";
+        let b = "234";
+        let c = "896017193898729263273467687789996053512353124848347700387971974010744551774";
+        assert_eq!(
+            Fr::<4>::from_str(a)
+                .unwrap()
+                .pow(BigInt::<4>::from_str(b).unwrap()),
+            Fr::<4>::from_str(c).unwrap()
+        );
     }
 }
