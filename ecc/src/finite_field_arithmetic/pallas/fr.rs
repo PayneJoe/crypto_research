@@ -1,4 +1,4 @@
-use crate::finite_field_arithmetic::bigint64::BigInt;
+use crate::finite_field_arithmetic::bigint::BigInt;
 use crate::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
 
 use std::iter::Sum;
@@ -17,25 +17,47 @@ impl PrimeField<4> for Fr<4> {
 
     // W = 256, MODULUS/M = 2003, R = 256^2 % MODULUS = 982, M0 = (-M^{-1} % 256^2) % W =
     // MODULUS % 8 \noteq 1
-    const MODULUS: BigInt<4> = BigInt([211, 7, 0, 0]);
-    const R: BigInt<4> = BigInt([160, 5, 0, 0]);
-    const R2: BigInt<4> = BigInt([239, 1, 0, 0]);
-    const R3: BigInt<4> = BigInt([199, 6, 0, 0]);
-    const M0: u64 = 165 as u64;
-    // 2^E * RODD = MODULUS - 1
-    const E: u64 = 8 as u64;
-    const RODD: u64 = 13 as u64;
-    // N is a sampled non-quadratic residual number, 3/6/11/12/...
-    const N: BigInt<4> = BigInt([3, 0, 0, 0]);
 
-    // const MODULUS: BigInt<4> = BigInt::<4>::ZERO();
-    // const R: BigInt<4> = BigInt::<4>::ZERO();
-    // const R2: BigInt<4> = BigInt::<4>::ZERO();
-    // const R3: BigInt<4> = BigInt::<4>::ZERO();
-    // const M0: u64 = 165 as u64;
-    // const E: u64 = 8 as u64;
-    // const RODD: u64 = 13 as u64;
-    // const N: BigInt<4> = BigInt::<4>::ZERO();
+    // MODULUS = 28948022309329048855892746252171976963363056481941647379679742748393362948097
+    // W = 2^64
+    // r = W^4 = 115792089237316195423570985008687907853269984665640564039457584007913129639936
+    // R = r % MODULUS = 28948022309329048855892746252171976963180815219815621900418355762733040795645
+    // R2 = r * r % MODULUS = 4263855311957679929489659445116329028194309752796460188622876710448966664207
+    // R3 = r * r * r % MODULUS = 3557709630315679472311684181007729646594247341237824434526702614836137537100
+    // M0 = (-MODULUS^{-1} % r) % W = 10108024940646105087
+    //
+    // let: MODULUS = 2^E * ROOD + 1
+    // E = 32
+    // RODD = 6739986666787659948666753771754907668419893943225417141728043264801
+    // N = 5/7/...., is sampled number whose legendre symbol is -1 (is definitely quadratic residual)
+    const MODULUS: BigInt<4> = BigInt([
+        10108024940646105089,
+        2469829653919213789,
+        0,
+        4611686018427387904,
+    ]);
+    const R: BigInt<4> = BigInt([
+        6569413325480787965,
+        11037255111951910247,
+        18446744073709551615,
+        4611686018427387903,
+    ]);
+    const R2: BigInt<4> = BigInt([
+        18200867980676431887,
+        7474641938123724515,
+        9200329640471491984,
+        679271340771891881,
+    ]);
+    const R3: BigInt<4> = BigInt([
+        39197710403612236,
+        16229805722976916262,
+        9871554806900181859,
+        566775843421393608,
+    ]);
+    const M0: u64 = 10108024940646105087 as u64;
+    const E: u64 = 32 as u64;
+    const RODD: BigInt<4> = BigInt([690362312389225249, 575052028, 0, 1073741824]);
+    const N: BigInt<4> = BigInt([5, 0, 0, 0]);
 
     #[inline(always)]
     fn ONE() -> Self {
@@ -108,6 +130,14 @@ impl PrimeField<4> for Fr<4> {
 
         // 2^{2m - k}
         let mut h_bit = 2 * m - k;
+        assert!(h_bit < m);
+        let x_tmp = (0..4).map(|i| i * 64 as usize).map(|v| {
+            if (h_bit > v) && (h_bit - v < 64) {
+                (1 as u64) << (h_bit - v)
+            } else {
+                0 as u64
+            }
+        });
         let x: Vec<u64> = (0..self.0 .0.len())
             .map(|i| {
                 if h_bit >= 64 {

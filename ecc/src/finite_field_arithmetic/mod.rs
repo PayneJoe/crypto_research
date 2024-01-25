@@ -1,17 +1,21 @@
-pub mod bigint16;
+pub mod bigint;
 pub mod bigint64;
-pub mod field;
 pub mod field_mont_friendly;
-pub mod gcd16;
+pub mod gcd64;
 pub mod pallas;
 pub mod traits;
+pub mod weierstrass_field;
 
-pub type BigInt = field::BI<2>;
-pub type PrimeField = field::Foo<2>;
+// bigint/field specially for weierstrass model
+pub type WSBigInt = weierstrass_field::BI<2>;
+pub type WSField = weierstrass_field::Foo<2>;
 
-// implemendted BigInteger<u16> for external usage
+// universal bigint with variable length
 pub type BigInt16 = BigInteger<u16>;
+pub type BigInt64 = BigInteger<u64>;
 
+use std::fmt::Binary;
+use std::fmt::{Debug, Display};
 use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
 pub trait BasicOps<Rhs = Self, Output = Self>:
@@ -20,7 +24,10 @@ pub trait BasicOps<Rhs = Self, Output = Self>:
     + AddAssign<Rhs>
     + SubAssign<Rhs>
     + Mul<Rhs, Output = Output>
+    + Binary
     + Default
+    + Display
+    + Debug
     + PartialEq
 {
 }
@@ -31,7 +38,10 @@ impl<T, Rhs, Output> BasicOps<Rhs, Output> for T where
         + AddAssign<Rhs>
         + SubAssign<Rhs>
         + Mul<Rhs, Output = Output>
+        + Binary
         + Default
+        + Display
+        + Debug
         + PartialEq
 {
 }
@@ -45,7 +55,7 @@ pub struct BigInteger<T> {
 
 impl<T> BigInteger<T>
 where
-    T: Default + PartialEq + Clone,
+    T: Default + Display + PartialEq + Clone + Binary,
 {
     #[inline(always)]
     fn new(v: &[T], sign: bool, basis: usize, rev: Option<bool>) -> Self {
@@ -82,6 +92,14 @@ where
     #[inline(always)]
     fn is_negative(&self) -> bool {
         (!self.is_zero()) && (self.sign == true)
+    }
+
+    #[inline(always)]
+    fn is_even(&self) -> bool {
+        let tmp_bin = format!("{:b}", self.data[0]);
+        let mut bin = tmp_bin.as_bytes().to_vec();
+        bin.reverse();
+        (!self.is_zero()) && (bin[0] == ('0' as u8))
     }
 
     fn strip_leading_zeros(&mut self) {

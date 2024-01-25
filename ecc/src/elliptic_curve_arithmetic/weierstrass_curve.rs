@@ -1,22 +1,22 @@
 use std::str::FromStr;
 
-use crate::finite_field_arithmetic::field::{Field, Foo, BI};
-use crate::finite_field_arithmetic::{BigInt, PrimeField};
+use crate::finite_field_arithmetic::weierstrass_field::{Field, Foo, BI};
+use crate::finite_field_arithmetic::{WSBigInt, WSField};
 use std::ops::{Add, Mul, Neg};
 
 pub trait Curve {
     // parameters of standard weierstrass curve
-    const a1: PrimeField;
-    const a3: PrimeField;
-    const a2: PrimeField;
-    const a4: PrimeField;
-    const a6: PrimeField;
+    const a1: WSField;
+    const a3: WSField;
+    const a2: WSField;
+    const a4: WSField;
+    const a6: WSField;
     // identity point on curve
     const IDENTITY: AffinePoint;
     // generator
     const GENERATOR: AffinePoint;
     // order
-    const ORDER: BigInt;
+    const ORDER: WSBigInt;
 
     // referenced from Definition 13.2 of "handbook of elliptic and hyperelliptic curve cryptography"
     fn is_nonsingular() -> bool {
@@ -38,14 +38,14 @@ pub trait Curve {
             "b2 = {:?}, b4 = {:?}, b6 = {:?}, b8 = {:?}, delta = {:?}",
             b2, b4, b6, b8, delta
         );
-        delta != PrimeField::ZERO()
+        delta != WSField::ZERO()
     }
 
     // check one point is on curve or not
     fn is_on_curve(p: &AffinePoint) -> bool;
 
     // evaluate y according x, it's not easy for original weierstrass curve equation
-    fn to_y(x: &PrimeField) -> PrimeField;
+    fn to_y(x: &WSField) -> WSField;
 
     // negate ops on point
     fn neg(p: &AffinePoint) -> AffinePoint;
@@ -57,7 +57,7 @@ pub trait Curve {
     fn addition(p1: &AffinePoint, p2: &AffinePoint) -> AffinePoint;
 
     // addition of scalar mul
-    fn scalar_mul(base: &AffinePoint, scalar: &BigInt) -> AffinePoint;
+    fn scalar_mul(base: &AffinePoint, scalar: &WSBigInt) -> AffinePoint;
 }
 
 // custom curve instance
@@ -68,11 +68,11 @@ impl Curve for Bar {
     // y^2 + 2xy + 8y = x^3 + 5x^2 + 1136x + 531
     // for the purpose of research, we fill these constant parameters through mannual computation
     // actually these constant parameters need to be determined dynamicly at compile-time
-    const a1: PrimeField = Foo(BI([217, 4]));
-    const a3: PrimeField = Foo(BI([99, 6]));
-    const a2: PrimeField = Foo(BI([158, 5]));
-    const a4: PrimeField = Foo(BI([165, 9]));
-    const a6: PrimeField = Foo(BI([43, 6]));
+    const a1: WSField = Foo(BI([217, 4]));
+    const a3: WSField = Foo(BI([99, 6]));
+    const a2: WSField = Foo(BI([158, 5]));
+    const a4: WSField = Foo(BI([165, 9]));
+    const a6: WSField = Foo(BI([43, 6]));
     // faked identity representing the point at infinity
     const IDENTITY: AffinePoint = AffinePoint {
         x: Foo(BI([0, 0])),
@@ -84,7 +84,7 @@ impl Curve for Bar {
         y: Foo(BI([254, 11])),
     };
     // order of this elliptic curve is 3295, which is not a prime number
-    const ORDER: BigInt = BI([223, 12]);
+    const ORDER: WSBigInt = BI([223, 12]);
 
     fn is_on_curve(p: &AffinePoint) -> bool {
         let (x, y) = (p.x, p.y);
@@ -93,7 +93,7 @@ impl Curve for Bar {
         lft == rht
     }
 
-    fn to_y(x: &PrimeField) -> PrimeField {
+    fn to_y(x: &WSField) -> WSField {
         unimplemented!()
     }
 
@@ -141,7 +141,7 @@ impl Curve for Bar {
     }
 
     // referenced from Algorithm 13.6 of "handbook of elliptic and hyperelliptic curve cryptography"
-    fn scalar_mul(base: &AffinePoint, scalar: &BigInt) -> AffinePoint {
+    fn scalar_mul(base: &AffinePoint, scalar: &WSBigInt) -> AffinePoint {
         // k < 8, make sure u8 is big enough for store precomputated points
         let k = 4;
         let n = scalar.to_bits();
@@ -219,21 +219,21 @@ fn bits_to_u8(bits: &[u8]) -> u8 {
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct AffinePoint {
-    x: PrimeField,
-    y: PrimeField,
+    x: WSField,
+    y: WSField,
 }
 
 impl AffinePoint {
-    fn from_bigint(x: BigInt, y: BigInt) -> Self {
+    fn from_bigint(x: WSBigInt, y: WSBigInt) -> Self {
         Self {
-            x: PrimeField::from(x),
-            y: PrimeField::from(y),
+            x: WSField::from(x),
+            y: WSField::from(y),
         }
     }
     fn from_str(x: &str, y: &str) -> Self {
         Self {
-            x: PrimeField::from_str(x).unwrap(),
-            y: PrimeField::from_str(y).unwrap(),
+            x: WSField::from_str(x).unwrap(),
+            y: WSField::from_str(y).unwrap(),
         }
     }
     fn is_on_curve(&self) -> bool {
@@ -257,10 +257,10 @@ impl<'a, 'b> Add<&'b AffinePoint> for &'a AffinePoint {
     }
 }
 
-impl Mul<BigInt> for AffinePoint {
+impl Mul<WSBigInt> for AffinePoint {
     type Output = AffinePoint;
 
-    fn mul(self, other: BigInt) -> Self::Output {
+    fn mul(self, other: WSBigInt) -> Self::Output {
         Bar::scalar_mul(&self, &other)
     }
 }
@@ -317,7 +317,7 @@ mod tests {
         // (2 * g) * 3 == 6 * g
         let (a, b, c) = (("2251", "2594"), "3", ("1323", "1896"));
         let lft = AffinePoint::from_str(a.0.to_string().as_str(), a.1.to_string().as_str());
-        let rht = BigInt::from_str(b.to_string().as_str()).unwrap();
+        let rht = WSBigInt::from_str(b.to_string().as_str()).unwrap();
         let result = AffinePoint::from_str(c.0.to_string().as_str(), c.1.to_string().as_str());
         assert_eq!(lft * rht, result);
     }
@@ -327,7 +327,7 @@ mod tests {
         // (2 * g) * 325 == 650 * g
         let (a, b, c) = (("2251", "2594"), "325", ("1103", "2591"));
         let lft = AffinePoint::from_str(a.0.to_string().as_str(), a.1.to_string().as_str());
-        let rht = BigInt::from_str(b.to_string().as_str()).unwrap();
+        let rht = WSBigInt::from_str(b.to_string().as_str()).unwrap();
         let result = AffinePoint::from_str(c.0.to_string().as_str(), c.1.to_string().as_str());
         assert_eq!(lft * rht, result);
     }

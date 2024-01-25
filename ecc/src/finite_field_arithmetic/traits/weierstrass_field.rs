@@ -1,4 +1,4 @@
-use crate::finite_field_arithmetic::bigint64::BigInt;
+use crate::finite_field_arithmetic::bigint::BigInt;
 use std::marker::PhantomData;
 
 use std::{
@@ -71,7 +71,7 @@ pub trait PrimeField<const N: usize>:
     const M0: u64;
     // for the convenient of square root (Tonelli and Shanks Algorithm)
     const E: u64;
-    const RODD: u64;
+    const RODD: BigInt<N>;
     const N: BigInt<N>;
 
     fn ONE() -> Self;

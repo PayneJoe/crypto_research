@@ -1,16 +1,24 @@
-use crate::finite_field_arithmetic::BigInt16;
+/////// Implementation of GCD over Generalized (variable length) BigInteger<T>
+///
+///
+use crate::finite_field_arithmetic::BigInt64;
+
+const WORD_SIZE: usize = 64;
+type Word = u64;
+type DoubleWord = u128;
+const WORD_BASE: DoubleWord = (1 as DoubleWord) << WORD_SIZE;
 
 /// lehmer matrix for lehmer extended gcd
 /// referenced by Algorithm 10.46 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
 #[derive(Debug, PartialEq, Eq)]
-pub struct LehmerMatrix(u16, u16, u16, u16, bool);
+pub struct LehmerMatrix(Word, Word, Word, Word, bool);
 
 impl LehmerMatrix {
     pub const IDENTITY: Self = Self(1, 0, 0, 1, true);
-    pub const HALF_WORD: u16 = 1 << 15;
-    pub const HALF_SIZE_WORD: u16 = 1 << 8;
+    pub const HALF_WORD: Word = 1 << (WORD_SIZE - 1);
+    pub const HALF_SIZE_WORD: Word = 1 << (WORD_SIZE / 2);
 
-    fn MixedApproximation(A: &BigInt16, B: &BigInt16) -> Self {
+    fn MixedApproximation(A: &BigInt64, B: &BigInt64) -> Self {
         assert!(A.basis == B.basis);
         let b = A.basis;
         let (na, nb) = (A.size(), B.size());
@@ -20,25 +28,26 @@ impl LehmerMatrix {
         let (mut hat_A, mut hat_B) = (
             A.data[one_word_idx],
             if one_word_idx + 1 > nb {
-                0_u16
+                0 as Word
             } else {
                 B.data[one_word_idx]
             },
         );
         // make sure the highest words are right
         assert!(hat_A >= hat_B);
-        if hat_B == 0_u16 {
+        if hat_B == 0 as Word {
             return Self::IDENTITY;
         }
 
         // initial lehmer matrix
-        let (mut alpha, mut beta, mut alpha_new, mut beta_new) = (1_u16, 0_u16, 0_u16, 1_u16);
+        let (mut alpha, mut beta, mut alpha_new, mut beta_new) =
+            (1 as Word, 0 as Word, 0 as Word, 1 as Word);
 
         ///// step 2: update lehmer matrix through single precision positive integers (the most significant words)
         // first trial iteration
         let mut q = hat_A / hat_B;
         let mut T = hat_A - q * hat_B;
-        let mut n_iter = 0_u16;
+        let mut n_iter = 0 as Word;
         // println!(
         //     "+++++++ q = {} = {} / {}, T_new = {}, half = {} ",
         //     q,
@@ -87,11 +96,11 @@ impl LehmerMatrix {
 
         let two_word_idx = std::cmp::max(na - 2, 0);
         let (mut hat_hat_A, mut hat_hat_B) = (
-            BigInt16::new(&A.data[two_word_idx..].to_vec(), A.sign, b, None),
+            BigInt64::new(&A.data[two_word_idx..].to_vec(), A.sign, b, None),
             if two_word_idx > nb - 1 {
-                BigInt16::default()
+                BigInt64::default()
             } else {
-                BigInt16::new(&B.data[two_word_idx..].to_vec(), B.sign, b, None)
+                BigInt64::new(&B.data[two_word_idx..].to_vec(), B.sign, b, None)
             },
         );
 
@@ -122,13 +131,13 @@ impl LehmerMatrix {
         (hat_A, hat_B) = (
             hat_hat_A.data[one_word_idx],
             if one_word_idx > nb - 1 {
-                0_u16
+                0 as Word
             } else {
                 hat_hat_B.data[one_word_idx]
             },
         );
         assert!(hat_A >= hat_B);
-        if hat_B == 0_u16 {
+        if hat_B == 0 as Word {
             return Self(alpha, beta, alpha_new, beta_new, n_iter % 2 == 0);
         }
 
@@ -179,12 +188,12 @@ impl LehmerMatrix {
 pub trait GCD {
     /// native method of euclid extended gcd, many more methods can be applied to achieve few iterations
     /// referenced by Algorithm 10.42 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
-    fn euclid_extended_gcd(x: u32, N: u32) -> (u32, u32, u16, bool) {
+    fn euclid_extended_gcd(x: DoubleWord, N: DoubleWord) -> (DoubleWord, DoubleWord, Word, bool) {
         assert!(x < N);
         let (mut A, mut B) = (N, x);
         let (mut Ua, mut Ub) = (0, 1);
         let (mut Va, mut Vb) = (1, 0);
-        let mut n_iter = 0_u16;
+        let mut n_iter = 0 as Word;
         while B != 0 {
             let q = A / B;
             (A, B) = (B, A - q * B);
@@ -193,19 +202,22 @@ pub trait GCD {
             n_iter = n_iter + 1;
         }
         let (d, u, v) = (A, Ua, Va);
-        (u, v, d as u16, n_iter % 2 == 0)
+        (u, v, d as Word, n_iter % 2 == 0)
     }
 
     /// one step forwards optimal gcd:
     /// euclid extended gcd with least remainder, which is approximately 30% faster than traditional euclid extended gcd
-    fn euclid_extended_gcd_least_remainder(x: u32, N: u32) -> (u32, u32, u16, bool) {
+    fn euclid_extended_gcd_least_remainder(
+        x: DoubleWord,
+        N: DoubleWord,
+    ) -> (DoubleWord, DoubleWord, Word, bool) {
         // make sure the smaller one is single precision, the larger one maybe double precision
-        assert!((x < N) && (x < (1 << 16) as u32));
+        assert!((x < N) && (x < WORD_BASE));
 
         let (mut A, mut B) = (N, x);
         let (mut Ua, mut Ub) = (0, 1);
         let (mut Va, mut Vb) = (1, 0);
-        let mut n_iter = 0_u16;
+        let mut n_iter = 0 as Word;
         while B != 0 {
             let q = A / B;
             let r = A - q * B;
@@ -227,29 +239,31 @@ pub trait GCD {
             n_iter = n_iter + 1;
         }
         let (d, u, v) = (A, Ua, Va);
-        (u, v, d as u16, n_iter % 2 == 0)
+        (u, v, d as Word, n_iter % 2 == 0)
     }
 
     // specially for reduced precisions, a single precision along with a double precision at most
     fn euclid_extended_gcd_bigint(
-        x: &BigInt16,
-        N: &BigInt16,
-    ) -> (BigInt16, BigInt16, BigInt16, bool) {
+        x: &BigInt64,
+        N: &BigInt64,
+    ) -> (BigInt64, BigInt64, BigInt64, bool) {
         assert!((N - x).is_positive());
 
         let (mut A, mut B) = (N.clone(), x.clone());
         let (mut Ua, mut Ub) = (
-            BigInt16::new(vec![0_u16].as_slice(), false, 1 << 16, None),
-            BigInt16::new(vec![1_u16].as_slice(), false, 1 << 16, None),
+            BigInt64::new(vec![0 as Word].as_slice(), false, WORD_SIZE, None),
+            BigInt64::new(vec![1 as Word].as_slice(), false, WORD_SIZE, None),
         );
         let (mut Va, mut Vb) = (
-            BigInt16::new(vec![1_u16].as_slice(), false, 1 << 16, None),
-            BigInt16::new(vec![0_u16].as_slice(), false, 1 << 16, None),
+            BigInt64::new(vec![1 as Word].as_slice(), false, WORD_SIZE, None),
+            BigInt64::new(vec![0 as Word].as_slice(), false, WORD_SIZE, None),
         );
         let mut n_iter = 0;
         while B.is_zero() == false {
+            println!("---- A = {:?}, B = {:?}", A, B);
             let q = &A / &B;
             let r = &A - &(&q * &B);
+            // let r = &A % &B;
             (A, B, Ua, Ub, Va, Vb) = if (&r - &(&B >> 1 as usize)).is_positive() {
                 n_iter = n_iter + 1;
                 (
@@ -278,15 +292,15 @@ pub trait GCD {
 
     /// lehmer extended gcd for multi-precision of positive integers (big integer)
     /// referenced by Algorithm 10.45 of "Handbook of Elliptic and Hyperelliptic Curve Cryptography"
-    fn lehmer_extended_gcd(x: &BigInt16, N: &BigInt16) -> (BigInt16, BigInt16, BigInt16, bool) {
+    fn lehmer_extended_gcd(x: &BigInt64, N: &BigInt64) -> (BigInt64, BigInt64, BigInt64, bool) {
         let (mut A, mut B) = (N.clone(), x.clone());
         let (mut U_A, mut U_B) = (
-            BigInt16::new(vec![0_u16].as_slice(), false, 1 << 16, None),
-            BigInt16::new(vec![1_u16].as_slice(), false, 1 << 16, None),
+            BigInt64::new(vec![0 as Word].as_slice(), false, WORD_SIZE, None),
+            BigInt64::new(vec![1 as Word].as_slice(), false, WORD_SIZE, None),
         );
         let (mut V_A, mut V_B) = (
-            BigInt16::new(vec![1_u16].as_slice(), false, 1 << 16, None),
-            BigInt16::new(vec![0_u16].as_slice(), false, 1 << 16, None),
+            BigInt64::new(vec![1 as Word].as_slice(), false, WORD_SIZE, None),
+            BigInt64::new(vec![0 as Word].as_slice(), false, WORD_SIZE, None),
         );
         assert!(!B.is_zero());
 
@@ -294,7 +308,7 @@ pub trait GCD {
         // println!("\n Reducing begins ...");
         // let mut signs: Vec<bool> = vec![];
         let mut accumulated_sign = true;
-        let mut trial = 0_u16;
+        let mut trial = 0 as Word;
         while B.is_zero() == false {
             // while B.size() > 1 {
             // println!(" -------- {}th trial ---------\n", trial);
@@ -383,19 +397,19 @@ pub trait GCD {
     }
 }
 
-impl GCD for BigInt16 {}
+impl GCD for BigInt64 {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn test_gcd_inner(a_arr: &[u16], b_arr: &[u16], c_arr: &[u16], basis: usize) {
+    fn test_gcd_inner(a_arr: &[Word], b_arr: &[Word], c_arr: &[Word], basis: usize) {
         let (a, b, c) = (
-            BigInt16::new(&a_arr, false, basis, Some(true)),
-            BigInt16::new(&b_arr, false, basis, Some(true)),
-            BigInt16::new(&c_arr, false, basis, Some(true)),
+            BigInt64::new(&a_arr, false, basis, Some(true)),
+            BigInt64::new(&b_arr, false, basis, Some(true)),
+            BigInt64::new(&c_arr, false, basis, Some(true)),
         );
-        let (u, v, d, sign) = BigInt16::lehmer_extended_gcd(&b, &a);
+        let (u, v, d, sign) = BigInt64::lehmer_extended_gcd(&b, &a);
         println!("u = {:?}, v = {:?}, d = {:?}, sign = {}", u, v, d, sign);
         assert_eq!(d, c);
         if sign {
@@ -407,13 +421,13 @@ mod tests {
 
     #[test]
     fn test_lehmer_extended_gcd() {
-        let (x, N) = (BigInt16::from("8378459450"), BigInt16::from("26498041357"));
+        let (x, N) = (BigInt64::from("8378459450"), BigInt64::from("26498041357"));
         let (u, v, d) = (
-            BigInt16::from("10055119245"),
-            BigInt16::from("3179344757"),
-            BigInt16::from("1"),
+            BigInt64::from("10055119245"),
+            BigInt64::from("3179344757"),
+            BigInt64::from("1"),
         );
-        let (u_test, v_test, d_test, sign) = BigInt16::lehmer_extended_gcd(&x, &N);
+        let (u_test, v_test, d_test, sign) = BigInt64::lehmer_extended_gcd(&x, &N);
         println!(
             "u = {:?}, v = {:?}, d = {:?}, sign = {}",
             u_test, v_test, d_test, sign
@@ -425,10 +439,14 @@ mod tests {
     }
 
     #[test]
-    fn test_euclid_extended_gcd_1() {
-        // let (N, x) = (BigInt16::from("106431"), BigInt16::from("64256"));
-        let (N, x) = (BigInt16::from("256"), BigInt16::from("5"));
-        let (u, v, d, sign) = BigInt16::euclid_extended_gcd_bigint(&x, &N);
+    fn test_euclid_extended_gcd_naive() {
+        let (Fr, r) = (
+            "28948022309329048855892746252171976963363056481941647379679742748393362948097",
+            "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+        );
+        let (N, x) = (BigInt64::from(r), BigInt64::from(Fr));
+        println!("N = {:?}, x = {:?}", N, x);
+        let (u, v, d, sign) = BigInt64::euclid_extended_gcd_bigint(&x, &N);
         println!("u = {:?}, v = {:?}, d = {:?}, sign = {}", &u, &v, &d, sign);
         if sign {
             assert_eq!(&(&N * &v) - &(&x * &u), d);
@@ -438,11 +456,11 @@ mod tests {
     }
 
     #[test]
-    fn test_euclid_extended_gcd_2() {
+    fn test_euclid_extended_gcd_shift() {
         // let (N, x) = (106431, 64256);
         let (N, x) = (88, 45);
-        let (u, v, d, sign) = BigInt16::euclid_extended_gcd_least_remainder(x, N);
-        // let (u, v, d, sign) = BigInt16::euclid_extended_gcd(x, N);
+        let (u, v, d, sign) = BigInt64::euclid_extended_gcd_least_remainder(x, N);
+        // let (u, v, d, sign) = BigInt64::euclid_extended_gcd(x, N);
         println!("======== {}, {}, {}, {}", u, v, d, sign);
         if sign {
             assert_eq!(N as u64 * v as u64 - x as u64 * u as u64, d as u64);
