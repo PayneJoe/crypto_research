@@ -15,9 +15,6 @@ impl PrimeField<4> for Fr<4> {
     // fabricated precomputable parameters of custom finite field,
     // these constant parameters need to determined at compile time
 
-    // W = 256, MODULUS/M = 2003, R = 256^2 % MODULUS = 982, M0 = (-M^{-1} % 256^2) % W =
-    // MODULUS % 8 \noteq 1
-
     // MODULUS = 28948022309329048855892746252171976963363056481941647379679742748393362948097
     // W = 2^64
     // r = W^4 = 115792089237316195423570985008687907853269984665640564039457584007913129639936
