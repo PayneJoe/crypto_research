@@ -4,6 +4,7 @@ pub mod field_mont_friendly;
 pub mod gcd64;
 pub mod pallas;
 pub mod traits;
+pub mod vasta;
 pub mod weierstrass_field;
 
 // bigint/field specially for weierstrass model

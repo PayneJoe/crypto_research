@@ -1,3 +1,6 @@
+/// Practical Implementation for Scalar Field (Fr) of Pallas Curve
+///
+///
 use crate::finite_field_arithmetic::bigint::BigInt;
 use crate::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
 
