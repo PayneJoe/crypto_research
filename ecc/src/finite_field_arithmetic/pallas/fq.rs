@@ -420,6 +420,35 @@ mod tests {
     }
 
     #[test]
+    fn test_pallas_curve_params() {
+        // params of weierstrass model: a = 0, b = 5
+        let (a, b) = ("0", "5");
+        println!(
+            "a = {:?}, b = {:?}",
+            Fq::<NUM_LIMBS>::from_str(a).unwrap().0 .0,
+            Fq::<NUM_LIMBS>::from_str(b).unwrap().0 .0
+        );
+
+        // generator: (-1, 2)
+        let (gen_x, gen_y) = (
+            "28948022309329048855892746252171976963363056481941560715954676764349967630336",
+            "2",
+        );
+        println!(
+            "generator: x = {:?}, y = {:?}",
+            Fq::<NUM_LIMBS>::from_str(gen_x).unwrap().0 .0,
+            Fq::<NUM_LIMBS>::from_str(gen_y).unwrap().0 .0,
+        );
+
+        // order of curve(group): 28948022309329048855892746252171976963363056481941647379679742748393362948097
+        let order = "28948022309329048855892746252171976963363056481941647379679742748393362948097";
+        println!(
+            "order: {:?}",
+            BigInt::<NUM_LIMBS>::from_str(order).unwrap().0
+        );
+    }
+
+    #[test]
     fn test_addition() {
         let (a, b, c) = (
             "23299583932281281605549117567410625401281091317674300085390516703976038929236",
