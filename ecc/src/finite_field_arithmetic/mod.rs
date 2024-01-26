@@ -1,15 +1,15 @@
 pub mod bigint;
 pub mod bigint64;
+pub mod field;
 pub mod field_mont_friendly;
 pub mod gcd64;
 pub mod pallas;
 pub mod traits;
 pub mod vasta;
-pub mod weierstrass_field;
 
 // bigint/field specially for weierstrass model
-pub type WSBigInt = weierstrass_field::BI<2>;
-pub type WSField = weierstrass_field::Foo<2>;
+pub type WSBigInt = field::BI<2>;
+pub type WSField = field::Foo<2>;
 
 // universal bigint with variable length
 pub type BigInt16 = BigInteger<u16>;

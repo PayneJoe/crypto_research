@@ -1,6 +1,8 @@
+/// This is a test implementation for elliptic curve over standard Weierstrass model
+///
 use std::str::FromStr;
 
-use crate::finite_field_arithmetic::weierstrass_field::{Field, Foo, BI};
+use crate::finite_field_arithmetic::field::{Field, Foo, BI};
 use crate::finite_field_arithmetic::{WSBigInt, WSField};
 use std::ops::{Add, Mul, Neg};
 
