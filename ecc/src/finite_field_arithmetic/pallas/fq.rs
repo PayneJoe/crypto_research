@@ -1,4 +1,4 @@
-/// Practical Implementation for Scalar Field (Fr) of Pallas Curve
+/// Practical Implementation for Base Field (Fq) of Pallas Curve
 ///
 ///
 use crate::finite_field_arithmetic::bigint::BigInt;
@@ -15,55 +15,55 @@ pub struct FieldParseErr;
 pub struct NoneQuadraticResidualErr;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Fr<const N: usize>(pub BigInt<N>);
+pub struct Fq<const N: usize>(pub BigInt<N>);
 
 const NUM_LIMBS: usize = 4;
 const WORD_SIZE: usize = 64;
 type Word = u64;
 
-impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
+impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
     // fabricated precomputable parameters of custom finite field,
     // these constant parameters need to determined at compile time
 
-    // MODULUS = 28948022309329048855892746252171976963363056481941647379679742748393362948097
+    // MODULUS = 28948022309329048855892746252171976963363056481941560715954676764349967630337
     // W = 2^64
     // r = W^4 = 115792089237316195423570985008687907853269984665640564039457584007913129639936
-    // R = r % MODULUS = 28948022309329048855892746252171976963180815219815621900418355762733040795645
-    // R2 = r * r % MODULUS = 4263855311957679929489659445116329028194309752796460188622876710448966664207
-    // R3 = r * r * r % MODULUS = 3557709630315679472311684181007729646594247341237824434526702614836137537100
-    // M0 = (-MODULUS^{-1} % r) % W = 10108024940646105087
+    // R = r % MODULUS = 28948022309329048855892746252171976963180815219815881891593553714863226748925
+    // R2 = r * r % MODULUS = 4263855311831330276397237192126260515652039413828781833859739249380679483407
+    // R3 = r * r * r % MODULUS = 19398276961315000371481654775825491914897503251658641052577562551434289746169
+    // M0 = (-MODULUS^{-1} % r) % W = 7409212017489215489
     //
     // let: MODULUS = 2^E * ROOD + 1
     // E = 32
-    // RODD = 6739986666787659948666753771754907668419893943225417141728043264801
+    // RODD = 6739986666787659948666753771754907668419893943225396963757154709741
     // N = 5/7/...., is sampled number whose legendre symbol is -1 (is definitely non-quadratic residual)
     const MODULUS: BigInt<NUM_LIMBS> = BigInt([
-        10108024940646105089,
-        2469829653919213789,
+        11037532056220336129,
+        2469829653914515739,
         0,
         4611686018427387904,
     ]);
     const R: BigInt<NUM_LIMBS> = BigInt([
-        6569413325480787965,
-        11037255111951910247,
+        3780891978758094845,
+        11037255111966004397,
         18446744073709551615,
         4611686018427387903,
     ]);
     const R2: BigInt<NUM_LIMBS> = BigInt([
-        18200867980676431887,
-        7474641938123724515,
-        9200329640471491984,
-        679271340771891881,
+        10122100416058490895,
+        15551789045973377255,
+        8617542898466512152,
+        679271340751763220,
     ]);
     const R3: BigInt<NUM_LIMBS> = BigInt([
-        39197710403612236,
-        16229805722976916262,
-        9871554806900181859,
-        566775843421393608,
+        17403498412575166713,
+        17773050464821424593,
+        16108549121152898092,
+        3090323811697793296,
     ]);
-    const M0: Word = 10108024940646105087 as Word;
+    const M0: Word = 11037532056220336127 as Word;
     const E: Word = 32 as Word;
-    const RODD: BigInt<NUM_LIMBS> = BigInt([690362312389225249, 575052028, 0, 1073741824]);
+    const RODD: BigInt<NUM_LIMBS> = BigInt([670184341500670189, 575052028, 0, 1073741824]);
     const N: BigInt<NUM_LIMBS> = BigInt([5, 0, 0, 0]);
 
     #[inline(always)]
@@ -77,7 +77,7 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
     }
 
     // referenced from Algorithm 11.12 of "handbook of elliptic and hyperelliptic curve cryptography"
-    // (aR)^{-1} % N <- ((aR)^{-1} * R^2) * R^{-1} % N
+    // (a^{-1} * R) % N <- (a^{-1} * R^2) * R^{-1} % N
     fn inv(&self) -> Self {
         let (mut r, mut s, mut t, mut v) = (
             self.0,
@@ -136,7 +136,7 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
         }
 
         // 2^{2m - k}
-        let mut h_bit = 2 * m - k;
+        let h_bit = 2 * m - k;
         assert!(h_bit < m);
         let x: Vec<Word> = (0..NUM_LIMBS)
             .map(|i| i * WORD_SIZE as usize)
@@ -148,7 +148,6 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
                 }
             })
             .collect();
-
         // println!("------- before reduce R2: v = {:?}", v);
         // REDC(v * R2)
         v = Self::mul_reduce(&v, &Self::R2).0;
@@ -283,59 +282,59 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
     }
 }
 
-impl From<&BigInt<NUM_LIMBS>> for Fr<NUM_LIMBS> {
+impl From<&BigInt<NUM_LIMBS>> for Fq<NUM_LIMBS> {
     fn from(value: &BigInt<NUM_LIMBS>) -> Self {
         Self::reduce(value, Some(false))
     }
 }
 
-impl From<BigInt<NUM_LIMBS>> for Fr<NUM_LIMBS> {
+impl From<BigInt<NUM_LIMBS>> for Fq<NUM_LIMBS> {
     fn from(value: BigInt<NUM_LIMBS>) -> Self {
         Self::reduce(&value, Some(false))
     }
 }
 
-impl Into<BigInt<NUM_LIMBS>> for Fr<NUM_LIMBS> {
+impl Into<BigInt<NUM_LIMBS>> for Fq<NUM_LIMBS> {
     fn into(self) -> BigInt<NUM_LIMBS> {
         self.rev_reduce()
     }
 }
 
 // non-reduced transformation between bytes and field
-impl From<[Word; NUM_LIMBS]> for Fr<NUM_LIMBS> {
+impl From<[Word; NUM_LIMBS]> for Fq<NUM_LIMBS> {
     fn from(bytes: [Word; NUM_LIMBS]) -> Self {
-        Fr(BigInt(bytes))
+        Fq(BigInt(bytes))
     }
 }
 
-impl Into<[Word; 4]> for Fr<NUM_LIMBS> {
+impl Into<[Word; 4]> for Fq<NUM_LIMBS> {
     fn into(self) -> [Word; NUM_LIMBS] {
         self.0 .0
     }
 }
 
-impl<'a> Sum<&'a Self> for Fr<NUM_LIMBS> {
+impl<'a> Sum<&'a Self> for Fq<NUM_LIMBS> {
     fn sum<I>(iter: I) -> Self
     where
         I: Iterator<Item = &'a Self>,
     {
-        iter.fold(Fr::<NUM_LIMBS>::ZERO(), |a, b| a + *b)
+        iter.fold(Fq::<NUM_LIMBS>::ZERO(), |a, b| a + *b)
     }
 }
 
-impl Sum<Self> for Fr<NUM_LIMBS> {
+impl Sum<Self> for Fq<NUM_LIMBS> {
     fn sum<I>(iter: I) -> Self
     where
         I: Iterator<Item = Self>,
     {
-        iter.fold(Fr::<NUM_LIMBS>::ZERO(), |a, b| a + b)
+        iter.fold(Fq::<NUM_LIMBS>::ZERO(), |a, b| a + b)
     }
 }
 
-impl Add for Fr<NUM_LIMBS> {
-    type Output = Fr<NUM_LIMBS>;
+impl Add for Fq<NUM_LIMBS> {
+    type Output = Fq<NUM_LIMBS>;
 
-    fn add(self, other: Self) -> Fr<NUM_LIMBS> {
+    fn add(self, other: Self) -> Fq<NUM_LIMBS> {
         let (w, carrier) = self.0 + other.0;
         if carrier > 0 {
             Self(((BigInt::<NUM_LIMBS>::MAX() - Self::MODULUS).0 + w).0)
@@ -347,10 +346,10 @@ impl Add for Fr<NUM_LIMBS> {
     }
 }
 
-impl Sub for Fr<NUM_LIMBS> {
-    type Output = Fr<NUM_LIMBS>;
+impl Sub for Fq<NUM_LIMBS> {
+    type Output = Fq<NUM_LIMBS>;
 
-    fn sub(self, other: Self) -> Fr<NUM_LIMBS> {
+    fn sub(self, other: Self) -> Fq<NUM_LIMBS> {
         if self.0 > other.0 {
             Self((self.0 - other.0).0)
         } else {
@@ -359,18 +358,18 @@ impl Sub for Fr<NUM_LIMBS> {
     }
 }
 
-impl Mul for Fr<NUM_LIMBS> {
-    type Output = Fr<NUM_LIMBS>;
+impl Mul for Fq<NUM_LIMBS> {
+    type Output = Fq<NUM_LIMBS>;
 
-    fn mul(self, other: Self) -> Fr<NUM_LIMBS> {
+    fn mul(self, other: Self) -> Fq<NUM_LIMBS> {
         Self::mul_reduce(&self.0, &other.0)
     }
 }
 
-impl Mul<Word> for Fr<NUM_LIMBS> {
-    type Output = Fr<NUM_LIMBS>;
+impl Mul<Word> for Fq<NUM_LIMBS> {
+    type Output = Fq<NUM_LIMBS>;
 
-    fn mul(self, other: Word) -> Fr<NUM_LIMBS> {
+    fn mul(self, other: Word) -> Fq<NUM_LIMBS> {
         Self::mul_reduce(
             &self.0,
             &Self::from_str(other.to_string().as_str()).unwrap().0,
@@ -378,23 +377,23 @@ impl Mul<Word> for Fr<NUM_LIMBS> {
     }
 }
 
-impl Div for Fr<NUM_LIMBS> {
-    type Output = Fr<NUM_LIMBS>;
+impl Div for Fq<NUM_LIMBS> {
+    type Output = Fq<NUM_LIMBS>;
 
-    fn div(self, other: Self) -> Fr<NUM_LIMBS> {
+    fn div(self, other: Self) -> Fq<NUM_LIMBS> {
         Self::mul_reduce(&self.0, &other.inv().0)
     }
 }
 
-impl Neg for Fr<NUM_LIMBS> {
-    type Output = Fr<NUM_LIMBS>;
+impl Neg for Fq<NUM_LIMBS> {
+    type Output = Fq<NUM_LIMBS>;
 
-    fn neg(self) -> Fr<NUM_LIMBS> {
+    fn neg(self) -> Fq<NUM_LIMBS> {
         Self::ZERO() - self
     }
 }
 
-impl FromStr for Fr<NUM_LIMBS> {
+impl FromStr for Fq<NUM_LIMBS> {
     type Err = FieldParseErr;
 
     fn from_str(text: &str) -> Result<Self, Self::Err> {
@@ -411,77 +410,91 @@ mod tests {
 
     #[test]
     fn test_from_str() {
-        let a = "10828745280282393011948633936436145363160692580455384354038716315440980557097";
-        let a_bigint: BigInt<NUM_LIMBS> = Fr::<NUM_LIMBS>::from_str(a).unwrap().into();
+        let a = "23299583932281281605549117567410625401281091317674300085390516703976038929236";
+        let a_bigint: BigInt<NUM_LIMBS> = Fq::<NUM_LIMBS>::from_str(a).unwrap().into();
         assert_eq!(a_bigint, BigInt::<NUM_LIMBS>::from_str(a).unwrap());
 
-        let c = "591287673063831099393508774001657241885700464961659518539444896981632376260";
-        let a_field: [Word; NUM_LIMBS] = Fr::<NUM_LIMBS>::from_str(a).unwrap().into();
+        let c = "23165056470023441196371639597826156042421324766918472161609664258633197933423";
+        let a_field: [Word; NUM_LIMBS] = Fq::<NUM_LIMBS>::from_str(a).unwrap().into();
         assert_eq!(a_field, BigInt::<NUM_LIMBS>::from_str(c).unwrap().0);
     }
 
     #[test]
     fn test_addition() {
         let (a, b, c) = (
-            "10828745280282393011948633936436145363160692580455384354038716315440980557097",
-            "12983359841706137811367631271868112279657727965035633245325863046483061891040",
-            "23812105121988530823316265208304257642818420545491017599364579361924042448137",
+            "23299583932281281605549117567410625401281091317674300085390516703976038929236",
+            "12728795896941878947827723216087007012404899953936068154162936317783913641026",
+            "7080357519894111697484094531325655450322934789668807523598776257409984939925",
         );
         assert_eq!(
-            Fr::<NUM_LIMBS>::from_str(a).unwrap() + Fr::<NUM_LIMBS>::from_str(b).unwrap(),
-            Fr::<NUM_LIMBS>::from_str(c).unwrap()
+            Fq::<NUM_LIMBS>::from_str(a).unwrap() + Fq::<NUM_LIMBS>::from_str(b).unwrap(),
+            Fq::<NUM_LIMBS>::from_str(c).unwrap()
         );
     }
 
     #[test]
     fn test_substraction() {
-        let a = "21426167871899790663146927947666624753013764602916297221764179118297811791824";
-        let b = "9973449002990857279361928142663956117381682723201036506158891067077462904966";
-        let c = "11452718868908933383784999805002668635632081879715260715605288051220348886858";
+        let (a, b, c) = (
+            "28244056179519182624834465195545514411138275528379130540542625181634794962600",
+            "13583400149048208564886004143663881202478291013837410260892386282926681992841",
+            "14660656030470974059948461051881633208659984514541720279650238898708112969759",
+        );
         assert_eq!(
-            Fr::<NUM_LIMBS>::from_str(a).unwrap() - Fr::<NUM_LIMBS>::from_str(b).unwrap(),
-            Fr::<NUM_LIMBS>::from_str(c).unwrap()
+            Fq::<NUM_LIMBS>::from_str(a).unwrap() - Fq::<NUM_LIMBS>::from_str(b).unwrap(),
+            Fq::<NUM_LIMBS>::from_str(c).unwrap()
         );
     }
 
     #[test]
     fn test_multiplication() {
-        let a = "6375934151890180205297706674895575483273624160874557874408840128846376412200";
-        let b = "28506874097417334274247958454240234974963135381959712862126761049363843908851";
-        let c = "2254763930843862400398034612573101569234819393442628390705778063269694551656";
+        let (a, b, c) = (
+            "28420585563447636701388901488730408229744882268550871135427378007593007145818",
+            "10929005576730665445090409463623600211518111311797436516349444987664000120035",
+            "20884984882123841859966737092202213092058578554401209905127510218020991566255",
+        );
         assert_eq!(
-            Fr::<NUM_LIMBS>::from_str(a).unwrap() * Fr::<NUM_LIMBS>::from_str(b).unwrap(),
-            Fr::<NUM_LIMBS>::from_str(c).unwrap()
+            Fq::<NUM_LIMBS>::from_str(a).unwrap() * Fq::<NUM_LIMBS>::from_str(b).unwrap(),
+            Fq::<NUM_LIMBS>::from_str(c).unwrap()
         );
     }
 
     #[test]
     fn test_inversion() {
-        let a = "20478396197580483737789014158498979272870169265875691728003315572952274387533";
-        let c = "21365542069856238450486712807496128750008055205983289024270465755393517385826";
+        let (a, c) = (
+            "25767596886874889036540765742642627840896260537012642841805800608653635566576",
+            "12977814693209616701908158718117218571334991308499348109965704251722539193017",
+        );
         assert_eq!(
-            Fr::<NUM_LIMBS>::from_str(a).unwrap().inv(),
-            Fr::<NUM_LIMBS>::from_str(c).unwrap()
+            Fq::<NUM_LIMBS>::from_str(a).unwrap() * Fq::<NUM_LIMBS>::from_str(c).unwrap(),
+            Fq::<NUM_LIMBS>::ONE()
+        );
+        assert_eq!(
+            Fq::<NUM_LIMBS>::from_str(a).unwrap().inv(),
+            Fq::<NUM_LIMBS>::from_str(c).unwrap()
         );
     }
 
     #[test]
     fn test_division() {
-        let a = "14315174832808638358939415012100039300513997680125272328694713606701545168752";
-        let b = "20478396197580483737789014158498979272870169265875691728003315572952274387533";
-        let c = "12111416690556434289459724424510259843801075164687209321777184926968376934270";
+        let (a, b, c) = (
+            "11094102541548518406083044310753010621275594174978757610119501797021534623670",
+            "25767596886874889036540765742642627840896260537012642841805800608653635566576",
+            "10184968062787876042028836773955231702507653654365225893745657195078661715473",
+        );
         assert_eq!(
-            Fr::<NUM_LIMBS>::from_str(a).unwrap() / Fr::<NUM_LIMBS>::from_str(b).unwrap(),
-            Fr::<NUM_LIMBS>::from_str(c).unwrap()
+            Fq::<NUM_LIMBS>::from_str(a).unwrap() / Fq::<NUM_LIMBS>::from_str(b).unwrap(),
+            Fq::<NUM_LIMBS>::from_str(c).unwrap()
         );
     }
 
     #[test]
     fn test_sqrt() {
-        let a = "23200564883514806523406480047239983027714487432999116974664880975079440510063";
-        let c = "1411005539847194286406933453517763875751600735672730633893962034603782311192";
-        let lft = Fr::<NUM_LIMBS>::from_str(a).unwrap();
-        let result_1 = Fr::<NUM_LIMBS>::from_str(c).unwrap();
+        let (a, c) = (
+            "761940212266856713371586569342150604283558917968569240208532761798026301469",
+            "4602589297423635878136638089713975619925356628567217110388194878773233887829",
+        );
+        let lft = Fq::<NUM_LIMBS>::from_str(a).unwrap();
+        let result_1 = Fq::<NUM_LIMBS>::from_str(c).unwrap();
 
         assert_eq!(lft.is_quadratic_residual(), true);
         assert_eq!(
@@ -499,14 +512,16 @@ mod tests {
 
     #[test]
     fn test_pow() {
-        let a = "6667848649771366462575212241344760382420686144778213847978229720783476026494";
-        let b = "234";
-        let c = "896017193898729263273467687789996053512353124848347700387971974010744551774";
+        let (a, b, c) = (
+            "22872133923507589581064940973199724574277684002088185742903677959102317569577",
+            "234",
+            "27818977364773149908565484571278600710302550015293433604567758323829469042334",
+        );
         assert_eq!(
-            Fr::<NUM_LIMBS>::from_str(a)
+            Fq::<NUM_LIMBS>::from_str(a)
                 .unwrap()
                 .pow(BigInt::<NUM_LIMBS>::from_str(b).unwrap()),
-            Fr::<NUM_LIMBS>::from_str(c).unwrap()
+            Fq::<NUM_LIMBS>::from_str(c).unwrap()
         );
     }
 }

@@ -629,20 +629,33 @@ mod tests {
 
     #[test]
     fn test_from() {
-        let Fr = "28948022309329048855892746252171976963363056481941647379679742748393362948097";
-        let R = "28948022309329048855892746252171976963180815219815621900418355762733040795645";
-        let R2 = "4263855311957679929489659445116329028194309752796460188622876710448966664207";
-        let R3 = "3557709630315679472311684181007729646594247341237824434526702614836137537100";
+        // let tag = "pallas_scalar";
+        let tag = "pallas_base";
+        let (M, R, R2, R3) = match tag {
+            "pallas_scalar" => (
+                "28948022309329048855892746252171976963363056481941647379679742748393362948097",
+                "28948022309329048855892746252171976963180815219815621900418355762733040795645",
+                "4263855311957679929489659445116329028194309752796460188622876710448966664207",
+                "3557709630315679472311684181007729646594247341237824434526702614836137537100",
+            ),
+            "pallas_base" => (
+                "28948022309329048855892746252171976963363056481941560715954676764349967630337",
+                "28948022309329048855892746252171976963180815219815881891593553714863226748925",
+                "4263855311831330276397237192126260515652039413828781833859739249380679483407",
+                "19398276961315000371481654775825491914897503251658641052577562551434289746169",
+            ),
+            &_ => todo!(),
+        };
         println!(
             "Fr = {:?}, R = {:?}, R2 = {:?}, R3 = {:?}",
-            BigInteger::from(Fr).data,
+            BigInteger::from(M).data,
             BigInteger::from(R).data,
             BigInteger::from(R2).data,
             BigInteger::from(R3).data,
         );
         assert_eq!(
-            TestBigInt::from_str(Fr).unwrap().to_u64_digits().1,
-            BigInteger::from(Fr).data
+            TestBigInt::from_str(M).unwrap().to_u64_digits().1,
+            BigInteger::from(M).data
         );
     }
 
@@ -717,40 +730,60 @@ mod tests {
     }
 
     #[test]
-    fn test_Fr_factoring() {
-        let Fr = "28948022309329048855892746252171976963363056481941647379679742748393362948097";
-        let lft = &(&BigInteger::from(Fr) - &BigInteger::from("1"));
-        let tmp_candidates: Vec<Vec<BigInteger<u64>>> = (0..4)
+    fn test_M_factoring() {
+        // let tag = "pallas_scalar";
+        let tag = "pallas_base";
+        let M = match tag {
+            "pallas_scalar" => {
+                "28948022309329048855892746252171976963363056481941647379679742748393362948097"
+            },
+            "pallas_base" => {
+                "28948022309329048855892746252171976963363056481941560715954676764349967630337"
+            },
+            &_ => todo!(),
+        };
+        let lft = &(&BigInteger::from(M) - &BigInteger::from("1"));
+        let tmp_candidates: Vec<Vec<BigInteger<Word>>> = (0..4)
             .map(|i| {
-                let start = i * 64;
-                (start..(start + 64))
+                let start = i * WORD_SIZE;
+                (start..(start + WORD_SIZE))
                     .map(|exp| {
-                        let mut r = vec![0 as u64; i + 1];
-                        r[i] = (1 as u64) << (exp - start);
+                        let mut r = vec![0 as Word; i + 1];
+                        r[i] = (1 as Word) << (exp - start);
                         BigInteger::from(r)
                     })
                     .collect()
             })
             .collect();
-        let candidates: Vec<BigInteger<u64>> = tmp_candidates.into_iter().flatten().collect();
+        let candidates: Vec<BigInteger<Word>> = tmp_candidates.into_iter().flatten().collect();
 
         for i in 0..candidates.len() {
             let rht = &candidates[i];
             let (q, r) = div_internal(lft, rht);
             if r.is_zero() && (q.is_even() == false) {
                 println!("e = {}, s = {:?}, r = {:?}", i, q, r);
-                assert_eq!(&(&q * rht) + &BigInteger::from("1"), BigInteger::from(Fr));
+                assert_eq!(&(&q * rht) + &BigInteger::from("1"), BigInteger::from(M));
             }
         }
     }
 
     #[test]
     fn test_legendre_symbol() {
-        let Fr = "28948022309329048855892746252171976963363056481941647379679742748393362948097";
-        for v in 1..10 {
+        // let tag = "pallas_scalar";
+        let tag = "pallas_base";
+        let M = match tag {
+            "pallas_scalar" => {
+                "28948022309329048855892746252171976963363056481941647379679742748393362948097"
+            },
+            "pallas_base" => {
+                "28948022309329048855892746252171976963363056481941560715954676764349967630337"
+            },
+            &_ => todo!(),
+        };
+        for v in 1..50 {
             let (a, b) = (
                 BigInteger::from(v.to_string().as_str()),
-                BigInteger::from(Fr),
+                BigInteger::from(M),
             );
 
             let sym = legendre_symbol(&a, &b);

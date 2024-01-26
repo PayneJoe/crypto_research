@@ -440,11 +440,42 @@ mod tests {
 
     #[test]
     fn test_euclid_extended_gcd_naive() {
-        let (Fr, r) = (
-            "28948022309329048855892746252171976963363056481941647379679742748393362948097",
-            "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+        // let tag = "pallas_scalar";
+        let tag = "pallas_base";
+        let (M, r) = match tag {
+            "pallas_scalar" => (
+                "28948022309329048855892746252171976963363056481941647379679742748393362948097",
+                "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+            ),
+            "pallas_base" => (
+                "28948022309329048855892746252171976963363056481941560715954676764349967630337",
+                "115792089237316195423570985008687907853269984665640564039457584007913129639936",
+            ),
+            &_ => todo!(),
+        };
+        let (N, x) = (BigInt64::from(r), BigInt64::from(M));
+        println!("N = {:?}, x = {:?}", N, x);
+        let (u, v, d, sign) = BigInt64::euclid_extended_gcd_bigint(&x, &N);
+        println!("u = {:?}, v = {:?}, d = {:?}, sign = {}", &u, &v, &d, sign);
+        if sign {
+            assert_eq!(&(&N * &v) - &(&x * &u), d);
+            println!("congrats solution solved: M0 = {}", u.data[0]);
+        } else {
+            assert_eq!(&(&x * &u) - &(&N * &v), d);
+            println!(
+                "congrats solution solved: M0 = {}",
+                ((1 as DoubleWord) << WORD_SIZE) - (u.data[0] as DoubleWord)
+            );
+        }
+    }
+
+    #[test]
+    fn test_inv() {
+        let (r, M) = (
+            "25767596886874889036540765742642627840896260537012642841805800608653635566576",
+            "28948022309329048855892746252171976963363056481941560715954676764349967630337",
         );
-        let (N, x) = (BigInt64::from(r), BigInt64::from(Fr));
+        let (N, x) = (BigInt64::from(M), BigInt64::from(r));
         println!("N = {:?}, x = {:?}", N, x);
         let (u, v, d, sign) = BigInt64::euclid_extended_gcd_bigint(&x, &N);
         println!("u = {:?}, v = {:?}, d = {:?}, sign = {}", &u, &v, &d, sign);
