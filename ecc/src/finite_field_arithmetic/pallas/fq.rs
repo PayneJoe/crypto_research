@@ -19,7 +19,9 @@ pub struct Fq<const N: usize>(pub BigInt<N>);
 
 const NUM_LIMBS: usize = 4;
 const WORD_SIZE: usize = 64;
+const BYTE_SIZE: usize = NUM_LIMBS * WORD_SIZE;
 type Word = u64;
+type Byte = u8;
 
 impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
     // fabricated precomputable parameters of custom finite field,
@@ -280,6 +282,10 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
             Self::mul_reduce(u, &Self::R2)
         }
     }
+
+    fn to_bytes(self) -> Vec<u8> {
+        self.0.into()
+    }
 }
 
 impl From<&BigInt<NUM_LIMBS>> for Fq<NUM_LIMBS> {
@@ -300,16 +306,28 @@ impl Into<BigInt<NUM_LIMBS>> for Fq<NUM_LIMBS> {
     }
 }
 
-// non-reduced transformation between bytes and field
+// non-reduced transformation between words and field
 impl From<[Word; NUM_LIMBS]> for Fq<NUM_LIMBS> {
     fn from(bytes: [Word; NUM_LIMBS]) -> Self {
         Fq(BigInt(bytes))
     }
 }
-
 impl Into<[Word; 4]> for Fq<NUM_LIMBS> {
     fn into(self) -> [Word; NUM_LIMBS] {
         self.0 .0
+    }
+}
+
+// non-reduced transformation between bytes and field
+impl From<[Byte; BYTE_SIZE]> for Fq<NUM_LIMBS> {
+    fn from(bytes: [Byte; BYTE_SIZE]) -> Self {
+        Fq(BigInt::<NUM_LIMBS>::from(bytes.as_slice()))
+    }
+}
+impl Into<[Byte; BYTE_SIZE]> for Fq<NUM_LIMBS> {
+    fn into(self) -> [Byte; BYTE_SIZE] {
+        let bytes: Vec<Byte> = self.0.into();
+        bytes[..BYTE_SIZE].try_into().unwrap()
     }
 }
 

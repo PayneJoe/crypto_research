@@ -19,7 +19,10 @@ pub struct Fr<const N: usize>(pub BigInt<N>);
 
 const NUM_LIMBS: usize = 4;
 const WORD_SIZE: usize = 64;
+const BYTE_SIZE: usize = WORD_SIZE / 8;
+const NUM_BYTE: usize = NUM_LIMBS * BYTE_SIZE;
 type Word = u64;
+type Byte = u8;
 
 impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
     // fabricated precomputable parameters of custom finite field,
@@ -281,6 +284,10 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
             Self::mul_reduce(u, &Self::R2)
         }
     }
+
+    fn to_bytes(self) -> Vec<u8> {
+        self.0.into()
+    }
 }
 
 impl From<&BigInt<NUM_LIMBS>> for Fr<NUM_LIMBS> {
@@ -301,16 +308,28 @@ impl Into<BigInt<NUM_LIMBS>> for Fr<NUM_LIMBS> {
     }
 }
 
-// non-reduced transformation between bytes and field
+// non-reduced transformation between words and field
 impl From<[Word; NUM_LIMBS]> for Fr<NUM_LIMBS> {
-    fn from(bytes: [Word; NUM_LIMBS]) -> Self {
-        Fr(BigInt(bytes))
+    fn from(words: [Word; NUM_LIMBS]) -> Self {
+        Fr(BigInt(words))
+    }
+}
+impl Into<[Word; NUM_LIMBS]> for Fr<NUM_LIMBS> {
+    fn into(self) -> [Word; NUM_LIMBS] {
+        self.0 .0
     }
 }
 
-impl Into<[Word; 4]> for Fr<NUM_LIMBS> {
-    fn into(self) -> [Word; NUM_LIMBS] {
-        self.0 .0
+// non-reduced transformation between bytes and field
+impl From<[Byte; NUM_BYTE]> for Fr<NUM_LIMBS> {
+    fn from(bytes: [Byte; NUM_BYTE]) -> Self {
+        Fr(BigInt::<NUM_LIMBS>::from(bytes.as_slice()))
+    }
+}
+impl Into<[Byte; NUM_BYTE]> for Fr<NUM_LIMBS> {
+    fn into(self) -> [Byte; NUM_BYTE] {
+        let bytes: Vec<Byte> = self.0.into();
+        bytes[..NUM_BYTE].try_into().unwrap()
     }
 }
 

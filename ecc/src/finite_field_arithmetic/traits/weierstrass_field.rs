@@ -58,4 +58,7 @@ pub trait PrimeField<const N: usize>:
     fn pow(&self, e: BigInt<N>) -> Self;
     // F * F
     fn mul_reduce(lft: &BigInt<N>, rht: &BigInt<N>) -> Self;
+
+    //
+    fn to_bytes(self) -> Vec<u8>;
 }

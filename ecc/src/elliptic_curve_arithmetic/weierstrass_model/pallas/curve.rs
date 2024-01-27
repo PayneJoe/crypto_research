@@ -5,6 +5,7 @@ use std::str::FromStr;
 use crate::finite_field_arithmetic::bigint::BigInt;
 use crate::finite_field_arithmetic::pallas::{fq::Fq, fr::Fr};
 use crate::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
+use crate::utils;
 use std::ops::{Add, Mul, Neg, Sub};
 
 // make sure WINDOW_SIZE < 8
@@ -205,7 +206,7 @@ impl Curve for Pallas {
                 }
 
                 // then addition with precomputated table
-                let u = bits_to_word(&scalar_bits[s..(i + 1)]);
+                let u = utils::bytes_to_word(&scalar_bits[s..(i + 1)]);
                 q = &q + &table[((u - 1) / 2) as usize];
 
                 i = if s >= 1 { s - 1 } else { 0 }
@@ -216,17 +217,17 @@ impl Curve for Pallas {
     }
 }
 
-// little-endian
-fn bits_to_word(bits: &[u8]) -> Word {
-    assert!(bits.len() < WORD_SIZE);
-    let mut result = 0 as Word;
-    for i in 0..bits.len() {
-        if bits[i] == 1 as u8 {
-            result = result + (1 << i);
-        }
-    }
-    result
-}
+// // little-endian
+// fn bits_to_word(bits: &[u8]) -> Word {
+//     assert!(bits.len() < WORD_SIZE);
+//     let mut result = 0 as Word;
+//     for i in 0..bits.len() {
+//         if bits[i] == 1 as u8 {
+//             result = result + (1 << i);
+//         }
+//     }
+//     result
+// }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct AffinePoint {

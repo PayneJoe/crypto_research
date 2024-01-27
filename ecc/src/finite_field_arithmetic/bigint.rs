@@ -1,4 +1,5 @@
 //////////////////////////////////// Practical Implementation of BigInteger Specially for Finite Field (fixed length)
+use crate::utils;
 ///
 ///
 use std::cmp::Ordering;
@@ -24,6 +25,26 @@ impl<const N: usize> BigInteger<N> for BigInt<N> {}
 pub struct BigInt<const N: usize>(pub [Word; N]);
 
 impl<const N: usize> BigInt<N> {
+    fn to_bits(self) -> Vec<u8> {
+        let num_leading_zeros = self.0.iter().rev().fold(0 as u32, |acc, v| {
+            if acc == 0 {
+                acc + v.leading_zeros()
+            } else if (acc % (WORD_SIZE as u32)) == 0 {
+                acc + v.leading_zeros()
+            } else {
+                acc
+            }
+        });
+        let bits = (0..self.0.len())
+            .map(|i| ((0..WORD_SIZE).map(|j| ((self.0[i] >> j) & 1) as u8)).collect::<Vec<u8>>())
+            .collect::<Vec<Vec<u8>>>()
+            .into_iter()
+            .flatten()
+            .collect::<Vec<u8>>();
+        let end = bits.len() - (num_leading_zeros as usize);
+        bits[..end].to_vec()
+    }
+
     #[inline(always)]
     pub fn MAX() -> Self {
         Self(
@@ -197,23 +218,26 @@ impl<const N: usize> Mul<Word> for BigInt<N> {
 
 impl<const N: usize> Into<Vec<u8>> for BigInt<N> {
     fn into(self) -> Vec<u8> {
-        let num_leading_zeros = self.0.iter().rev().fold(0 as u32, |acc, v| {
-            if acc == 0 {
-                acc + v.leading_zeros()
-            } else if (acc % (WORD_SIZE as u32)) == 0 {
-                acc + v.leading_zeros()
-            } else {
-                acc
-            }
-        });
-        let bits = (0..self.0.len())
-            .map(|i| ((0..WORD_SIZE).map(|j| ((self.0[i] >> j) & 1) as u8)).collect::<Vec<u8>>())
-            .collect::<Vec<Vec<u8>>>()
+        let bytes: Vec<u8> = (0..N)
+            .map(|i| utils::word_to_bytes(self.0[i]))
             .into_iter()
             .flatten()
-            .collect::<Vec<u8>>();
-        let end = bits.len() - (num_leading_zeros as usize);
-        bits[..end].to_vec()
+            .collect();
+        bytes
+    }
+}
+
+impl<const N: usize> From<&[u8]> for BigInt<N> {
+    fn from(bytes: &[u8]) -> Self {
+        let n = bytes.len();
+        let (mut start, mut end) = (0 as usize, 0 as usize);
+        let words: Vec<Word> = (0..N)
+            .map(|_| {
+                (start, end) = (end, std::cmp::min(end + WORD_SIZE, n));
+                utils::bytes_to_word(&bytes[start..end])
+            })
+            .collect();
+        BigInt(words.try_into().unwrap())
     }
 }
 

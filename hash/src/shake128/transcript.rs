@@ -1,25 +1,29 @@
 // for the purpose of research we use Shake128 which has variable output length at this moment instead,
 // since keccak256 hasher which has fixed output length (32 bytes)
-use ecc::finite_field_arithmetic::traits::{Field, PrimeField};
+use ecc::finite_field_arithmetic::bigint::BigInt;
+use ecc::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake128,
 };
 use std::marker::PhantomData;
 
-const STATE_SIZE: usize = 2;
+const WORD_SIZE: usize = 64;
+const NUM_LIMBS: usize = 4;
+const STATE_SIZE: usize = NUM_LIMBS * (WORD_SIZE / 8);
+type Word = u64;
 
 #[derive(Clone, Debug)]
-pub struct Shake128Transcript<F: Field<STATE_SIZE>> {
-    round: u8,
+pub struct Shake128Transcript<F: PrimeField<NUM_LIMBS>> {
+    round: Word,
     state: [u8; STATE_SIZE],
     hasher: Shake128,
     _p: PhantomData<F>,
 }
 
-impl<F: Field<STATE_SIZE>> Shake128Transcript<F> {
+impl<F: PrimeField<NUM_LIMBS>> Shake128Transcript<F> {
     fn hash(hasher: Shake128, input_bytes: &[u8]) -> [u8; STATE_SIZE] {
-        let mut output_bytes = [0u8; STATE_SIZE];
+        let mut output_bytes = [0 as u8; STATE_SIZE];
         let mut local_hasher = hasher.clone();
         local_hasher.update(input_bytes);
         let mut reader = local_hasher.finalize_xof();
@@ -33,7 +37,7 @@ impl<F: Field<STATE_SIZE>> Shake128Transcript<F> {
         let shake128_hasher = Shake128::default();
         let new_state = Self::hash(shake128_hasher.clone(), label);
         Self {
-            round: 0u8,
+            round: 0 as Word,
             state: new_state,
             hasher: shake128_hasher,
             _p: Default::default(),
@@ -55,22 +59,25 @@ impl<F: Field<STATE_SIZE>> Shake128Transcript<F> {
         self.state.copy_from_slice(&new_state);
         self.hasher = Shake128::default();
 
-        F::from(new_state)
+        // need to be reduced into scalar field
+        F::from(BigInt::<NUM_LIMBS>::from(new_state.as_slice()))
     }
 
     // start of transcript session with a new hasher
-    fn absorb(&mut self, label: &'static [u8], scalar: &F) {
+    // absorb bytes, supporting any type of data
+    fn absorb(&mut self, label: &'static [u8], input_bytes: &[u8]) {
         self.hasher.update(label);
-        let scalar_bytes: [u8; STATE_SIZE] = (*scalar).into();
-        self.hasher.update(&scalar_bytes);
+        self.hasher.update(input_bytes);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use super::*;
+    use ecc::finite_field_arithmetic::pallas::{fq::Fq, fr::Fr};
+    use std::str::FromStr;
+    type ScalarField = Fr<NUM_LIMBS>;
+    type BaseField = Fq<NUM_LIMBS>;
 
     #[test]
     fn test_shake128() {
@@ -102,7 +109,7 @@ mod tests {
         let mut all_bytes: Vec<u8> = Vec::new();
 
         // experiment object a
-        let mut transcript_a = Shake128Transcript::<PrimeField>::new(b"TestInstance");
+        let mut transcript_a = Shake128Transcript::<ScalarField>::new(b"TestInstance");
         // all_bytes.extend(b"TestInstance");
         let (init_round_bytes, init_state_bytes) =
             (transcript_a.round.to_le_bytes(), transcript_a.state);
@@ -111,9 +118,9 @@ mod tests {
         let test_label = [b"l1", b"l2", b"l3"];
         // start a transcript session
         for i in 0..test_input.len() {
-            let scalar = PrimeField::from_str(test_input[i]).unwrap();
-            let scalar_bytes: [u8; 2] = scalar.into();
-            transcript_a.absorb(test_label[i], &scalar);
+            let scalar = ScalarField::from_str(test_input[i]).unwrap();
+            let scalar_bytes: [u8; STATE_SIZE] = scalar.to_bytes().try_into().unwrap();
+            transcript_a.absorb(test_label[i], &scalar_bytes);
             all_bytes.extend(test_label[i]);
             all_bytes.extend(scalar_bytes);
         }
@@ -128,9 +135,9 @@ mod tests {
         let mut hasher_b = Shake128::default();
         hasher_b.update(all_bytes.as_slice());
         let mut reader_b = hasher_b.finalize_xof();
-        let mut output_bytes_b = [0_u8; STATE_SIZE];
+        let mut output_bytes_b = [0 as u8; STATE_SIZE];
         reader_b.read(&mut output_bytes_b);
-        let scalar_b = PrimeField::from(output_bytes_b);
+        let scalar_b = ScalarField::from(output_bytes_b);
 
         assert_eq!(scalar_a, scalar_b);
     }
