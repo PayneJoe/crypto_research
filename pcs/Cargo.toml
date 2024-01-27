@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 ecc = {path = "../ecc"}
+hash = {path = "../hash"}

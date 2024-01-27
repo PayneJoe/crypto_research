@@ -1,12 +1,12 @@
 /// This is a practical implementation for pallas curve over standard Weierstrass model
 ///
-use std::str::FromStr;
-
 use crate::finite_field_arithmetic::bigint::BigInt;
 use crate::finite_field_arithmetic::pallas::{fq::Fq, fr::Fr};
 use crate::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
+use std::marker::PhantomData;
+
+use crate::elliptic_curve_arithmetic::weierstrass_model::{AffinePoint, Curve};
 use crate::utils;
-use std::ops::{Add, Mul, Neg, Sub};
 
 // make sure WINDOW_SIZE < 8
 const WINDOW_SIZE: usize = 6;
@@ -14,92 +14,39 @@ const NUM_LIMBS: usize = 4;
 const WORD_SIZE: usize = 64;
 type Word = u64;
 
-type ScalarField = Fr<NUM_LIMBS>;
-type BaseField = Fq<NUM_LIMBS>;
 type BigInteger = BigInt<NUM_LIMBS>;
 
-pub trait Curve {
-    // parameters of standard weierstrass curve
-    const a1: BaseField;
-    const a3: BaseField;
-    const a2: BaseField;
-    const a4: BaseField;
-    const a6: BaseField;
-    // identity point on curve
-    const IDENTITY: AffinePoint;
-    // generator
-    const GENERATOR: AffinePoint;
-    // order
-    const ORDER: BigInteger;
-
-    // referenced from Definition 13.2 of "handbook of elliptic and hyperelliptic curve cryptography"
-    fn is_nonsingular() -> bool {
-        // b2 = a1^2 + 4 * a2, b4 = a1 * a3 + 2 * a4, b6 = a3^2 + 4 * a6, b8 = a1^2 * a6 - a1 * a3 * a4 + 4 * a2 * a6 + a2 * a3^2 - a4^2
-        let (b2, b4, b6, b8) = (
-            Self::a1 * Self::a1 + Self::a2 * (4 as Word),
-            Self::a1 * Self::a3 + Self::a4 * (2 as Word),
-            Self::a3 * Self::a3 + Self::a6 * (4 as Word),
-            Self::a1 * Self::a1 * Self::a6 - Self::a1 * Self::a3 * Self::a4
-                + Self::a2 * Self::a6 * (4 as Word)
-                + Self::a2 * Self::a3 * Self::a3
-                - Self::a4 * Self::a4,
-        );
-        // delta = -b2^2 * b8 - 8 * b4^3 - 27 * b6^2 + 9 * b2 * b4 * b6
-        let delta =
-            -b2 * b2 * b8 - b4 * b4 * b4 * (8 as Word) - b6 * b6 * (27 as Word) + b2 * b4 * b6 * 9;
-
-        println!(
-            "b2 = {:?}, b4 = {:?}, b6 = {:?}, b8 = {:?}, delta = {:?}",
-            b2, b4, b6, b8, delta
-        );
-        delta != BaseField::ZERO()
-    }
-
-    // check one point is on curve or not
-    fn is_on_curve(p: &AffinePoint) -> bool;
-
-    // evaluate y according x, it's not easy for original weierstrass curve equation
-    fn to_y(x: &BaseField) -> BaseField;
-
-    // negate ops on point
-    fn neg(p: &AffinePoint) -> AffinePoint;
-
-    // check whether two point negate each other or not
-    fn is_negate(p1: &AffinePoint, p2: &AffinePoint) -> bool;
-
-    // addition of two point
-    fn addition(p1: &AffinePoint, p2: &AffinePoint) -> AffinePoint;
-
-    // addition of scalar mul
-    fn scalar_mul(base: &AffinePoint, scalar: &ScalarField) -> AffinePoint;
-}
-
 // custom curve instance
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pallas;
 
+type ScalarField = Fr<NUM_LIMBS>;
+type BaseField = Fq<NUM_LIMBS>;
+
 // implementation of custom curve instance
-impl Curve for Pallas {
+impl Curve<BaseField, ScalarField> for Pallas {
     // y^2 = x^3 + 5
     // for the purpose of research, we fill these constant parameters through mannual computation
     // actually these constant parameters need to be determined dynamicly at compile-time
-    const a1: BaseField = Fq(BigInt([0 as Word; NUM_LIMBS]));
-    const a3: BaseField = Fq(BigInt([0 as Word; NUM_LIMBS]));
-    const a2: BaseField = Fq(BigInt([0 as Word; NUM_LIMBS]));
-    const a4: BaseField = Fq(BigInt([0 as Word; NUM_LIMBS]));
-    const a6: BaseField = Fq(BigInt([
+    const a1: Fq<NUM_LIMBS> = Fq(BigInt([0 as Word; NUM_LIMBS]));
+    const a3: Fq<NUM_LIMBS> = Fq(BigInt([0 as Word; NUM_LIMBS]));
+    const a2: Fq<NUM_LIMBS> = Fq(BigInt([0 as Word; NUM_LIMBS]));
+    const a4: Fq<NUM_LIMBS> = Fq(BigInt([0 as Word; NUM_LIMBS]));
+    const a6: Fq<NUM_LIMBS> = Fq(BigInt([
         11647819816328232941,
         8413468796752855795,
         18446744073709551613,
         4611686018427387903,
     ]));
     // faked identity representing the point at infinity
-    const IDENTITY: AffinePoint = AffinePoint {
+    const IDENTITY: AffinePoint<BaseField, ScalarField, Self> = AffinePoint {
         x: Fq(BigInt([0 as Word; NUM_LIMBS])),
         y: Fq(BigInt([0 as Word; NUM_LIMBS])),
+        _p1: PhantomData,
+        _p2: PhantomData,
     };
     // generator of this elliptic curve, g = (-1, 2)
-    const GENERATOR: AffinePoint = AffinePoint {
+    const GENERATOR: AffinePoint<BaseField, ScalarField, Self> = AffinePoint {
         x: Fq(BigInt([
             18294172133682577413,
             12349148269572578697,
@@ -112,6 +59,8 @@ impl Curve for Pallas {
             18446744073709551615,
             4611686018427387903,
         ])),
+        _p1: PhantomData,
+        _p2: PhantomData,
     };
     // order of pallas curve is 28948022309329048855892746252171976963363056481941647379679742748393362948097
     // which is the modulus of vesta curve
@@ -122,30 +71,40 @@ impl Curve for Pallas {
         4611686018427387904,
     ]);
 
-    fn is_on_curve(p: &AffinePoint) -> bool {
+    fn is_on_curve(p: &AffinePoint<BaseField, ScalarField, Self>) -> bool {
         let (x, y) = (p.x, p.y);
         let lft = y * y + Self::a1 * x * y + Self::a3 * y;
         let rht = x * x * x + Self::a2 * x * x + Self::a4 * x + Self::a6;
         lft == rht
     }
 
-    fn to_y(x: &BaseField) -> BaseField {
+    fn to_y(x: &Fq<NUM_LIMBS>) -> Fq<NUM_LIMBS> {
         unimplemented!()
     }
 
-    fn neg(p: &AffinePoint) -> AffinePoint {
+    fn neg(
+        p: &AffinePoint<BaseField, ScalarField, Self>,
+    ) -> AffinePoint<BaseField, ScalarField, Self> {
         AffinePoint {
             x: p.x,
             y: -p.y - Self::a1 * p.x - Self::a3,
+            _p1: PhantomData,
+            _p2: PhantomData,
         }
     }
 
-    fn is_negate(p1: &AffinePoint, p2: &AffinePoint) -> bool {
+    fn is_negate(
+        p1: &AffinePoint<BaseField, ScalarField, Self>,
+        p2: &AffinePoint<BaseField, ScalarField, Self>,
+    ) -> bool {
         (p1.x == p2.x) && (p1.y + p2.y == -Self::a1 * p1.x - Self::a3)
     }
 
     // referenced from P.270 of "handbook of elliptic and hyperelliptic curve cryptography"
-    fn addition(p1: &AffinePoint, p2: &AffinePoint) -> AffinePoint {
+    fn addition(
+        p1: &AffinePoint<BaseField, ScalarField, Self>,
+        p2: &AffinePoint<BaseField, ScalarField, Self>,
+    ) -> AffinePoint<BaseField, ScalarField, Self> {
         if *p1 == Self::IDENTITY {
             return p2.clone();
         }
@@ -170,11 +129,16 @@ impl Curve for Pallas {
         AffinePoint {
             x: x3,
             y: lambda * (x1 - x3) - y1 - Self::a1 * x3 - Self::a3,
+            _p1: PhantomData,
+            _p2: PhantomData,
         }
     }
 
     // referenced from Algorithm 13.6 of "handbook of elliptic and hyperelliptic curve cryptography"
-    fn scalar_mul(base: &AffinePoint, scalar: &ScalarField) -> AffinePoint {
+    fn scalar_mul(
+        base: &AffinePoint<BaseField, ScalarField, Self>,
+        scalar: &Fr<NUM_LIMBS>,
+    ) -> AffinePoint<BaseField, ScalarField, Self> {
         // k < 8, make sure Word is big enough for store precomputated points
         // let k = 6;
         assert!(WINDOW_SIZE < 8);
@@ -219,88 +183,10 @@ impl Curve for Pallas {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct AffinePoint {
-    x: BaseField,
-    y: BaseField,
-}
-
-impl AffinePoint {
-    fn from_bigint(x: BaseField, y: BaseField) -> Self {
-        Self {
-            x: BaseField::from(x),
-            y: BaseField::from(y),
-        }
-    }
-    fn from_str(x: &str, y: &str) -> Self {
-        Self {
-            x: BaseField::from_str(x).unwrap(),
-            y: BaseField::from_str(y).unwrap(),
-        }
-    }
-    fn is_on_curve(&self) -> bool {
-        Pallas::is_on_curve(&self)
-    }
-}
-
-impl Add for AffinePoint {
-    type Output = AffinePoint;
-
-    fn add(self, other: AffinePoint) -> Self::Output {
-        Pallas::addition(&self, &other)
-    }
-}
-
-impl<'a, 'b> Add<&'b AffinePoint> for &'a AffinePoint {
-    type Output = AffinePoint;
-
-    fn add(self, other: &'b AffinePoint) -> Self::Output {
-        Pallas::addition(self, other)
-    }
-}
-
-impl Sub for AffinePoint {
-    type Output = AffinePoint;
-
-    fn sub(self, other: AffinePoint) -> Self::Output {
-        Pallas::addition(&self, &-other)
-    }
-}
-
-impl<'a, 'b> Sub<&'b AffinePoint> for &'a AffinePoint {
-    type Output = AffinePoint;
-
-    fn sub(self, other: &'b AffinePoint) -> Self::Output {
-        Pallas::addition(self, &-other)
-    }
-}
-
-impl Mul<ScalarField> for AffinePoint {
-    type Output = AffinePoint;
-
-    fn mul(self, other: ScalarField) -> Self::Output {
-        Pallas::scalar_mul(&self, &other)
-    }
-}
-
-impl Neg for AffinePoint {
-    type Output = AffinePoint;
-
-    fn neg(self) -> Self::Output {
-        Pallas::neg(&self)
-    }
-}
-
-impl Neg for &AffinePoint {
-    type Output = AffinePoint;
-
-    fn neg(self) -> Self::Output {
-        Pallas::neg(self)
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
 
     #[test]
@@ -331,9 +217,9 @@ mod tests {
             ),
         );
         let (lft, rht, result) = (
-            AffinePoint::from_str(ax, ay),
-            AffinePoint::from_str(bx, by),
-            AffinePoint::from_str(cx, cy),
+            AffinePoint::<BaseField, ScalarField, Pallas>::from_str(ax, ay),
+            AffinePoint::<BaseField, ScalarField, Pallas>::from_str(bx, by),
+            AffinePoint::<BaseField, ScalarField, Pallas>::from_str(cx, cy),
         );
         // println!("lft = {:?}, rht = {:?}, result = {:?}", lft, rht, result);
         assert_eq!(lft + rht, result);
@@ -353,9 +239,9 @@ mod tests {
             ),
         );
         let (lft, rht, result) = (
-            AffinePoint::from_str(ax, ay),
+            AffinePoint::<BaseField, ScalarField, Pallas>::from_str(ax, ay),
             ScalarField::from_str(b).unwrap(),
-            AffinePoint::from_str(cx, cy),
+            AffinePoint::<BaseField, ScalarField, Pallas>::from_str(cx, cy),
         );
         assert_eq!(lft * rht, result);
     }
@@ -372,7 +258,10 @@ mod tests {
                 "25585734431422357620517932194431633826721267911745536529868573627967426544097",
             ),
         );
-        let (lft, result) = (AffinePoint::from_str(ax, ay), AffinePoint::from_str(cx, cy));
+        let (lft, result) = (
+            AffinePoint::<BaseField, ScalarField, Pallas>::from_str(ax, ay),
+            AffinePoint::<BaseField, ScalarField, Pallas>::from_str(cx, cy),
+        );
         assert_eq!(-lft, result);
     }
 
@@ -393,9 +282,9 @@ mod tests {
             ),
         );
         let (lft, rht, result) = (
-            AffinePoint::from_str(ax, ay),
-            AffinePoint::from_str(bx, by),
-            AffinePoint::from_str(cx, cy),
+            AffinePoint::<BaseField, ScalarField, Pallas>::from_str(ax, ay),
+            AffinePoint::<BaseField, ScalarField, Pallas>::from_str(bx, by),
+            AffinePoint::<BaseField, ScalarField, Pallas>::from_str(cx, cy),
         );
         assert_eq!(lft - rht, result);
     }

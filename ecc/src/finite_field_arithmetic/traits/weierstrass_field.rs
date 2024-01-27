@@ -1,18 +1,24 @@
 use crate::finite_field_arithmetic::bigint::BigInt;
 
+use std::fmt::Debug;
 use std::{
-    ops::{Add, Div, Mul, Shl, Shr, Sub},
+    ops::{Add, Div, Mul, Neg, Shl, Shr, Sub},
     str::FromStr,
 };
 
 pub trait PrimeField<const N: usize>:
     FromStr
+    + Debug
+    + PartialEq
+    + Eq
     + From<BigInt<N>>
     + Into<BigInt<N>>
     + From<[u64; N]>
     + Into<[u64; N]>
     + Clone
     + Add<Self, Output = Self>
+    + Sub<Self, Output = Self>
+    + Neg<Output = Self>
     + Mul<Self, Output = Self>
     + for<'a> std::iter::Sum<&'a Self>
     + std::iter::Sum<Self>

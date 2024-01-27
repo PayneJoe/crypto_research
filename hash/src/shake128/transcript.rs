@@ -6,6 +6,7 @@ use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake128,
 };
+use std::cmp::{Eq, PartialEq};
 use std::marker::PhantomData;
 
 const WORD_SIZE: usize = 64;
