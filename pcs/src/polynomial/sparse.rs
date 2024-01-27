@@ -1,14 +1,20 @@
-use ecc::finite_field_arithmetic::traits::{BigInt, Field, PrimeField};
+use ecc::finite_field_arithmetic::bigint::BigInt;
+use ecc::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
 use std::collections::BTreeMap;
 use std::ops::{Add, Mul};
 use std::str::FromStr;
 
+const WORD_SIZE: usize = 64;
+const NUM_LIMBS: usize = 4;
+const STATE_SIZE: usize = NUM_LIMBS * (WORD_SIZE / 8);
+type Word = u64;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SparsePolynomial<F: Field<2>> {
+pub struct SparsePolynomial<F: PrimeField<NUM_LIMBS>> {
     coefficients: Vec<(usize, F)>,
 }
 
-impl<F: Field<2>> SparsePolynomial<F> {
+impl<F: PrimeField<NUM_LIMBS>> SparsePolynomial<F> {
     fn from_sparse_vec(sparse_vals: Vec<(usize, F)>) -> Self {
         let mut sparse_coefficients = sparse_vals.clone();
         sparse_coefficients.sort_by(|(ida, va), (idb, vb)| ida.cmp(idb));
@@ -26,7 +32,9 @@ impl<F: Field<2>> SparsePolynomial<F> {
     fn evaluation(self, x: F) -> F {
         self.coefficients
             .iter()
-            .map(|(idx, coeff)| *coeff * x.pow(BigInt::from_str(idx.to_string().as_str()).unwrap()))
+            .map(|(idx, coeff)| {
+                *coeff * x.pow(BigInt::<NUM_LIMBS>::from_str(idx.to_string().as_str()).unwrap())
+            })
             .sum()
     }
 
@@ -48,14 +56,14 @@ impl<F: Field<2>> SparsePolynomial<F> {
     }
 }
 
-impl<F: Field<2>> Add for SparsePolynomial<F> {
+impl<F: PrimeField<NUM_LIMBS>> Add for SparsePolynomial<F> {
     type Output = SparsePolynomial<F>;
     fn add(self, other: SparsePolynomial<F>) -> Self::Output {
         &self + &other
     }
 }
 
-impl<F: Field<2>> Mul for SparsePolynomial<F> {
+impl<F: PrimeField<NUM_LIMBS>> Mul for SparsePolynomial<F> {
     type Output = SparsePolynomial<F>;
     fn mul(self, other: SparsePolynomial<F>) -> Self::Output {
         &self * &other
@@ -63,7 +71,7 @@ impl<F: Field<2>> Mul for SparsePolynomial<F> {
 }
 
 // merge two polynomials into one
-impl<'a, 'b, F: Field<2>> Add<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> {
+impl<'a, 'b, F: PrimeField<NUM_LIMBS>> Add<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> {
     type Output = SparsePolynomial<F>;
     fn add(self, other: &'a SparsePolynomial<F>) -> Self::Output {
         if self.is_zero() {
@@ -105,7 +113,7 @@ impl<'a, 'b, F: Field<2>> Add<&'a SparsePolynomial<F>> for &'b SparsePolynomial<
 }
 
 // naive implementation of polynomial multiplication
-impl<'a, 'b, F: Field<2>> Mul<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> {
+impl<'a, 'b, F: PrimeField<NUM_LIMBS>> Mul<&'a SparsePolynomial<F>> for &'b SparsePolynomial<F> {
     type Output = SparsePolynomial<F>;
     fn mul(self, other: &'a SparsePolynomial<F>) -> Self::Output {
         if self.is_zero() || other.is_zero() {
@@ -127,6 +135,10 @@ impl<'a, 'b, F: Field<2>> Mul<&'a SparsePolynomial<F>> for &'b SparsePolynomial<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ecc::finite_field_arithmetic::pallas::{fq::Fq, fr::Fr};
+    use std::str::FromStr;
+    type ScalarField = Fr<NUM_LIMBS>;
+    type BaseField = Fq<NUM_LIMBS>;
 
     #[test]
     fn test_evaluation() {
@@ -137,12 +149,12 @@ mod tests {
             .map(|(idx, v)| {
                 (
                     idx as usize,
-                    PrimeField::from_str(v.to_string().as_str()).unwrap(),
+                    ScalarField::from_str(v.to_string().as_str()).unwrap(),
                 )
             })
             .to_vec();
-        let point = PrimeField::from_str(x.to_string().as_str()).unwrap();
-        let eval = PrimeField::from_str(y.to_string().as_str()).unwrap();
+        let point = ScalarField::from_str(x.to_string().as_str()).unwrap();
+        let eval = ScalarField::from_str(y.to_string().as_str()).unwrap();
         let poly = SparsePolynomial::from_sparse_vec(sparse_vals);
         assert_eq!(poly.evaluation(point), eval);
     }
@@ -159,7 +171,7 @@ mod tests {
                 .map(|(idx, v)| {
                     (
                         idx as usize,
-                        PrimeField::from_str(v.to_string().as_str()).unwrap(),
+                        ScalarField::from_str(v.to_string().as_str()).unwrap(),
                     )
                 })
                 .to_vec(),
@@ -169,7 +181,7 @@ mod tests {
                 .map(|(idx, v)| {
                     (
                         idx as usize,
-                        PrimeField::from_str(v.to_string().as_str()).unwrap(),
+                        ScalarField::from_str(v.to_string().as_str()).unwrap(),
                     )
                 })
                 .to_vec(),
@@ -179,7 +191,7 @@ mod tests {
                 .map(|(idx, v)| {
                     (
                         idx as usize,
-                        PrimeField::from_str(v.to_string().as_str()).unwrap(),
+                        ScalarField::from_str(v.to_string().as_str()).unwrap(),
                     )
                 })
                 .to_vec(),
@@ -207,7 +219,7 @@ mod tests {
                 .map(|(idx, v)| {
                     (
                         idx as usize,
-                        PrimeField::from_str(v.to_string().as_str()).unwrap(),
+                        ScalarField::from_str(v.to_string().as_str()).unwrap(),
                     )
                 })
                 .to_vec(),
@@ -217,7 +229,7 @@ mod tests {
                 .map(|(idx, v)| {
                     (
                         idx as usize,
-                        PrimeField::from_str(v.to_string().as_str()).unwrap(),
+                        ScalarField::from_str(v.to_string().as_str()).unwrap(),
                     )
                 })
                 .to_vec(),
@@ -227,7 +239,7 @@ mod tests {
                 .map(|(idx, v)| {
                     (
                         idx as usize,
-                        PrimeField::from_str(v.to_string().as_str()).unwrap(),
+                        ScalarField::from_str(v.to_string().as_str()).unwrap(),
                     )
                 })
                 .to_vec(),

@@ -176,10 +176,10 @@ impl Curve for Pallas {
     // referenced from Algorithm 13.6 of "handbook of elliptic and hyperelliptic curve cryptography"
     fn scalar_mul(base: &AffinePoint, scalar: &ScalarField) -> AffinePoint {
         // k < 8, make sure Word is big enough for store precomputated points
-        // let k = 4;
+        // let k = 6;
         assert!(WINDOW_SIZE < 8);
         let scalar_limbs: BigInteger = (*scalar).into();
-        let scalar_bits: Vec<u8> = scalar_limbs.into();
+        let scalar_bits: Vec<u8> = scalar_limbs.to_bits();
 
         // precomputation table
         let mut table = vec![base.clone()];
@@ -189,6 +189,7 @@ impl Curve for Pallas {
         }
 
         let (mut q, mut i) = (Self::IDENTITY, scalar_bits.len() - 1);
+        // println!("scalar_bits = {:?}", scalar_bits);
         while i != 0 {
             // left shift skipping zeros, doubling
             if scalar_bits[i] == 0 {
@@ -207,6 +208,7 @@ impl Curve for Pallas {
 
                 // then addition with precomputated table
                 let u = utils::bytes_to_word(&scalar_bits[s..(i + 1)]);
+                // println!("i = {}, lookup u = {} ({}-{})", i, u, s, i + 1);
                 q = &q + &table[((u - 1) / 2) as usize];
 
                 i = if s >= 1 { s - 1 } else { 0 }
@@ -216,18 +218,6 @@ impl Curve for Pallas {
         q
     }
 }
-
-// // little-endian
-// fn bits_to_word(bits: &[u8]) -> Word {
-//     assert!(bits.len() < WORD_SIZE);
-//     let mut result = 0 as Word;
-//     for i in 0..bits.len() {
-//         if bits[i] == 1 as u8 {
-//             result = result + (1 << i);
-//         }
-//     }
-//     result
-// }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct AffinePoint {

@@ -206,7 +206,8 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
     }
 
     fn pow(&self, e: BigInt<NUM_LIMBS>) -> Self {
-        let n_bits: Vec<u8> = e.into();
+        // let n_bits: Vec<u8> = e.into();
+        let n_bits: Vec<u8> = e.to_bits();
         let (mut y, x) = (Self::ONE().0, self.0);
         for i in (0..n_bits.len()).rev() {
             y = Self::mul_reduce(&y, &y).0;

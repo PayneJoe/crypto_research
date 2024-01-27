@@ -25,7 +25,7 @@ impl<const N: usize> BigInteger<N> for BigInt<N> {}
 pub struct BigInt<const N: usize>(pub [Word; N]);
 
 impl<const N: usize> BigInt<N> {
-    fn to_bits(self) -> Vec<u8> {
+    pub fn to_bits(self) -> Vec<u8> {
         let num_leading_zeros = self.0.iter().rev().fold(0 as u32, |acc, v| {
             if acc == 0 {
                 acc + v.leading_zeros()
