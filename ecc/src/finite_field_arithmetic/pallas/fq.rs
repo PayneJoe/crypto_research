@@ -287,6 +287,10 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
     fn to_bytes(self) -> Vec<u8> {
         self.0.into()
     }
+
+    fn random() -> Self {
+        Self::from(BigInt::<NUM_LIMBS>::random())
+    }
 }
 
 impl From<&BigInt<NUM_LIMBS>> for Fq<NUM_LIMBS> {

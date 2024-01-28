@@ -1,4 +1,5 @@
 //////////////////////////////////// Practical Implementation of BigInteger Specially for Finite Field (fixed length)
+use crate::finite_field_arithmetic::random::*;
 use crate::utils;
 ///
 ///
@@ -21,10 +22,20 @@ pub trait BigInteger<const N: usize>:
 }
 impl<const N: usize> BigInteger<N> for BigInt<N> {}
 
-#[derive(Debug, PartialEq, Clone, Copy, Eq)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub struct BigInt<const N: usize>(pub [Word; N]);
 
 impl<const N: usize> BigInt<N> {
+    pub fn random() -> Self {
+        let words: Vec<Word> = (0..N)
+            .map(|_| {
+                let mut rng = test_rng();
+                Word::rand(&mut rng)
+            })
+            .collect();
+        BigInt(words.try_into().unwrap())
+    }
+
     pub fn to_bits(self) -> Vec<u8> {
         let num_leading_zeros = self.0.iter().rev().fold(0 as u32, |acc, v| {
             if acc == 0 {
@@ -363,4 +374,16 @@ mod tests {
 
     #[test]
     fn test_division() {}
+
+    #[test]
+    fn test_random_collision() {
+        use std::collections::HashSet;
+
+        let mut data = HashSet::new();
+        for _ in 0..1000 {
+            let a = BigInt::<4>::random();
+            assert_eq!(data.contains(&a), false);
+            data.insert(a);
+        }
+    }
 }

@@ -1,7 +1,7 @@
 use ecc::finite_field_arithmetic::bigint::BigInt;
 use ecc::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
 use std::collections::BTreeMap;
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Sub};
 use std::str::FromStr;
 
 const WORD_SIZE: usize = 64;
@@ -11,11 +11,11 @@ type Word = u64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SparsePolynomial<F: PrimeField<NUM_LIMBS>> {
-    coefficients: Vec<(usize, F)>,
+    pub coefficients: Vec<(usize, F)>,
 }
 
 impl<F: PrimeField<NUM_LIMBS>> SparsePolynomial<F> {
-    fn from_sparse_vec(sparse_vals: Vec<(usize, F)>) -> Self {
+    pub fn from_sparse_vec(sparse_vals: Vec<(usize, F)>) -> Self {
         let mut sparse_coefficients = sparse_vals.clone();
         sparse_coefficients.sort_by(|(ida, va), (idb, vb)| ida.cmp(idb));
         Self {
@@ -23,13 +23,13 @@ impl<F: PrimeField<NUM_LIMBS>> SparsePolynomial<F> {
         }
     }
 
-    fn from_dense_vec(dense_vals: Vec<F>) -> Self {
+    pub fn from_dense_vec(dense_vals: Vec<F>) -> Self {
         unimplemented!()
     }
 
     // TODO: redundant implementation through multiple pow operations
     // one-shot (double and add) might be more efficient
-    fn evaluation(self, x: F) -> F {
+    pub fn evaluation(&self, x: F) -> F {
         self.coefficients
             .iter()
             .map(|(idx, coeff)| {
@@ -38,21 +38,28 @@ impl<F: PrimeField<NUM_LIMBS>> SparsePolynomial<F> {
             .sum()
     }
 
-    fn is_zero(&self) -> bool {
+    pub fn is_zero(&self) -> bool {
         self.coefficients.len() == 0
     }
 
-    fn ZERO() -> Self {
+    pub fn ZERO() -> Self {
         Self {
             coefficients: Vec::new(),
         }
     }
 
-    fn degreee(&self) -> usize {
+    pub fn degreee(&self) -> usize {
         if self.is_zero() {
             return 0;
         }
         self.coefficients.last().unwrap().0
+    }
+}
+
+impl<F: PrimeField<NUM_LIMBS>> Sub for SparsePolynomial<F> {
+    type Output = SparsePolynomial<F>;
+    fn sub(self, other: SparsePolynomial<F>) -> Self::Output {
+        &self + &other
     }
 }
 

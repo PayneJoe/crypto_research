@@ -16,7 +16,7 @@ type Word = u64;
 
 type BigInteger = BigInt<NUM_LIMBS>;
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug, Copy)]
 pub struct AffinePoint<F: PrimeField<NUM_LIMBS>, R: PrimeField<NUM_LIMBS>, C: Curve<F, R>> {
     pub x: F,
     pub y: F,
@@ -118,7 +118,7 @@ impl<F: PrimeField<NUM_LIMBS>, R: PrimeField<NUM_LIMBS>, C: Curve<F, R>> Neg
 }
 
 pub trait Curve<BaseField: PrimeField<NUM_LIMBS>, ScalarField: PrimeField<NUM_LIMBS>>:
-    Sized
+    Sized + Copy + Clone
 {
     // parameters of standard weierstrass curve
     const a1: BaseField;

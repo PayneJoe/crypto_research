@@ -34,7 +34,7 @@ impl<F: PrimeField<NUM_LIMBS>> Shake128Transcript<F> {
 
     // new a instance, initialize the state with a given input label
     // the hasher is still a empty one
-    fn new(label: &'static [u8]) -> Self {
+    pub fn new(label: &'static [u8]) -> Self {
         let shake128_hasher = Shake128::default();
         let new_state = Self::hash(shake128_hasher.clone(), label);
         Self {
@@ -46,7 +46,7 @@ impl<F: PrimeField<NUM_LIMBS>> Shake128Transcript<F> {
     }
 
     // end of transcript session with a refreshed hasher
-    fn squeeze(&mut self, label: &'static [u8]) -> F {
+    pub fn squeeze(&mut self, label: &'static [u8]) -> F {
         // [round, state, label]
         let input_bytes: Vec<u8> = self
             .round
@@ -66,7 +66,7 @@ impl<F: PrimeField<NUM_LIMBS>> Shake128Transcript<F> {
 
     // start of transcript session with a new hasher
     // absorb bytes, supporting any type of data
-    fn absorb(&mut self, label: &'static [u8], input_bytes: &[u8]) {
+    pub fn absorb(&mut self, label: &'static [u8], input_bytes: &[u8]) {
         self.hasher.update(label);
         self.hasher.update(input_bytes);
     }

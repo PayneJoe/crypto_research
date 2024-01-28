@@ -8,3 +8,8 @@ edition = "2021"
 [dependencies]
 ecc = {path = "../ecc"}
 hash = {path = "../hash"}
+rand = {version = "0.8.5", feature = "std"}
+
+[features]
+default = []
+std = ["rand/std"]

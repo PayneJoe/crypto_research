@@ -17,7 +17,7 @@ type Word = u64;
 type BigInteger = BigInt<NUM_LIMBS>;
 
 // custom curve instance
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct Pallas;
 
 type ScalarField = Fr<NUM_LIMBS>;

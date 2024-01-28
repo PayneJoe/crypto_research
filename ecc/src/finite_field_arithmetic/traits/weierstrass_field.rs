@@ -67,4 +67,5 @@ pub trait PrimeField<const N: usize>:
 
     //
     fn to_bytes(self) -> Vec<u8>;
+    fn random() -> Self;
 }
