@@ -1,3 +1,5 @@
+/// Practical Implementation of IPA-PCS specially over pallas curve
+///
 use crate::ipa::{Commitment, IPAProof};
 use crate::polynomial::{dense::DensePolynomial, sparse::SparsePolynomial};
 
@@ -14,6 +16,7 @@ const NUM_LIMBS: usize = 4;
 const STATE_SIZE: usize = NUM_LIMBS * (WORD_SIZE / 8);
 type Word = u64;
 
+// initiate field/point/curve/oracle/polynomial with pallas
 type PallasBaseField = Fq<NUM_LIMBS>;
 type PallasScalarField = Fr<NUM_LIMBS>;
 type PallasCurve = Pallas;
@@ -53,6 +56,7 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
         _p2: PhantomData,
     };
 
+    // generate universal SRS with prepared generator
     fn setup() -> Self {
         assert!(((1 as usize) << K) == D);
         let mut random_G = [PallasCurve::IDENTITY; D];
@@ -67,6 +71,8 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
         }
     }
 
+    // commit a sparse polynomial with universal SRS
+    // todo!: can be parallized
     fn commit_sparse(&self, poly: &PallasPoly) -> PallasPoint {
         assert!((poly.degreee() + 1) < self.G.len());
         poly.coefficients
@@ -76,6 +82,8 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
             })
     }
 
+    // commit a dense polynomial with universal SRS
+    // todo!: can be parallized
     fn commit_dense(poly: &PallasDensePoly, bases: &Vec<PallasPoint>) -> PallasPoint {
         assert!(poly.degreee() + 1 == bases.len());
         poly.coefficients
@@ -86,6 +94,8 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
             })
     }
 
+    // inner product for two scalar field
+    // todo!: can be parallized
     fn inner_product(
         lft: &Vec<PallasScalarField>,
         rht: &Vec<PallasScalarField>,
@@ -95,6 +105,7 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
             .fold(PallasScalarField::ZERO(), |acc, (a, b)| acc + *a * *b)
     }
 
+    // generator proof for the specified opening point x
     fn prove(
         &mut self,
         poly: &PallasPoly,
@@ -188,6 +199,9 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
         )
     }
 
+    // verify the evaluation with provided proof, at the cost of non-linear time complexity
+    // since the time cost of compression of universal SRS is linear, so this is not succinct
+    // it will be much more efficient when multiple proof need to be verified (batching for multi-opening)
     fn verify(
         &mut self,
         cm_aG: PallasPoint,
@@ -209,6 +223,7 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
 
         // C_0 = <a, G> + U * <a, b>
         let mut Ck = cm_aG + U * v;
+        // computing compressed commitment Ck, restoring b and G, with time complexity O(log d) or O(k)
         for j in 0..self.K {
             // restore challenge factor for folding a, b and G
             let mut L_rev = L[j..].to_vec();
@@ -241,6 +256,7 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
         } // computing Ck and restoring for b are all done here
 
         // restore G
+        // dense computing, with time complexity O(d)
         let G = Self::commit_dense(&PallasDensePoly::from(&sX), &self.G.to_vec());
 
         // C0 = <a, G> + <a, b> * U
