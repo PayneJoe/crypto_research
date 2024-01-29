@@ -197,7 +197,13 @@ mod tests {
     #[test]
     fn test_generator() {
         let generator = Pallas::GENERATOR;
+        let (x, y) = (
+            "8846324870586583739111697172863888851520659981074829056268361825029048600336",
+            "26279573376377669217484965006105184765343200454744742625721925061231198562202",
+        );
+        let generator_for_urs = AffinePoint::<BaseField, ScalarField, Pallas>::from_str(x, y);
         assert_eq!(generator.is_on_curve(), true);
+        assert_eq!(generator_for_urs.is_on_curve(), true);
     }
 
     #[test]

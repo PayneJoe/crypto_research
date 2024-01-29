@@ -1,8 +1,6 @@
 //////////////////////////////////// Practical Implementation of BigInteger Specially for Finite Field (fixed length)
-use crate::finite_field_arithmetic::random::*;
-use crate::utils;
 ///
-///
+use crate::utils::{self, UniformRand};
 use std::cmp::Ordering;
 use std::ops::{Add, Mul, Shl, Shr, Sub};
 use std::str::FromStr;
@@ -29,7 +27,7 @@ impl<const N: usize> BigInt<N> {
     pub fn random() -> Self {
         let words: Vec<Word> = (0..N)
             .map(|_| {
-                let mut rng = test_rng();
+                let mut rng = utils::RngWrapper(rand::thread_rng());
                 Word::rand(&mut rng)
             })
             .collect();

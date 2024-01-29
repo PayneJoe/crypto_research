@@ -2,21 +2,22 @@
 name = "ecc"
 version = "0.1.0"
 edition = "2021"
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
-sha3 = "0.10"
+sha3 = {version = "0.10"}
 rayon = "1.7"
-digest = "0.10"
+digest = {version = "0.10"}
 rand = {version = "0.8.5", feature = "std"}
 
 [dev-dependencies]
 num-bigint = { version = "0.4", default-features = false }
 num-traits = { version = "0.2", default-features = false }
+rand = {version = "0.8.5", feature = "std"}
 
 [features]
-default = []
 std = ["rand/std"]

@@ -2,14 +2,21 @@
 name = "pcs"
 version = "0.1.0"
 edition = "2021"
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[build-dependencies]
+rustc_version = "0.4"
+
 [dependencies]
-ecc = {path = "../ecc"}
-hash = {path = "../hash"}
-rand = {version = "0.8.5", feature = "std"}
+ecc = {path = "../ecc", features = ["std"]}
+hash = {path = "../hash", default-features = false}
+
+[dev-dependencies]
+ecc = {path = "../ecc", features = ["std"]}
+hash = {path = "../hash", default-features = false}
 
 [features]
-default = []
-std = ["rand/std"]
+# default = ["std"]
+#std = ["ecc/ecc-std"]

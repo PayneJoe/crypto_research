@@ -37,8 +37,18 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
     for IpaPcs<D, K>
 {
     const GENERATOR: PallasPoint = AffinePoint {
-        x: Fq(BigInt([0 as Word; NUM_LIMBS])),
-        y: Fq(BigInt([0 as Word; NUM_LIMBS])),
+        x: Fq(BigInt([
+            18294172133682577413,
+            12349148269572578697,
+            0,
+            4611686018427387904,
+        ])),
+        y: Fq(BigInt([
+            14970995975005405177,
+            1157936496307941438,
+            18446744073709551615,
+            4611686018427387903,
+        ])),
         _p1: PhantomData,
         _p2: PhantomData,
     };
@@ -99,7 +109,7 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
         let intercept_poly = PallasPoly::from_sparse_vec(vec![(0 as usize, v)]);
         aX = aX - intercept_poly;
 
-        // compute b, power of X
+        // prepare for a, b, and G
         let mut b = vec![x.clone()];
         for _ in 1..self.G.len() {
             let e = *b.last().unwrap();
@@ -108,8 +118,8 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
         let mut a = DensePolynomial::from(&aX);
         let mut G = self.G.clone().to_vec();
 
-        // random a base point for aggregate a * G and a * b
-        // a * G + U * (a * b)
+        // random a base point U for aggregation of polynomial commitment <a, G> and evaluation <a, b>
+        // <a, G> + U * <a, b>
         let r_U = PallasScalarField::random();
         let U = Self::GENERATOR * r_U;
         self.RO.absorb(b"r_U", r_U.to_bytes().as_slice());
@@ -189,4 +199,16 @@ impl<const K: usize, const D: usize> Commitment<K, PallasBaseField, PallasScalar
 fn vec2array_uncheck<T, const N: usize>(v: Vec<T>) -> [T; N] {
     v.try_into()
         .unwrap_or_else(|v: Vec<T>| panic!("Expected a Vec of length {} but it was {}", N, v.len()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_random() {
+        let a = PallasScalarField::random();
+        let b = PallasScalarField::random();
+        assert_ne!(a, b);
+    }
 }

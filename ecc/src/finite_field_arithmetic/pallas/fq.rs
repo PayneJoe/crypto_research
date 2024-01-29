@@ -462,6 +462,16 @@ mod tests {
             Fq::<NUM_LIMBS>::from_str(gen_x).unwrap().0 .0,
             Fq::<NUM_LIMBS>::from_str(gen_y).unwrap().0 .0,
         );
+        // generator for universal SRS
+        let (srs_x, srs_y) = (
+            "8846324870586583739111697172863888851520659981074829056268361825029048600336",
+            "26279573376377669217484965006105184765343200454744742625721925061231198562202",
+        );
+        println!(
+            "generator for universal SRS: x = {:?}, y = {:?}",
+            Fq::<NUM_LIMBS>::from_str(gen_x).unwrap().0 .0,
+            Fq::<NUM_LIMBS>::from_str(gen_y).unwrap().0 .0,
+        );
 
         // order of curve(group): 28948022309329048855892746252171976963363056481941647379679742748393362948097
         let order = "28948022309329048855892746252171976963363056481941647379679742748393362948097";
