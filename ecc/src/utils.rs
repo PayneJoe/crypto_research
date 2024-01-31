@@ -5,16 +5,27 @@ use rand::{
 };
 
 type Word = u64;
+const WORD_SIZE: usize = 64;
 const NUM_WORD: usize = 8;
 
 // little-endian
-pub fn bytes_to_word(bytes: &[u8]) -> Word {
-    assert!(bytes.len() < NUM_WORD);
+pub fn bits_to_word(bits: &[u8]) -> Word {
+    assert!(bits.len() < WORD_SIZE);
     let mut result = 0 as Word;
-    for i in 0..bytes.len() {
-        if bytes[i] == 1 as u8 {
+    for i in 0..bits.len() {
+        if bits[i] == 1 as u8 {
             result = result + (1 << i);
         }
+    }
+    result
+}
+
+pub fn bytes_to_word(bytes: &[u8]) -> Word {
+    assert!(bytes.len() <= NUM_WORD);
+    let mut result = 0 as Word;
+    for i in 0..bytes.len() {
+        result = result << 8;
+        result = result + (bytes[i] as Word);
     }
     result
 }

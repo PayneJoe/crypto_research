@@ -16,8 +16,8 @@ type Word = u64;
 
 #[derive(Clone, Debug)]
 pub struct Shake128Transcript<F: PrimeField<NUM_LIMBS>> {
-    round: Word,
-    state: [u8; STATE_SIZE],
+    pub round: Word,
+    pub state: [u8; STATE_SIZE],
     hasher: Shake128,
     _p: PhantomData<F>,
 }
@@ -120,7 +120,9 @@ mod tests {
         // start a transcript session
         for i in 0..test_input.len() {
             let scalar = ScalarField::from_str(test_input[i]).unwrap();
+            // println!("{} scalar: {:?}", i, scalar);
             let scalar_bytes: [u8; STATE_SIZE] = scalar.to_bytes().try_into().unwrap();
+            // println!("{} scalar bytes: {:?}", i, scalar_bytes);
             transcript_a.absorb(test_label[i], &scalar_bytes);
             all_bytes.extend(test_label[i]);
             all_bytes.extend(scalar_bytes);
@@ -128,18 +130,54 @@ mod tests {
         // finish the transcript session
         let scalar_a = transcript_a.squeeze(b"output");
 
+        // 2 * 3 + 32 * 3 + 6 + 8 + 32 = 148
         // contradict object b
         all_bytes.extend(init_round_bytes);
         all_bytes.extend(init_state_bytes);
         all_bytes.extend(b"output");
+        assert_eq!(all_bytes.len(), 148);
 
         let mut hasher_b = Shake128::default();
         hasher_b.update(all_bytes.as_slice());
         let mut reader_b = hasher_b.finalize_xof();
         let mut output_bytes_b = [0 as u8; STATE_SIZE];
         reader_b.read(&mut output_bytes_b);
-        let scalar_b = ScalarField::from(output_bytes_b);
+        let scalar_b = ScalarField::from(BigInt::<NUM_LIMBS>::from(output_bytes_b.as_slice()));
+
+        // println!("---- output bytes: {:?}", output_bytes_b);
 
         assert_eq!(scalar_a, scalar_b);
+    }
+
+    #[test]
+    fn test_multiple_session() {
+        //////////////////// experiment object a
+        let mut transcript_a = Shake128Transcript::<ScalarField>::new(b"TestInstance");
+        // session 1
+        let scalar_0_a = transcript_a.squeeze(b"init_state");
+        transcript_a.absorb(b"label1", "123456789".as_bytes());
+        transcript_a.absorb(b"label2", "987654321".as_bytes());
+        let scalar_1_a = transcript_a.squeeze(b"session_1_state");
+
+        // session 2
+        transcript_a.absorb(b"label1", "123456789".as_bytes());
+        transcript_a.absorb(b"label2", "987654321".as_bytes());
+        let scalar_2_a = transcript_a.squeeze(b"session_2_state");
+
+        //////////////////// contradiction object b
+        // session 1
+        let mut transcript_b = Shake128Transcript::<ScalarField>::new(b"TestInstance");
+        let scalar_0_b = transcript_b.squeeze(b"init_state");
+        transcript_b.absorb(b"label1", "123456789".as_bytes());
+        transcript_b.absorb(b"label2", "987654321".as_bytes());
+        let scalar_1_b = transcript_b.squeeze(b"session_1_state");
+
+        // session 1
+        transcript_b.absorb(b"label1", "123456789".as_bytes());
+        transcript_b.absorb(b"label2", "987654321".as_bytes());
+        let scalar_2_b = transcript_b.squeeze(b"session_2_state");
+        assert_eq!(scalar_0_a, scalar_0_b);
+        assert_eq!(scalar_1_a, scalar_1_b);
+        assert_eq!(scalar_2_a, scalar_2_b);
     }
 }

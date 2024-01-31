@@ -46,6 +46,7 @@ pub trait PrimeField<const N: usize>:
     // fn legendre_symbol(self) -> bool;
 
     fn is_quadratic_residual(self) -> bool;
+    fn is_zero(self) -> bool;
 
     // reduce a bigint into the specified range [0, modulus)
     fn reduce(u: &BigInt<N>, inv: Option<bool>) -> Self;
@@ -68,4 +69,6 @@ pub trait PrimeField<const N: usize>:
     //
     fn to_bytes(self) -> Vec<u8>;
     fn random() -> Self;
+
+    fn to_string(self) -> String;
 }

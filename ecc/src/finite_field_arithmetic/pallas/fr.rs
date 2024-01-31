@@ -14,7 +14,7 @@ pub struct FieldParseErr;
 #[derive(Debug, PartialEq, Eq)]
 pub struct NoneQuadraticResidualErr;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Fr<const N: usize>(pub BigInt<N>);
 
 const NUM_LIMBS: usize = 4;
@@ -77,6 +77,10 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
     #[inline(always)]
     fn ZERO() -> Self {
         Self(BigInt::<NUM_LIMBS>::ZERO())
+    }
+
+    fn is_zero(self) -> bool {
+        self == Self::ZERO()
     }
 
     // referenced from Algorithm 11.12 of "handbook of elliptic and hyperelliptic curve cryptography"
@@ -144,7 +148,8 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
         let x: Vec<Word> = (0..NUM_LIMBS)
             .map(|i| i * WORD_SIZE as usize)
             .map(|v| {
-                if (h_bit > v) && (h_bit - v < WORD_SIZE) {
+                // !!! 1/31/2024 fixed
+                if (h_bit >= v) && (h_bit - v < WORD_SIZE) {
                     (1 as Word) << (h_bit - v)
                 } else {
                     0 as Word
@@ -241,13 +246,13 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
         if (*lft == BigInt::ZERO()) || (*rht == BigInt::ZERO()) {
             return Self::ZERO();
         }
-        let s = 4;
-        let mut t = BigInt([0 as Word; 4]);
+        let mut t = BigInt([0 as Word; NUM_LIMBS]);
         let (mut c1, mut c2, mut overflow) = (0 as Word, 0 as Word, false);
         // println!("lft = {:?}, rht = {:?}", lft.0, rht.0);
-        for i in 0..s {
+        for i in 0..NUM_LIMBS {
             // t = t + self * other[i]
-            let (mut tmp_c1, mut tmp_c2, mut ab) = (0 as Word, 0 as Word, BigInt([0 as Word; 4]));
+            let (mut tmp_c1, mut tmp_c2, mut ab) =
+                (0 as Word, 0 as Word, BigInt([0 as Word; NUM_LIMBS]));
             (ab, tmp_c1) = lft.clone() * rht.0[i];
             (t, tmp_c2) = t + ab;
             (c1, overflow) = c1.overflowing_add(tmp_c1.wrapping_add(tmp_c2));
@@ -257,7 +262,8 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
             // println!("i = {}, #1: t = {:?}, c1 = {:?}, c2 = {:?}", i, t.0, c1, c2);
 
             // t = t + ((t[0] * N'[0]) mod W) * N
-            let (mut tmp_c3, mut tmp_c4, mut mn) = (0 as Word, 0 as Word, BigInt([0 as Word; 4]));
+            let (mut tmp_c3, mut tmp_c4, mut mn) =
+                (0 as Word, 0 as Word, BigInt([0 as Word; NUM_LIMBS]));
             let m = Self::M0.wrapping_mul(t.0[0]);
             (mn, tmp_c3) = Self::MODULUS * m;
             (t, tmp_c4) = t + mn;
@@ -268,11 +274,15 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
             // println!("i = {} #2: t = {:?}, c1 = {:?}, c2 = {:?}", i, t.0, c1, c2);
 
             // t >> 1
-            for j in 0..(s - 1) {
+            for j in 0..(NUM_LIMBS - 1) {
                 t.0[j] = t.0[j + 1];
             }
-            (t.0[s - 1], c1, c2) = (c1, c2, 0 as Word);
+            (t.0[NUM_LIMBS - 1], c1, c2) = (c1, c2, 0 as Word);
             // println!("i = {} #3: t = {:?}, c1 = {:?}, c2 = {:?}", i, t.0, c1, c2);
+        }
+        // 1/30/2024 fixed
+        if t >= Self::MODULUS {
+            t = (t - Self::MODULUS).0;
         }
 
         Self(t)
@@ -292,6 +302,10 @@ impl PrimeField<NUM_LIMBS> for Fr<NUM_LIMBS> {
 
     fn random() -> Self {
         Self::from(BigInt::<NUM_LIMBS>::random())
+    }
+
+    fn to_string(self) -> String {
+        self.rev_reduce().to_string()
     }
 }
 
@@ -470,13 +484,18 @@ mod tests {
 
     #[test]
     fn test_multiplication() {
-        let a = "6375934151890180205297706674895575483273624160874557874408840128846376412200";
-        let b = "28506874097417334274247958454240234974963135381959712862126761049363843908851";
-        let c = "2254763930843862400398034612573101569234819393442628390705778063269694551656";
-        assert_eq!(
-            Fr::<NUM_LIMBS>::from_str(a).unwrap() * Fr::<NUM_LIMBS>::from_str(b).unwrap(),
-            Fr::<NUM_LIMBS>::from_str(c).unwrap()
+        let (a, b, c) = (
+            "7112880553754957349590904961947714214294622716223308025175323613744682344396",
+            // "6375934151890180205297706674895575483273624160874557874408840128846376412200",
+            "10",
+            "13232760918891475784123557115133188216220114198349785492393750640660097547766",
         );
+        let (fa, fb, fc) = (
+            Fr::<NUM_LIMBS>::from_str(a).unwrap(),
+            Fr::<NUM_LIMBS>::from_str(b).unwrap(),
+            Fr::<NUM_LIMBS>::from_str(c).unwrap(),
+        );
+        assert_eq!(fa * fb, fc);
     }
 
     #[test]

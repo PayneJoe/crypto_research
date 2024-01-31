@@ -14,7 +14,7 @@ pub struct FieldParseErr;
 #[derive(Debug, PartialEq, Eq)]
 pub struct NoneQuadraticResidualErr;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Fq<const N: usize>(pub BigInt<N>);
 
 const NUM_LIMBS: usize = 4;
@@ -79,7 +79,7 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
     }
 
     // referenced from Algorithm 11.12 of "handbook of elliptic and hyperelliptic curve cryptography"
-    // (a^{-1} * R) % N <- (a^{-1} * R^2) * R^{-1} % N
+    // (aR)^{-1} % N <- ((aR)^{-1} * R^2) * R^{-1} % N
     fn inv(&self) -> Self {
         let (mut r, mut s, mut t, mut v) = (
             self.0,
@@ -87,6 +87,8 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
             Self::MODULUS,
             BigInt::<NUM_LIMBS>::ZERO(),
         );
+
+        // println!("r = {:?}", r);
 
         /////////////////////////////////////////////// STAGE ONE
         let mut k = 0 as usize;
@@ -138,18 +140,20 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
         }
 
         // 2^{2m - k}
-        let h_bit = 2 * m - k;
+        let mut h_bit = 2 * m - k;
         assert!(h_bit < m);
         let x: Vec<Word> = (0..NUM_LIMBS)
             .map(|i| i * WORD_SIZE as usize)
             .map(|v| {
-                if (h_bit > v) && (h_bit - v < WORD_SIZE) {
+                // !!! 1/31/2024 fixed
+                if (h_bit >= v) && (h_bit - v < WORD_SIZE) {
                     (1 as Word) << (h_bit - v)
                 } else {
                     0 as Word
                 }
             })
             .collect();
+
         // println!("------- before reduce R2: v = {:?}", v);
         // REDC(v * R2)
         v = Self::mul_reduce(&v, &Self::R2).0;
@@ -220,6 +224,10 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
         self.pow(((Self::MODULUS - BigInt::<NUM_LIMBS>::ONE()).0 >> 1).0) == Self::ONE()
     }
 
+    fn is_zero(self) -> bool {
+        self == Self::ZERO()
+    }
+
     fn square(&self) -> Self {
         Self::mul_reduce(&self.0, &self.0)
     }
@@ -239,13 +247,13 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
         if (*lft == BigInt::ZERO()) || (*rht == BigInt::ZERO()) {
             return Self::ZERO();
         }
-        let s = 4;
-        let mut t = BigInt([0 as Word; 4]);
+        let mut t = BigInt([0 as Word; NUM_LIMBS]);
         let (mut c1, mut c2, mut overflow) = (0 as Word, 0 as Word, false);
         // println!("lft = {:?}, rht = {:?}", lft.0, rht.0);
-        for i in 0..s {
+        for i in 0..NUM_LIMBS {
             // t = t + self * other[i]
-            let (mut tmp_c1, mut tmp_c2, mut ab) = (0 as Word, 0 as Word, BigInt([0 as Word; 4]));
+            let (mut tmp_c1, mut tmp_c2, mut ab) =
+                (0 as Word, 0 as Word, BigInt([0 as Word; NUM_LIMBS]));
             (ab, tmp_c1) = lft.clone() * rht.0[i];
             (t, tmp_c2) = t + ab;
             (c1, overflow) = c1.overflowing_add(tmp_c1.wrapping_add(tmp_c2));
@@ -255,7 +263,8 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
             // println!("i = {}, #1: t = {:?}, c1 = {:?}, c2 = {:?}", i, t.0, c1, c2);
 
             // t = t + ((t[0] * N'[0]) mod W) * N
-            let (mut tmp_c3, mut tmp_c4, mut mn) = (0 as Word, 0 as Word, BigInt([0 as Word; 4]));
+            let (mut tmp_c3, mut tmp_c4, mut mn) =
+                (0 as Word, 0 as Word, BigInt([0 as Word; NUM_LIMBS]));
             let m = Self::M0.wrapping_mul(t.0[0]);
             (mn, tmp_c3) = Self::MODULUS * m;
             (t, tmp_c4) = t + mn;
@@ -266,11 +275,15 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
             // println!("i = {} #2: t = {:?}, c1 = {:?}, c2 = {:?}", i, t.0, c1, c2);
 
             // t >> 1
-            for j in 0..(s - 1) {
+            for j in 0..(NUM_LIMBS - 1) {
                 t.0[j] = t.0[j + 1];
             }
-            (t.0[s - 1], c1, c2) = (c1, c2, 0 as Word);
+            (t.0[NUM_LIMBS - 1], c1, c2) = (c1, c2, 0 as Word);
             // println!("i = {} #3: t = {:?}, c1 = {:?}, c2 = {:?}", i, t.0, c1, c2);
+        }
+        // 1/30/2024 fixed
+        if t > Self::MODULUS {
+            t = (t - Self::MODULUS).0;
         }
 
         Self(t)
@@ -290,6 +303,10 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
 
     fn random() -> Self {
         Self::from(BigInt::<NUM_LIMBS>::random())
+    }
+
+    fn to_string(self) -> String {
+        self.rev_reduce().to_string()
     }
 }
 
@@ -523,8 +540,10 @@ mod tests {
     #[test]
     fn test_inversion() {
         let (a, c) = (
-            "25767596886874889036540765742642627840896260537012642841805800608653635566576",
-            "12977814693209616701908158718117218571334991308499348109965704251722539193017",
+            // "25767596886874889036540765742642627840896260537012642841805800608653635566576",
+            // "12977814693209616701908158718117218571334991308499348109965704251722539193017",
+            "19084253800324678133912155767918812359664574541969001252404342841918433564511",
+            "23795449924164895882570993730521423982802912403806744956483635715405197152014",
         );
         assert_eq!(
             Fq::<NUM_LIMBS>::from_str(a).unwrap() * Fq::<NUM_LIMBS>::from_str(c).unwrap(),

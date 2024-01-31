@@ -38,7 +38,11 @@ pub trait Curve {
 
         println!(
             "b2 = {:?}, b4 = {:?}, b6 = {:?}, b8 = {:?}, delta = {:?}",
-            b2, b4, b6, b8, delta
+            b2.rev_reduce(),
+            b4.rev_reduce(),
+            b6.rev_reduce(),
+            b8.rev_reduce(),
+            delta.rev_reduce()
         );
         delta != WSField::ZERO()
     }

@@ -8,6 +8,7 @@ const NUM_LIMBS: usize = 4;
 const STATE_SIZE: usize = NUM_LIMBS * (WORD_SIZE / 8);
 type Word = u64;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DensePolynomial<F: PrimeField<NUM_LIMBS>> {
     pub coefficients: Vec<F>,
 }
@@ -25,6 +26,14 @@ impl<F: PrimeField<NUM_LIMBS>> DensePolynomial<F> {
 
     pub fn degreee(&self) -> usize {
         self.coefficients.len() - 1
+    }
+
+    pub fn resize(&mut self, size: usize) {
+        if self.coefficients.len() > size {
+            self.coefficients = self.coefficients[..size].to_vec();
+        }
+        self.coefficients
+            .extend(vec![F::ZERO(); size - self.coefficients.len()]);
     }
 }
 
@@ -53,8 +62,10 @@ impl<F: PrimeField<NUM_LIMBS>> From<&SparsePolynomial<F>> for DensePolynomial<F>
     }
 }
 
-impl<F: PrimeField<NUM_LIMBS>> From<Vec<F>> for DensePolynomial<F> {
-    fn from(vec: Vec<F>) -> Self {
-        Self { coefficients: vec }
+impl<F: PrimeField<NUM_LIMBS>> From<&Vec<F>> for DensePolynomial<F> {
+    fn from(vec: &Vec<F>) -> Self {
+        Self {
+            coefficients: vec.clone(),
+        }
     }
 }

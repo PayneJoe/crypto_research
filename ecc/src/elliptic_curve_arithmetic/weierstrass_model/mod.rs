@@ -16,7 +16,7 @@ type Word = u64;
 
 type BigInteger = BigInt<NUM_LIMBS>;
 
-#[derive(PartialEq, Eq, Clone, Debug, Copy)]
+#[derive(PartialEq, Eq, Clone, Debug, Copy, Hash)]
 pub struct AffinePoint<F: PrimeField<NUM_LIMBS>, R: PrimeField<NUM_LIMBS>, C: Curve<F, R>> {
     pub x: F,
     pub y: F,
@@ -33,6 +33,11 @@ impl<F: PrimeField<NUM_LIMBS>, R: PrimeField<NUM_LIMBS>, C: Curve<F, R>> AffineP
             _p2: Default::default(),
         }
     }
+
+    pub fn IDENTITY() -> Self {
+        C::IDENTITY
+    }
+
     pub fn from_bigint(x: F, y: F) -> Self {
         Self::new(F::from(x), F::from(y))
     }

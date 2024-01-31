@@ -10,6 +10,7 @@ pub struct BigIntParseErr;
 
 const WORD_SIZE: usize = 64;
 const DOUBLE_WORD_SIZE: usize = 64 * 2;
+const NUM_WORD: usize = 64 / 8;
 type Word = u64;
 type DoubleWord = u128;
 const WORD_BASE: DoubleWord = (1 as DoubleWord) << WORD_SIZE;
@@ -24,6 +25,12 @@ impl<const N: usize> BigInteger<N> for BigInt<N> {}
 pub struct BigInt<const N: usize>(pub [Word; N]);
 
 impl<const N: usize> BigInt<N> {
+    pub fn to_string(self) -> String {
+        let bytes: Vec<u8> = self.into();
+        // !!!TODO: need to be fixed
+        String::from_utf8(bytes).unwrap()
+    }
+
     pub fn random() -> Self {
         let words: Vec<Word> = (0..N)
             .map(|_| {
@@ -236,13 +243,19 @@ impl<const N: usize> Into<Vec<u8>> for BigInt<N> {
     }
 }
 
+impl<const N: usize> From<&[Word; N]> for BigInt<N> {
+    fn from(words: &[Word; N]) -> Self {
+        Self(words.clone())
+    }
+}
+
 impl<const N: usize> From<&[u8]> for BigInt<N> {
     fn from(bytes: &[u8]) -> Self {
         let n = bytes.len();
         let (mut start, mut end) = (0 as usize, 0 as usize);
         let words: Vec<Word> = (0..N)
             .map(|_| {
-                (start, end) = (end, std::cmp::min(end + WORD_SIZE, n));
+                (start, end) = (end, std::cmp::min(end + NUM_WORD, n));
                 utils::bytes_to_word(&bytes[start..end])
             })
             .collect();

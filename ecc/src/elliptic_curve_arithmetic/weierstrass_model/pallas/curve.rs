@@ -17,7 +17,7 @@ type Word = u64;
 type BigInteger = BigInt<NUM_LIMBS>;
 
 // custom curve instance
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
 pub struct Pallas;
 
 type ScalarField = Fr<NUM_LIMBS>;
@@ -47,12 +47,7 @@ impl Curve<BaseField, ScalarField> for Pallas {
     };
     // generator of this elliptic curve, g = (-1, 2)
     const GENERATOR: AffinePoint<BaseField, ScalarField, Self> = AffinePoint {
-        x: Fq(BigInt([
-            18294172133682577413,
-            12349148269572578697,
-            0,
-            4611686018427387904,
-        ])),
+        x: Fq(BigInt([7256640077462241284, 9879318615658062958, 0, 0])),
         y: Fq(BigInt([
             14970995975005405177,
             1157936496307941438,
@@ -124,7 +119,14 @@ impl Curve<BaseField, ScalarField> for Pallas {
         } else {
             (y1 - y2, x1 - x2)
         };
+        // println!(
+        //     "denominator = {:?}, nominator = {:?}",
+        //     denominator.rev_reduce(),
+        //     nominator.rev_reduce()
+        // );
         let lambda = denominator * nominator.inv();
+        // FOR DEBUG
+        assert!(nominator * nominator.inv() == BaseField::ONE());
         let x3 = lambda * lambda + Self::a1 * lambda - Self::a2 - x1 - x2;
         AffinePoint {
             x: x3,
@@ -139,6 +141,9 @@ impl Curve<BaseField, ScalarField> for Pallas {
         base: &AffinePoint<BaseField, ScalarField, Self>,
         scalar: &Fr<NUM_LIMBS>,
     ) -> AffinePoint<BaseField, ScalarField, Self> {
+        if scalar.is_zero() {
+            return AffinePoint::<BaseField, ScalarField, Self>::IDENTITY();
+        }
         // k < 8, make sure Word is big enough for store precomputated points
         // let k = 6;
         assert!(WINDOW_SIZE < 8);
@@ -148,37 +153,56 @@ impl Curve<BaseField, ScalarField> for Pallas {
         // precomputation table
         let mut table = vec![base.clone()];
         let double_base = base + base;
+
         for i in 1..(1 << (WINDOW_SIZE - 1)) {
-            table.push(&table[i - 1] + &double_base)
+            let ele = &table[i - 1] + &double_base;
+            table.push(ele);
         }
 
-        let (mut q, mut i) = (Self::IDENTITY, scalar_bits.len() - 1);
-        // println!("scalar_bits = {:?}", scalar_bits);
-        while i != 0 {
+        let (mut q, mut i) = (Self::IDENTITY, (scalar_bits.len() - 1) as i32);
+        // println!("scalar_bits = {:?}, {}", scalar_bits, scalar_bits.len());
+        // let (mut times, mut old_times) = (0 as u128, 0 as u128);
+
+        while i >= 0 {
+            // println!(
+            //     "##[Progress] {}/{}",
+            //     (scalar_bits.len() - 1) as i32 - i,
+            //     scalar_bits.len()
+            // );
             // left shift skipping zeros, doubling
-            if scalar_bits[i] == 0 {
+            if scalar_bits[i as usize] == 0 {
                 (q, i) = (&q + &q, i - 1);
+                // old_times = times;
+                // times = times * 2;
+                // println!("##{}: {}q -> {}q", i + 1, old_times, times);
             } else {
                 // left shift, doubling
-                let mut s = std::cmp::max((i as i32) - (WINDOW_SIZE as i32) + 1, 0) as usize;
+                let mut s = std::cmp::max((i as i32) - (WINDOW_SIZE as i32) + 1, 0);
                 let right_bound = s;
-                while scalar_bits[s] == 0 {
+                while scalar_bits[s as usize] == 0 {
                     s = s + 1;
                 }
                 let left_bound = s;
                 for _ in 0..(i - s + 1) {
                     q = &q + &q;
                 }
+                // old_times = times;
+                // times = times << (i - s + 1);
+                // println!("##{}: {}q -> {}q", i, old_times, times);
 
                 // then addition with precomputated table
-                let u = utils::bytes_to_word(&scalar_bits[s..(i + 1)]);
+                let u = utils::bits_to_word(&scalar_bits[(s as usize)..(i + 1) as usize]);
                 // println!("i = {}, lookup u = {} ({}-{})", i, u, s, i + 1);
-                q = &q + &table[((u - 1) / 2) as usize];
+                assert!(u % 2 == 1);
 
-                i = if s >= 1 { s - 1 } else { 0 }
+                q = &q + &table[((u - 1) / 2) as usize];
+                // old_times = times;
+                // times = times + u as u128;
+                // println!("##{}: {}q -> {}q", i, old_times, times);
+
+                i = if s >= 1 { s - 1 } else { -1 };
             }
         }
-
         q
     }
 }
@@ -210,23 +234,39 @@ mod tests {
     fn test_addition() {
         let ((ax, ay), (bx, by), (cx, cy)) = (
             (
-                "9908836592418296524525327456052162783984680435925575327364933045222333063285",
-                "8141182330133757207695661486101802544682001213708043141844125426486190597129",
+                "27832571899082851396112614260331381199907587448938948538656515152087941036303",
+                "24016138054826863494902451010045394661513815511955280984179509803134200597424",
             ),
             (
-                "24705484178801360521248032223897679619079690363058394526611267317500158565519",
-                "20116172318493854331373158539065837890266930911788035342907408169251780891917",
+                "27832571899082851396112614260331381199907587448938948538656515152087941036303",
+                "24016138054826863494902451010045394661513815511955280984179509803134200597424",
             ),
             (
-                "28209655690986056210243374189450018186603428622824425839925213070114995880237",
-                "12981965780070749014963957098443976813651938384094761603182376058552077049181",
-            ),
+                "1616285261656811539606192746606747756620678341484325945708180334022554109686",
+                "25742719387172571165925478012183202284853392851062803962279894474527460895168",
+            ), // (
+               //     "9908836592418296524525327456052162783984680435925575327364933045222333063285",
+               //     "8141182330133757207695661486101802544682001213708043141844125426486190597129",
+               // ),
+               // (
+               //     "24705484178801360521248032223897679619079690363058394526611267317500158565519",
+               //     "20116172318493854331373158539065837890266930911788035342907408169251780891917",
+               // ),
+               // (
+               //     "28209655690986056210243374189450018186603428622824425839925213070114995880237",
+               //     "12981965780070749014963957098443976813651938384094761603182376058552077049181",
+               // ),
         );
         let (lft, rht, result) = (
             AffinePoint::<BaseField, ScalarField, Pallas>::from_str(ax, ay),
             AffinePoint::<BaseField, ScalarField, Pallas>::from_str(bx, by),
             AffinePoint::<BaseField, ScalarField, Pallas>::from_str(cx, cy),
         );
+        let ret = lft + rht;
+        assert_eq!(lft.is_on_curve(), true);
+        assert_eq!(rht.is_on_curve(), true);
+        assert_eq!(result.is_on_curve(), true);
+        assert_eq!(ret.is_on_curve(), true);
         // println!("lft = {:?}, rht = {:?}, result = {:?}", lft, rht, result);
         assert_eq!(lft + rht, result);
     }
@@ -235,13 +275,19 @@ mod tests {
     fn test_scalar_mul() {
         let ((ax, ay), b, (cx, cy)) = (
             (
-                "4689327464323562799243432909991035395771248147418352620791865142126003392501",
-                "15515494669053271639555929917461475939975474162664253076691772466291154449321",
+                "28948022309329048855892746252171976963363056481941560715954676764349967630336",
+                "2",
             ),
-            "2345",
+            // "21712623616103011952848252560147696209404897876251782782637736724240743453506",
+            // (
+            //     "21897919324007031737251702070883943178876384330244155651599442226564320960121",
+            //     "19992762491079946800453099425190032771033651151145773319238789454742728844037",
+            // ),
+            // "6918041010455432824",
+            "19011490841973700698332973919617636205534468959166330882313323025205883376085",
             (
-                "1795184660389002178702117996726165712126274468186295893280321878687089453815",
-                "17272332583867015145270265348850688490372421126781419747622997615621887692199",
+                "8796806641042381430351535528292925080765933408623233116962084588733109519666",
+                "24000051983946361489643647773470857482924029485753766325300523193930768017055",
             ),
         );
         let (lft, rht, result) = (
@@ -249,7 +295,12 @@ mod tests {
             ScalarField::from_str(b).unwrap(),
             AffinePoint::<BaseField, ScalarField, Pallas>::from_str(cx, cy),
         );
-        assert_eq!(lft * rht, result);
+        let ret = lft * rht;
+
+        assert_eq!(lft.is_on_curve(), true);
+        assert_eq!(result.is_on_curve(), true);
+        assert_eq!(ret.is_on_curve(), true);
+        assert_eq!(ret, result);
     }
 
     #[test]

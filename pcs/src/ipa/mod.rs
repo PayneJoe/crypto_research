@@ -63,5 +63,5 @@ pub trait Commitment<
     // generate ipa proof (non-succinct) for taget polynomial
     fn prove(&mut self, poly: &SparsePolynomial<R>, x: R) -> IPAProof<K, F, R, C>;
     // verify with provided ipa proof
-    fn verify(&mut self, cm_aG: AffinePoint<F, R, C>, x: R, proof: IPAProof<K, F, R, C>) -> bool;
+    fn verify(&mut self, aG: AffinePoint<F, R, C>, x: R, proof: &IPAProof<K, F, R, C>) -> bool;
 }
