@@ -40,7 +40,7 @@ crypto research stuffs from numerics to ZKP related protocols all written with d
 
 - pcs
     - sparse_polynomial [Done]
-    - ipa [Ongoing]
+    - ipa [Done]
     - pb [Ongoing]
 
 - recursive snark
