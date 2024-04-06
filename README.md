@@ -10,33 +10,33 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
         - basic arithmetics on big integers
 
-          - add/substruction/multiplication/division [\checkmark]
+          - add/substruction/multiplication/division [$\color{green}\checkmark$]
 
-          - euclid extended gcd/lehmer extended gcd [\checkmark]
+          - euclid extended gcd/lehmer extended gcd [$\color{green}\checkmark$]
 
     - finite_field_arithmetic 
 
         - basic arithmetics on base field $F_q$
 
-          - add/substruction/multiplication/division/inversion/modulo/exponentiation/sqrt/square [\checkmark]
+          - add/substruction/multiplication/division/inversion/modulo/exponentiation/sqrt/square [$\color{green}\checkmark$]
 
         - basic arithmetics on extension field $F_{q^k}$ of $F_q$
 
-            - quadratic extension [Ongoing]
+            - quadratic extension $F_{q^2}/F_{q}$ [Ongoing]
 
-            - cubic extension [Ongoing]
+            - cubic extension $F_{q^3}/F_{q}$ [Ongoing]
 
-            - sextic extension [Ongoing]
+            - sextic extension $F_{q^6}/F_{q}$ [Ongoing]
 
             - cyclotomic [Ongoing]
 
-            - twist/untwist [Ongoing]
+            - twist/untwist $\Phi: F_{q^k} \mapsto F_{q^{k / d}}$ [Ongoing]
 
     - elliptic_curve_arithmetic 
 
         - neccessary arithmetics on elliptic curves over base field $F_q$ 
 
-          - add/doubling/scalar_mul/... [\checkmark]
+          - add/doubling/scalar_mul/... [$\color{green} \checkmark$]
 
         - neccessary arithmetics on pairing-friendly elliptic curves over extension field $F_{q^k}$
 
@@ -48,21 +48,29 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
     - pairings 
 
-        - Tate Pairing [Ongoing]
+        - algorithms
 
-        - Ate Pairing [Ongoing]
+            - miller loop [Ongoing]
 
-        - Optimal Ate Pairings [Ongoing]
+            - final exponentiation [Ongoing]
+
+        - pairing family
+
+          - Tate Pairing [Ongoing]
+
+          - Ate Pairing [Ongoing]
+
+          - Optimal Ate Pairings [Ongoing]
 
     - ...
 
 - hash
-    - shake128(variable output length) [\checkmark]
+    - shake128(variable output length) [$\color{green}\checkmark$]
     - poseidon [TODO]
 
 - pcs
-    - sparse_polynomial [\checkmark]
-    - IPA [\checkmark]
+    - sparse_polynomial [$\color{green}\checkmark$]
+    - IPA [$\color{green} \checkmark$]
     - KZG [Ongoing]
 
 - recursive snark
@@ -84,7 +92,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
 [2] Guide to Elliptic Curve Cryptography
 
-[3] Pairings For Beginners [https://static1.squarespace.com/static/5fdbb09f31d71c1227082339/t/5ff394720493bd28278889c6/1609798774687/PairingsForBeginners.pdf]
+[3] [Pairings For Beginners](https://static1.squarespace.com/static/5fdbb09f31d71c1227082339/t/5ff394720493bd28278889c6/1609798774687/PairingsForBeginners.pdf)
 
 [4] [Algorithms for Modern Hardware](https://en.algorithmica.org/hpc/)
 
