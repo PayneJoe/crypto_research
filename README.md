@@ -52,7 +52,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
         - Ate Pairing [Ongoing]
 
-        - Optimal Pairings [Ongoing]
+        - Optimal Ate Pairings [Ongoing]
 
     - ...
 
