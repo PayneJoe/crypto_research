@@ -16,9 +16,10 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
     - finite_field_arithmetic 
 
-        - basic arithmetics on base field $F_q$
+        - basic arithmetics on base field $F_q$ and its instantiation
 
           - add/substruction/multiplication/division/inversion/modulo/exponentiation/sqrt/square [$`\color{green}\checkmark`$]
+          - field implementation for pallas/vasta curves [$`\color{green}\checkmark`$] 
 
         - basic arithmetics on extension field $F_{q^k}$ of $F_q$
 
@@ -31,6 +32,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
             - cyclotomic [Ongoing]
 
             - twist/untwist $\Phi: F_{q^k} \mapsto F_{q^{k / d}}$ [Ongoing]
+            - field implementation for BLS12/MNT/BN pairing-family curves [Ongoing]
 
     - elliptic_curve_arithmetic 
 
@@ -38,9 +40,10 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
           - add/doubling/scalar_mul/... [$`\color{green} \checkmark`$]
 
-        - neccessary arithmetics on pairing-friendly elliptic curves over extension field $F_{q^k}$
+        - neccessary arithmetics on pairing-friendly elliptic curves over extension field $F_{q^k}$ and its instantiation
 
           - add/doubling/scalar_mul/... [Ongoing]
+          - BLS12/MNT/BN pairing-friendly curves [Ongoing]
 
     - hyperelliptic_curve_arithmetic [TODO] 
 
