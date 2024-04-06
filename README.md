@@ -10,15 +10,15 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
         - basic arithmetics on big integers
 
-          - add/substruction/multiplication/division [$\color{green}\checkmark$]
+          - add/substruction/multiplication/division [$`\color{green}\checkmark`$]
 
-          - euclid extended gcd/lehmer extended gcd [$\color{green}\checkmark$]
+          - euclid extended gcd/lehmer extended gcd [$`\color{green}\checkmark`$]
 
     - finite_field_arithmetic 
 
         - basic arithmetics on base field $F_q$
 
-          - add/substruction/multiplication/division/inversion/modulo/exponentiation/sqrt/square [$\color{green}\checkmark$]
+          - add/substruction/multiplication/division/inversion/modulo/exponentiation/sqrt/square [$`\color{green}\checkmark`$]
 
         - basic arithmetics on extension field $F_{q^k}$ of $F_q$
 
@@ -36,7 +36,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
         - neccessary arithmetics on elliptic curves over base field $F_q$ 
 
-          - add/doubling/scalar_mul/... [$\color{green} \checkmark$]
+          - add/doubling/scalar_mul/... [$`\color{green} \checkmark`$]
 
         - neccessary arithmetics on pairing-friendly elliptic curves over extension field $F_{q^k}$
 
@@ -65,12 +65,12 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
     - ...
 
 - hash
-    - shake128(variable output length) [$\color{green}\checkmark$]
+    - shake128(variable output length) [$`\color{green}\checkmark`$]
     - poseidon [TODO]
 
 - pcs
-    - sparse_polynomial [$\color{green}\checkmark$]
-    - IPA [$\color{green} \checkmark$]
+    - sparse_polynomial [$`\color{green}\checkmark`$]
+    - IPA [$`\color{green} \checkmark`$]
     - KZG [Ongoing]
 
 - recursive snark
