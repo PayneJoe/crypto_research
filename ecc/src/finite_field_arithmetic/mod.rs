@@ -1,8 +1,13 @@
 pub mod bigint;
 pub mod bigint64;
+pub mod bls12;
+pub mod bls24;
+pub mod bn;
 pub mod field;
 pub mod field_mont_friendly;
 pub mod gcd64;
+pub mod kss;
+pub mod mnt;
 pub mod pallas;
 pub mod random;
 pub mod traits;
