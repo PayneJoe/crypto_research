@@ -6,6 +6,14 @@ use std::{
     str::FromStr,
 };
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum LegendreSymbol {
+    Zero = 0,
+    QuadraticResidue = 1,
+    QuadraticNonResidue = -1,
+}
+
+// trait of base field F_q
 pub trait PrimeField<const N: usize>:
     FromStr
     + Debug
@@ -71,4 +79,46 @@ pub trait PrimeField<const N: usize>:
     fn random() -> Self;
 
     fn to_string(self) -> String;
+}
+
+// trait of extension field F_q^k over F_q
+pub trait Field<const N: usize>:
+    Sized
+    + Copy
+    + Clone
+    + Add<Self, Output = Self>
+    + Sub<Self, Output = Self>
+    // + for<'a> Mul<&'a Self, Output = Self>
+    + Mul<Self, Output = Self>
+    + Div<Self, Output = Self>
+    + Neg<Output = Self>
+{
+    // base prime field F_q
+    type BasePrimeField: PrimeField<N>;
+
+    // coefficients with length of k
+    type BasePrimeFieldIter: Iterator<Item = Self::BasePrimeField>;
+
+    // specially for k, absolute degree of extension field F_q^k
+    fn extension_degree() -> u64;
+
+    // output coefficients of extension field
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter;
+
+    // construct extension field from base prime field
+    fn from_base_prime_field_elems(
+        elems: impl IntoIterator<Item = Self::BasePrimeField>,
+    ) -> Option<Self>;
+
+    // whether is capable of squaring within current (extension) field F_q^k or not
+    fn legendre(&self) -> LegendreSymbol;
+
+    // frobenius map, a <- a^q
+    fn powers_frobenius_map(&self, power: usize) -> Self;
+
+    // arithemtics on extension field
+    fn square(&self) -> Self;
+    fn sqrt(&self) -> Option<Self>;
+    fn inverse(&self) -> Option<Self>;
+    fn pow(&self, e: BigInt<N>) -> Self;
 }
