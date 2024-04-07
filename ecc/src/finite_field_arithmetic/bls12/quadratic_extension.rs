@@ -1,9 +1,8 @@
 use crate::finite_field_arithmetic::bigint::BigInt;
-use crate::finite_field_arithmetic::traits::weierstrass_field::{
-    Field, LegendreSymbol, PrimeField,
-};
+use crate::finite_field_arithmetic::traits::pairing_field::{Field, LegendreSymbol, PrimeField};
 use std::iter::Chain;
 use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::str::FromStr;
 
 pub trait QuadraticExtensionConfig<const N: usize>: Copy + Clone {
     type BasePrimeField: PrimeField<N>;
@@ -69,6 +68,7 @@ impl<const N: usize, Config: QuadraticExtensionConfig<N>> Field<N>
             .chain(self.c1.to_base_prime_field_elements())
     }
 
+    // construct current field with base prime field elements
     fn from_base_prime_field_elems(
         elems: impl IntoIterator<Item = Self::BasePrimeField>,
     ) -> Option<Self> {
@@ -85,6 +85,20 @@ impl<const N: usize, Config: QuadraticExtensionConfig<N>> Field<N>
         } else {
             element
         }
+    }
+
+    // construct current field with single base prime field element
+    fn from_base_prime_field_elem(elem: Self::BasePrimeField) -> Self {
+        let base_field_degree = Config::BaseField::extension_degree() as usize;
+
+        let mut c0 = vec![elem];
+        c0.extend(vec![Config::BasePrimeField::ZERO(); base_field_degree - 1].iter());
+        let c1 = vec![Config::BasePrimeField::ZERO(); base_field_degree];
+
+        Self::new(
+            Config::BaseField::from_base_prime_field_elems(c0.into_iter()).unwrap(),
+            Config::BaseField::from_base_prime_field_elems(c1.into_iter()).unwrap(),
+        )
     }
 
     // whether current field element has square root or not depends its Norm has square root or not
@@ -109,20 +123,87 @@ impl<const N: usize, Config: QuadraticExtensionConfig<N>> Field<N>
         result
     }
 
+    // referenced from Algorithm 5.17 (P133) of "Guide to Pairing-Based Cryptography"
     fn square(&self) -> Self {
-        todo!()
+        let mut v0 = self.c0 - self.c1;
+        let v3 = self.c0 - Config::NON_QUADRATIC_RESIDUAL * self.c1;
+        let v2 = self.c0 * self.c1;
+        v0 = (v0 * v3) + v2;
+        let c1 = v2 + v2;
+        let c0 = v0 + Config::NON_QUADRATIC_RESIDUAL * v2;
+        Self::new(c0, c1)
     }
 
+    fn square_inplace(&mut self) {
+        *self = self.square();
+    }
+
+    // referenced from Algorithm 5.18 (P133) of "Guide to Pairing-Based Cryptography"
     fn sqrt(&self) -> Option<Self> {
-        todo!()
+        // simple case, when c1 = 0
+        if self.c1.is_zero() {
+            if self.c0.legendre() == LegendreSymbol::QuadraticResidue {
+                return Some(Self::new(
+                    self.c0.sqrt().unwrap(),
+                    Config::BaseField::ZERO(),
+                ));
+            } else {
+                return None;
+            }
+        }
+
+        // not quadratic residual
+        if self.legendre() == LegendreSymbol::QuadraticNonResidue {
+            return None;
+        }
+
+        // quadratic residual definitely
+        // norm(a) is absolutely quadratic residual
+        let mut lambda = self.norm();
+        lambda = lambda.sqrt().unwrap();
+        let constant_2 = Config::BasePrimeField::from(BigInt::<N>::from_str("2").unwrap());
+        let base_constant_2 = Config::BaseField::from_base_prime_field_elem(constant_2);
+        let mut delta = (self.c0 + lambda) / base_constant_2;
+        if delta.legendre() == LegendreSymbol::QuadraticNonResidue {
+            delta = (self.c0 - lambda) / base_constant_2;
+        }
+        let (c0, c1) = (delta.sqrt().unwrap(), self.c1 / (base_constant_2 * self.c0));
+
+        Some(Self::new(c0, c1))
     }
 
+    // make sure that self or its norm is not zero
     fn inverse(&self) -> Option<Self> {
-        todo!()
+        if self.is_zero() {
+            None
+        } else {
+            let nm_inv = self.norm().inverse();
+            if nm_inv.is_some() {
+                Some(Self::new(
+                    nm_inv.unwrap() * self.c0,
+                    -nm_inv.unwrap() * self.c1,
+                ))
+            } else {
+                None
+            }
+        }
     }
 
     fn pow(&self, e: BigInt<N>) -> Self {
         todo!()
+    }
+
+    // is zero or not
+    fn is_zero(&self) -> bool {
+        self.c0.is_zero() && self.c1.is_zero()
+    }
+
+    fn ZERO() -> Self {
+        Self::new(Config::BaseField::ZERO(), Config::BaseField::ZERO())
+    }
+
+    fn ONE() -> Self {
+        Self::new(Config::BaseField::ONE(), Config::BaseField::ZERO())
     }
 }
 

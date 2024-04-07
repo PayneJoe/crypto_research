@@ -1,3 +1,4 @@
+pub mod pairing_field;
 pub mod weierstrass_field;
 
 use crate::finite_field_arithmetic::field_mont_friendly::{Foo, BI};

@@ -2,8 +2,9 @@
 ///
 ///
 use crate::finite_field_arithmetic::bigint::BigInt;
-use crate::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
+use crate::finite_field_arithmetic::traits::pairing_field::{Field, LegendreSymbol, PrimeField};
 
+use std::iter;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::str::FromStr;
@@ -82,173 +83,6 @@ impl PrimeField<NUM_LIMBS> for Fq<NUM_LIMBS> {
         936899308823769933,
     ]);
     const N: BigInt<NUM_LIMBS> = BigInt([5, 0, 0, 0, 0, 0]);
-    #[inline(always)]
-    fn ONE() -> Self {
-        Self(Self::R)
-    }
-
-    #[inline(always)]
-    fn ZERO() -> Self {
-        Self(BigInt::<NUM_LIMBS>::ZERO())
-    }
-
-    // referenced from Algorithm 11.12 of "handbook of elliptic and hyperelliptic curve cryptography"
-    // (aR)^{-1} % N <- ((aR)^{-1} * R^2) * R^{-1} % N
-    fn inv(&self) -> Self {
-        let (mut r, mut s, mut t, mut v) = (
-            self.0,
-            BigInt::<NUM_LIMBS>::ONE(),
-            Self::MODULUS,
-            BigInt::<NUM_LIMBS>::ZERO(),
-        );
-
-        // println!("r = {:?}", r);
-
-        /////////////////////////////////////////////// STAGE ONE
-        let mut k = 0 as usize;
-        let mut tmp_carrier = 0 as Word;
-        while r.is_zero() == false {
-            if t.is_even() {
-                // (t, s) = ((t >> 1).0, (s << 1).0);
-                t = (t >> 1).0;
-                (s, tmp_carrier) = s << 1;
-                // FOR DEBUG
-                assert!(tmp_carrier == 0);
-            } else if r.is_even() {
-                // (r, v) = ((r >> 1).0, (v << 1).0);
-                r = (r >> 1).0;
-                (v, tmp_carrier) = v << 1;
-                // FOR DEBUG
-                assert!(tmp_carrier == 0);
-            } else if t > r {
-                // (t, v, s) = (((t - r).0 >> 1).0, (v + s).0, (s << 1).0);
-                t = ((t - r).0 >> 1).0;
-                (v, tmp_carrier) = v + s;
-                s = (s << 1).0;
-                // FOR DEBUG
-                assert!(tmp_carrier == 0);
-            } else {
-                // (r, s, v) = (((r - t).0 >> 1).0, (s + v).0, (v << 1).0);
-                r = ((r - t).0 >> 1).0;
-                (s, tmp_carrier) = s + v;
-                v = (v << 1).0;
-                // FOR DEBUG
-                assert!(tmp_carrier == 0);
-            }
-            k = k + 1;
-        }
-
-        // v <- v mod MODULUS, make sure v is within range [0, MODULUS)
-        if v >= Self::MODULUS {
-            v = (v - Self::MODULUS).0;
-        }
-        (v, tmp_carrier) = Self::MODULUS - v;
-        // FOR DEBUG
-        assert!(tmp_carrier == 0);
-
-        //////////////////////////////////////////// STAGE TWO
-        let m = NUM_LIMBS * WORD_SIZE as usize;
-        // println!("------ k = {}, m = {}, v = {:?}", k, m, v);
-        if k < m {
-            (v, k) = (Self::mul_reduce(&v, &Self::R2).0, k + m);
-        }
-
-        // 2^{2m - k}
-        let mut h_bit = 2 * m - k;
-        assert!(h_bit < m);
-        let x: Vec<Word> = (0..NUM_LIMBS)
-            .map(|i| i * WORD_SIZE as usize)
-            .map(|v| {
-                // !!! 1/31/2024 fixed
-                if (h_bit >= v) && (h_bit - v < WORD_SIZE) {
-                    (1 as Word) << (h_bit - v)
-                } else {
-                    0 as Word
-                }
-            })
-            .collect();
-
-        // println!("------- before reduce R2: v = {:?}", v);
-        // REDC(v * R2)
-        v = Self::mul_reduce(&v, &Self::R2).0;
-        // println!(
-        //     "------- before reduce 2^2m-k: v = {:?}, x = {:?}, k = {}",
-        //     v, x, k
-        // );
-        // REDC(v * 2^{2m - k})
-        let res = BigInt(x.try_into().unwrap());
-        if res.is_zero() == false {
-            v = Self::mul_reduce(&v, &res).0;
-        }
-
-        Self(v)
-    }
-
-    // general method of SQRT for finite field through Tonelli and Shanks Algorithm
-    // referenced from Algorithm 11.23 of "handbook of elliptic and hyperelliptic curve cryptography"
-    fn sqrt(&self) -> Self {
-        let (n, r) = (Self::reduce(&Self::N, Some(false)), Self::RODD);
-        let (a, z) = (self.clone(), n.pow(r));
-        let (mut y, mut s, mut x, mut b) = (
-            z,
-            Self::E,
-            a.pow(((r - BigInt::<NUM_LIMBS>::ONE()).0 >> 1).0),
-            Self::ZERO(),
-        );
-        let tmp_x = a * x.clone();
-        (b, x) = (tmp_x.clone() * x, tmp_x);
-        while b != Self::ONE() {
-            let mut m = 0 as Word;
-            let mut tmp_b = b.clone();
-            while tmp_b != Self::ONE() {
-                tmp_b.square_inplace();
-                m = m + 1;
-            }
-            // non-quadratic residual
-            assert!(m != Self::E);
-            let ss = s - m - 1;
-            let mut t = y.clone();
-            for i in 0..ss {
-                t.square_inplace();
-            }
-            y = t * t;
-            (s, x, b) = (m, t * x, y * b);
-        }
-        // FOR DEBUG
-        if self.is_quadratic_residual() {
-            assert!(x * x == *self);
-        }
-        x
-    }
-
-    fn pow(&self, e: BigInt<NUM_LIMBS>) -> Self {
-        // let n_bits: Vec<u8> = e.into();
-        let n_bits: Vec<u8> = e.to_bits();
-        let (mut y, x) = (Self::ONE().0, self.0);
-        for i in (0..n_bits.len()).rev() {
-            y = Self::mul_reduce(&y, &y).0;
-            if n_bits[i] == 1 {
-                y = Self::mul_reduce(&x, &y).0;
-            }
-        }
-        Self(y)
-    }
-
-    fn is_quadratic_residual(self) -> bool {
-        self.pow(((Self::MODULUS - BigInt::<NUM_LIMBS>::ONE()).0 >> 1).0) == Self::ONE()
-    }
-
-    fn is_zero(self) -> bool {
-        self == Self::ZERO()
-    }
-
-    fn square(&self) -> Self {
-        Self::mul_reduce(&self.0, &self.0)
-    }
-
-    fn square_inplace(&mut self) {
-        *self = Self::mul_reduce(&(*self).0, &(*self).0);
-    }
 
     // a % N <- aR * R^{-1} % N
     fn rev_reduce(&self) -> BigInt<NUM_LIMBS> {
@@ -435,7 +269,7 @@ impl Div for Fq<NUM_LIMBS> {
     type Output = Fq<NUM_LIMBS>;
 
     fn div(self, other: Self) -> Fq<NUM_LIMBS> {
-        Self::mul_reduce(&self.0, &other.inv().0)
+        Self::mul_reduce(&self.0, &other.inverse().unwrap().0)
     }
 }
 
@@ -455,6 +289,222 @@ impl FromStr for Fq<NUM_LIMBS> {
             .map_err(|_| FieldParseErr)
             .unwrap();
         Ok(Self::reduce(&num, Some(false)))
+    }
+}
+
+impl Field<NUM_LIMBS> for Fq<NUM_LIMBS> {
+    type BasePrimeField = Self;
+    type BasePrimeFieldIter = iter::Once<Self::BasePrimeField>;
+
+    fn extension_degree() -> u64 {
+        1 as u64
+    }
+
+    fn to_base_prime_field_elements(&self) -> Self::BasePrimeFieldIter {
+        iter::once(*self)
+    }
+
+    fn from_base_prime_field_elems(
+        elems: impl IntoIterator<Item = Self::BasePrimeField>,
+    ) -> Option<Self> {
+        let mut elems = elems.into_iter();
+        let elem = elems.next()?;
+        if elems.next().is_some() {
+            return None;
+        }
+        Some(elem)
+    }
+
+    fn from_base_prime_field_elem(elem: Self::BasePrimeField) -> Self {
+        elem
+    }
+
+    fn legendre(&self) -> LegendreSymbol {
+        let result = self.pow(((Self::MODULUS - BigInt::<NUM_LIMBS>::ONE()).0 >> 1).0);
+        if result == Fq::<NUM_LIMBS>::from_str("1").unwrap() {
+            LegendreSymbol::QuadraticResidue
+        } else if result.is_zero() {
+            LegendreSymbol::Zero
+        } else {
+            LegendreSymbol::QuadraticNonResidue
+        }
+    }
+
+    // frobenius map of base prime field is itself
+    fn powers_frobenius_map(&self, power: usize) -> Self {
+        *self
+    }
+
+    #[inline(always)]
+    fn ONE() -> Self {
+        Self(Self::R)
+    }
+
+    #[inline(always)]
+    fn ZERO() -> Self {
+        Self(BigInt::<NUM_LIMBS>::ZERO())
+    }
+
+    // referenced from Algorithm 11.12 of "handbook of elliptic and hyperelliptic curve cryptography"
+    // (aR)^{-1} % N <- ((aR)^{-1} * R^2) * R^{-1} % N
+    fn inverse(&self) -> Option<Self> {
+        if self.is_zero() {
+            return None;
+        }
+        let (mut r, mut s, mut t, mut v) = (
+            self.0,
+            BigInt::<NUM_LIMBS>::ONE(),
+            Self::MODULUS,
+            BigInt::<NUM_LIMBS>::ZERO(),
+        );
+
+        // println!("r = {:?}", r);
+
+        /////////////////////////////////////////////// STAGE ONE
+        let mut k = 0 as usize;
+        let mut tmp_carrier = 0 as Word;
+        while r.is_zero() == false {
+            if t.is_even() {
+                // (t, s) = ((t >> 1).0, (s << 1).0);
+                t = (t >> 1).0;
+                (s, tmp_carrier) = s << 1;
+                // FOR DEBUG
+                assert!(tmp_carrier == 0);
+            } else if r.is_even() {
+                // (r, v) = ((r >> 1).0, (v << 1).0);
+                r = (r >> 1).0;
+                (v, tmp_carrier) = v << 1;
+                // FOR DEBUG
+                assert!(tmp_carrier == 0);
+            } else if t > r {
+                // (t, v, s) = (((t - r).0 >> 1).0, (v + s).0, (s << 1).0);
+                t = ((t - r).0 >> 1).0;
+                (v, tmp_carrier) = v + s;
+                s = (s << 1).0;
+                // FOR DEBUG
+                assert!(tmp_carrier == 0);
+            } else {
+                // (r, s, v) = (((r - t).0 >> 1).0, (s + v).0, (v << 1).0);
+                r = ((r - t).0 >> 1).0;
+                (s, tmp_carrier) = s + v;
+                v = (v << 1).0;
+                // FOR DEBUG
+                assert!(tmp_carrier == 0);
+            }
+            k = k + 1;
+        }
+
+        // v <- v mod MODULUS, make sure v is within range [0, MODULUS)
+        if v >= Self::MODULUS {
+            v = (v - Self::MODULUS).0;
+        }
+        (v, tmp_carrier) = Self::MODULUS - v;
+        // FOR DEBUG
+        assert!(tmp_carrier == 0);
+
+        //////////////////////////////////////////// STAGE TWO
+        let m = NUM_LIMBS * WORD_SIZE as usize;
+        // println!("------ k = {}, m = {}, v = {:?}", k, m, v);
+        if k < m {
+            (v, k) = (Self::mul_reduce(&v, &Self::R2).0, k + m);
+        }
+
+        // 2^{2m - k}
+        let mut h_bit = 2 * m - k;
+        assert!(h_bit < m);
+        let x: Vec<Word> = (0..NUM_LIMBS)
+            .map(|i| i * WORD_SIZE as usize)
+            .map(|v| {
+                // !!! 1/31/2024 fixed
+                if (h_bit >= v) && (h_bit - v < WORD_SIZE) {
+                    (1 as Word) << (h_bit - v)
+                } else {
+                    0 as Word
+                }
+            })
+            .collect();
+
+        // println!("------- before reduce R2: v = {:?}", v);
+        // REDC(v * R2)
+        v = Self::mul_reduce(&v, &Self::R2).0;
+        // println!(
+        //     "------- before reduce 2^2m-k: v = {:?}, x = {:?}, k = {}",
+        //     v, x, k
+        // );
+        // REDC(v * 2^{2m - k})
+        let res = BigInt(x.try_into().unwrap());
+        if res.is_zero() == false {
+            v = Self::mul_reduce(&v, &res).0;
+        }
+
+        Some(Self(v))
+    }
+
+    // general method of SQRT for finite field through Tonelli and Shanks Algorithm
+    // referenced from Algorithm 11.23 of "handbook of elliptic and hyperelliptic curve cryptography"
+    fn sqrt(&self) -> Option<Self> {
+        // not quadratic residual
+        if self.legendre() == LegendreSymbol::QuadraticNonResidue {
+            return None;
+        }
+
+        let (n, r) = (Self::reduce(&Self::N, Some(false)), Self::RODD);
+        let (a, z) = (self.clone(), n.pow(r));
+        let (mut y, mut s, mut x, mut b) = (
+            z,
+            Self::E,
+            a.pow(((r - BigInt::<NUM_LIMBS>::ONE()).0 >> 1).0),
+            Self::ZERO(),
+        );
+        let tmp_x = a * x.clone();
+        (b, x) = (tmp_x.clone() * x, tmp_x);
+        while b != Self::ONE() {
+            let mut m = 0 as Word;
+            let mut tmp_b = b.clone();
+            while tmp_b != Self::ONE() {
+                tmp_b.square_inplace();
+                m = m + 1;
+            }
+            // non-quadratic residual
+            assert!(m != Self::E);
+            let ss = s - m - 1;
+            let mut t = y.clone();
+            for i in 0..ss {
+                t.square_inplace();
+            }
+            y = t * t;
+            (s, x, b) = (m, t * x, y * b);
+        }
+        // // FOR DEBUG
+        // if self.is_quadratic_residual() {
+        //     assert!(x * x == *self);
+        // }
+        Some(x)
+    }
+
+    fn pow(&self, e: BigInt<NUM_LIMBS>) -> Self {
+        // let n_bits: Vec<u8> = e.into();
+        let n_bits: Vec<u8> = e.to_bits();
+        let (mut y, x) = (Self::ONE().0, self.0);
+        for i in (0..n_bits.len()).rev() {
+            y = Self::mul_reduce(&y, &y).0;
+            if n_bits[i] == 1 {
+                y = Self::mul_reduce(&x, &y).0;
+            }
+        }
+        Self(y)
+    }
+
+    fn is_zero(&self) -> bool {
+        *self == Self::ZERO()
+    }
+
+    fn square(&self) -> Self {
+        Self::mul_reduce(&self.0, &self.0)
+    }
+
+    fn square_inplace(&mut self) {
+        *self = self.square();
     }
 }
 
@@ -535,7 +585,7 @@ mod tests {
             "916407379142843325014424957531723593182479142585202804316555682277426719956241116057215429405117420784032484668809"
         );
         assert_eq!(
-            Fq::<NUM_LIMBS>::from_str(a).unwrap().sqrt(),
+            Fq::<NUM_LIMBS>::from_str(a).unwrap().sqrt().unwrap(),
             Fq::<NUM_LIMBS>::from_str(c).unwrap()
         );
     }
