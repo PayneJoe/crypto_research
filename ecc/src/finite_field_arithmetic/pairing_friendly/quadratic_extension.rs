@@ -4,7 +4,7 @@ use std::iter::Chain;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::str::FromStr;
 
-pub trait QuadraticExtensionConfig<const N: usize>: Copy + Clone {
+pub trait QuadraticExtensionConfig<const N: usize>: Copy + Clone + Sized + 'static {
     type BasePrimeField: PrimeField<N>;
     type BaseField: Field<N, BasePrimeField = Self::BasePrimeField>;
     type FrobCoeff: Field<N>;
@@ -16,7 +16,7 @@ pub trait QuadraticExtensionConfig<const N: usize>: Copy + Clone {
     const NON_QUADRATIC_RESIDUAL: Self::BaseField;
 
     // frobenius coefficients
-    const FROBENIUS_COEFF_C1: [Self::FrobCoeff];
+    const FROBENIUS_COEFF_C1: [Self::FrobCoeff; 2];
 }
 
 // there are two coefficients in quadratic extension field
