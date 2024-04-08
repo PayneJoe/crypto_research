@@ -3,6 +3,7 @@ members = [
     "abstract_algebraic",
     "ecc",
     "hash",
-    "pcs"
+    "pcs",
+    "lbc"
 ]
 resolver = "2"
