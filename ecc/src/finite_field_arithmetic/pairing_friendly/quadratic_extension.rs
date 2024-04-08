@@ -1,5 +1,5 @@
 use crate::finite_field_arithmetic::bigint::BigInt;
-use crate::finite_field_arithmetic::traits::pairing_field::{Field, LegendreSymbol, PrimeField};
+use crate::finite_field_arithmetic::pairing_friendly::field::{Field, LegendreSymbol, PrimeField};
 use std::iter::Chain;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::str::FromStr;

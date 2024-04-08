@@ -1,17 +1,12 @@
 pub mod bigint;
 pub mod bigint64;
-pub mod bls12;
-pub mod bls24;
-pub mod bn;
+pub mod cycle_friendly;
 pub mod field;
 pub mod field_mont_friendly;
 pub mod gcd64;
-pub mod kss;
-pub mod mnt;
-pub mod pallas;
+pub mod pairing_friendly;
 pub mod random;
 pub mod traits;
-pub mod vasta;
 
 // bigint/field specially for weierstrass model
 pub type WSBigInt = field::BI<2>;

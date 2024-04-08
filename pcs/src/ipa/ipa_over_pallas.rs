@@ -6,7 +6,7 @@ use crate::polynomial::{dense::DensePolynomial, sparse::SparsePolynomial};
 use ecc::elliptic_curve_arithmetic::weierstrass_model::Curve;
 use ecc::elliptic_curve_arithmetic::weierstrass_model::{pallas::curve::Pallas, AffinePoint};
 use ecc::finite_field_arithmetic::bigint::BigInt;
-use ecc::finite_field_arithmetic::pallas::{fq::Fq, fr::Fr};
+use ecc::finite_field_arithmetic::cycle_friendly::pallas::{fq::Fq, fr::Fr};
 use ecc::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
 use hash::shake128::transcript::Shake128Transcript;
 use std::marker::PhantomData;

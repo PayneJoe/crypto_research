@@ -75,7 +75,7 @@ impl<F: PrimeField<NUM_LIMBS>> Shake128Transcript<F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ecc::finite_field_arithmetic::pallas::{fq::Fq, fr::Fr};
+    use ecc::finite_field_arithmetic::cycle_friendly::pallas::{fq::Fq, fr::Fr};
     use std::str::FromStr;
     type ScalarField = Fr<NUM_LIMBS>;
     type BaseField = Fq<NUM_LIMBS>;

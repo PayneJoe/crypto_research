@@ -1,7 +1,7 @@
 /// This is a practical implementation for pallas curve over standard Weierstrass model
 ///
 use crate::finite_field_arithmetic::bigint::BigInt;
-use crate::finite_field_arithmetic::pallas::{fq::Fq, fr::Fr};
+use crate::finite_field_arithmetic::cycle_friendly::pallas::{fq::Fq, fr::Fr};
 use crate::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
 use std::marker::PhantomData;
 
