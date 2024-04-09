@@ -18,7 +18,7 @@ impl QuadraticExtensionConfig<NUM_LIMBS> for Fq2Config {
     // absolute degree of current (extension) field
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 2;
 
-    // Fq[X] / X^2 - alpha, where alpha = -1 in Fq2/Fq of bls12
+    // Fq[X] / X^2 - alpha, where alpha = -1 in Fq2/Fq over bls12
     const NON_QUADRATIC_RESIDUAL: Fq<NUM_LIMBS> = Fq(BigInt([
         4897101644811774638,
         3654671041462534141,
@@ -29,7 +29,7 @@ impl QuadraticExtensionConfig<NUM_LIMBS> for Fq2Config {
     ]));
 
     // frobenius coefficients, init with two zeros
-    const FROBENIUS_COEFF_C1: [Fq<NUM_LIMBS>; 2] = [
+    const FROBENIUS_COEFF_C1: &'static [Fq<NUM_LIMBS>] = &[
         Fq(BigInt([0, 0, 0, 0, 0, 0])),
         Fq(BigInt([0, 0, 0, 0, 0, 0])),
     ];

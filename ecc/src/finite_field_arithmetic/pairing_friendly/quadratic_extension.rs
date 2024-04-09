@@ -16,7 +16,7 @@ pub trait QuadraticExtensionConfig<const N: usize>: Copy + Clone + Sized + 'stat
     const NON_QUADRATIC_RESIDUAL: Self::BaseField;
 
     // frobenius coefficients
-    const FROBENIUS_COEFF_C1: [Self::FrobCoeff; 2];
+    const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
 }
 
 // there are two coefficients in quadratic extension field
