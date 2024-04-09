@@ -28,11 +28,31 @@ impl QuadraticExtensionConfig<NUM_LIMBS> for Fq2Config {
         291242102765847046,
     ]));
 
-    // frobenius coefficients, init with two zeros
+    // coefficients of frobenius map over Fp2
+    // alpha^{(p^d - 1)/2}
+    // [1, -1] for bls12-381
     const FROBENIUS_COEFF_C1: &'static [Fq<NUM_LIMBS>] = &[
-        Fq(BigInt([0, 0, 0, 0, 0, 0])),
-        Fq(BigInt([0, 0, 0, 0, 0, 0])),
+        Fq(BigInt([
+            8505329371266088957,
+            17002214543764226050,
+            6865905132761471162,
+            8632934651105793861,
+            6631298214892334189,
+            1582556514881692819,
+        ])),
+        Fq(BigInt([
+            4897101644811774638,
+            3654671041462534141,
+            569769440802610537,
+            17053147383018470266,
+            17227549637287919721,
+            291242102765847046,
+        ])),
     ];
+
+    fn multiply_frobenius_coeff(c: &mut Self::BaseField, power: usize) {
+        *c = *c * Self::FROBENIUS_COEFF_C1[power % Self::DEGREE_OVER_BASE_PRIME_FIELD];
+    }
 }
 
 // fq2 is an abstract type of quadratic extension over base prime field Fq

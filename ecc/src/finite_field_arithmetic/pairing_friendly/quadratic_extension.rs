@@ -15,8 +15,11 @@ pub trait QuadraticExtensionConfig<const N: usize>: Copy + Clone + Sized + 'stat
     // alpha in Fq[X] / X^2 - alpha
     const NON_QUADRATIC_RESIDUAL: Self::BaseField;
 
-    // frobenius coefficients
+    // precomputed constant coefficients of frobenius map on quadratic extension
+    // namely alpha^{(p^d - 1)/2}
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff];
+
+    fn multiply_frobenius_coeff(c: &mut Self::BaseField, power: usize);
 }
 
 // there are two coefficients in quadratic extension field
@@ -34,18 +37,6 @@ impl<const N: usize, Config: QuadraticExtensionConfig<N>> QuadraticExtension<N, 
     // norm = (c0 - c1 * u) * (c0 + c1 * u) = c0^2 - c1^2 * u^2 = c0^2 - c1^2 * alpha
     pub fn norm(&self) -> Config::BaseField {
         self.c0.square() - self.c1.square() * Config::NON_QUADRATIC_RESIDUAL
-    }
-
-    // frobenius map over quadratic extension field is just its conjugative one
-    // more details about this come from my another note: https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/rJZ-A_M1R
-    // (a_0 + a_1 u)^q
-    // = a_0^q + a_1^q * u^q
-    // = a_0^q + a_1^q * u^{q - 1} * u
-    // = a_0^q + a_1^q * alpha^{(q - 1)/2} * u
-    // = a_0^q + a_1^q * (-1) * u
-    // = a_0^q - a_1^q u
-    pub fn frobenius_map(&self) -> Self {
-        Self::new(self.c0, -self.c1)
     }
 }
 
@@ -112,15 +103,18 @@ impl<const N: usize, Config: QuadraticExtensionConfig<N>> Field<N>
         self.norm().legendre()
     }
 
-    // apply frobenius map power times
-    fn powers_frobenius_map(&self, power: usize) -> Self {
-        let mut i = power;
-        let mut result = self.clone();
-        while i > 0 {
-            result = result.frobenius_map();
-            i -= 1;
-        }
-        result
+    // frobenius map over quadratic extension field
+    // recursively apply frobenius map power times
+    //
+    // (a_0 + a_1 u)^q
+    // = a_0^q + a_1^q * u^q
+    // = a_0^q + a_1^q * u^{q - 1} * u
+    // = a_0^q + a_1^q * alpha^{(q - 1)/2} * u
+    // more details about this come from my another note: https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/rJZ-A_M1R
+    fn powers_frobenius_map_inplace(&mut self, power: usize) {
+        self.c0.powers_frobenius_map_inplace(power);
+        self.c1.powers_frobenius_map_inplace(power);
+        Config::multiply_frobenius_coeff(&mut self.c1, power);
     }
 
     // referenced from Algorithm 5.17 (P133) of "Guide to Pairing-Based Cryptography"

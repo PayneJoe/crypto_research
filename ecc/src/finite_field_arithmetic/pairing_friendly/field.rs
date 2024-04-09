@@ -91,7 +91,7 @@ pub trait Field<const N: usize>:
     fn legendre(&self) -> LegendreSymbol;
 
     // frobenius map, a -> a^q
-    fn powers_frobenius_map(&self, power: usize) -> Self;
+    fn powers_frobenius_map_inplace(&mut self, power: usize);
 
     // arithemtics on extension field
     fn square(&self) -> Self;
