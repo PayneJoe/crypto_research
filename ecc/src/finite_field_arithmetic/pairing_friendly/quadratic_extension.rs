@@ -161,7 +161,8 @@ impl<const N: usize, Config: QuadraticExtensionConfig<N>> Field<N>
         if delta.legendre() == LegendreSymbol::QuadraticNonResidue {
             delta = (self.c0 - lambda) / base_constant_2;
         }
-        let (c0, c1) = (delta.sqrt().unwrap(), self.c1 / (base_constant_2 * self.c0));
+        let c0 = delta.sqrt().unwrap();
+        let c1 = self.c1 / (base_constant_2 * c0);
 
         Some(Self::new(c0, c1))
     }

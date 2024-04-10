@@ -192,11 +192,8 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Field<N> for CubicExtensio
         )
     }
 
+    // naive implementation of square root of cubic extension
     fn sqrt(&self) -> Option<Self> {
-        // if self.legendre() == LegendreSymbol::QuadraticNonResidue {
-        //     return None;
-        // }
-        // it depends specific extension field
         todo!()
     }
 

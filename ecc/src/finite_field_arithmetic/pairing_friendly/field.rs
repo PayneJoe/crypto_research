@@ -96,7 +96,27 @@ pub trait Field<const N: usize>:
     // arithemtics on extension field
     fn square(&self) -> Self;
     fn square_inplace(&mut self);
-    fn sqrt(&self) -> Option<Self>;
+
+    fn sqrt(&self) -> Option<Self> {
+        if self.legendre() == LegendreSymbol::QuadraticNonResidue {
+            return None;
+        }
+        let degree = Self::extension_degree();
+        // MODULUS % 4 == 3
+        if (Self::BasePrimeField::MODULUS.0[0] + 1) % 4 == 0 {
+            // exponentiation when odd extension degree
+            if degree % 2 == 1 {
+                let r = (Self::BasePrimeField::MODULUS + BigInt::ONE()).0 >> (2 as usize);
+                Some(self.pow(r.0))
+            } else {
+                // sqrt of even extension degree implemented within quadratic extension
+                None
+            }
+        } else {
+            // !unimplemented
+            None
+        }
+    } 
     fn inverse(&self) -> Option<Self>;
     fn pow(&self, e: BigInt<N>) -> Self;
 
