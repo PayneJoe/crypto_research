@@ -184,7 +184,15 @@ impl<const N: usize, Config: QuadraticExtensionConfig<N>> Field<N>
     }
 
     fn pow(&self, e: BigInt<N>) -> Self {
-        todo!()
+        let n_bits: Vec<u8> = e.to_bits();
+        let (mut y, x) = (Self::ONE(), *self);
+        for i in (0..n_bits.len()).rev() {
+            y.square_inplace();
+            if n_bits[i] == 1 {
+                y = y * x;
+            }
+        }
+        y
     }
 
     // is zero or not

@@ -110,10 +110,10 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Field<N> for CubicExtensio
 
     // whether current field element has square root or not depends its Norm has square root or not
     // resolve this legendre symbol recursively
-    // x^{(q^2 - 1)/2}
-    // = (x^{q + 1})^{(q - 1)/2}
-    // = (\Phi(x) * x)^{(q - 1)/2}
-    // = (x' * x)^{(q - 1)/2}
+    //
+    // x^{(q^3 - 1)/2}
+    // = (x^{q^2 + q + 1})^{(q - 1)/2}
+    // = (\Phi(x)^2 * \Phi(X) * x)^{(q - 1)/2}
     // = Norm(x)^{(q - 1)/2}
     fn legendre(&self) -> LegendreSymbol {
         self.norm().legendre()
@@ -156,10 +156,6 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Field<N> for CubicExtensio
         *self = self.square();
     }
 
-    fn sqrt(&self) -> Option<Self> {
-        todo!()
-    }
-
     // referenced from Algorithm 5.23 (P137) of "Guide to Pairing-Based Cryptography"
     fn inverse(&self) -> Option<Self> {
         let (v0, v1, v2) = (self.c0.square(), self.c1.square(), self.c2.square());
@@ -173,10 +169,6 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Field<N> for CubicExtensio
         let F = v6.inverse().unwrap();
         let (c0, c1, c2) = (A * F, B * F, C * F);
         Some(Self::new(c0, c1, c2))
-    }
-
-    fn pow(&self, e: BigInt<N>) -> Self {
-        todo!()
     }
 
     // is zero or not
@@ -198,6 +190,27 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Field<N> for CubicExtensio
             Config::BaseField::ZERO(),
             Config::BaseField::ZERO(),
         )
+    }
+
+    fn sqrt(&self) -> Option<Self> {
+        // if self.legendre() == LegendreSymbol::QuadraticNonResidue {
+        //     return None;
+        // }
+        // it depends specific extension field
+        todo!()
+    }
+
+    // naive implementation of exponentiation
+    fn pow(&self, e: BigInt<N>) -> Self {
+        let n_bits: Vec<u8> = e.to_bits();
+        let (mut y, x) = (Self::ONE(), *self);
+        for i in (0..n_bits.len()).rev() {
+            y.square_inplace();
+            if n_bits[i] == 1 {
+                y = y * x;
+            }
+        }
+        y
     }
 }
 

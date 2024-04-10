@@ -61,6 +61,7 @@ pub type Fq2 = QuadraticExtension<NUM_LIMBS, Fq2Config>;
 impl Fq2 {}
 
 mod tests {
+    use super::*;
     #[test]
     fn test_from() {}
 
