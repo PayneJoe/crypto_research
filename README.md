@@ -83,20 +83,23 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
 ## Notes 
 
-- [Integer Arithmetic](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/rkF-5hHwT)
-- [Foundations of Elliptic Curves
-](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/HJ7rcsY4a)
+#### Pairings
+
+- [Basic Arithmetics over Extension Field](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/rJZ-A_M1R)(Updating...)
+- [Practical Implementation of BLS12-381](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/ryo55eEeC)(Updating...)
 
 <br />
 
 ## Credits
 
-[1] Handbook of Elliptic and Hyperelliptic Curve Cryptography
+[1] [Handbook of Elliptic and Hyperelliptic Curve Cryptography](https://blkcipher.pl/assets/pdfs/Handbook_of_Elliptic_and_Hyperelliptic_Curve_Cryptography.pdf)
 
-[2] Guide to Elliptic Curve Cryptography
+[2] [Guide to Elliptic Curve Cryptography](http://tomlr.free.fr/Math%E9matiques/Math%20Complete/Cryptography/Guide%20to%20Elliptic%20Curve%20Cryptography%20-%20D.%20Hankerson,%20A.%20Menezes,%20S.%20Vanstone.pdf)
 
 [3] [Pairings For Beginners](https://static1.squarespace.com/static/5fdbb09f31d71c1227082339/t/5ff394720493bd28278889c6/1609798774687/PairingsForBeginners.pdf)
 
 [4] [Algorithms for Modern Hardware](https://en.algorithmica.org/hpc/)
 
 [5] [IPA PCS](https://hackmd.io/@arijitdutta67/r1ZFKoHy2#Accumulation-of-IPA-PCS-and-Recursive-Process-in-Aztec-3)
+
+[6] [Guide to Pairing-based Cryptography](https://www.math.u-bordeaux.fr/~damienrobert/csi/book/book.pdf)
