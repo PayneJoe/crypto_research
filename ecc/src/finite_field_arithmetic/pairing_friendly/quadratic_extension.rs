@@ -23,7 +23,7 @@ pub trait QuadraticExtensionConfig<const N: usize>: Copy + Clone + Sized + 'stat
 }
 
 // there are two coefficients in quadratic extension field
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct QuadraticExtension<const N: usize, Config: QuadraticExtensionConfig<N>> {
     pub c0: Config::BaseField,
     pub c1: Config::BaseField,
@@ -261,6 +261,6 @@ impl<const N: usize, Config: QuadraticExtensionConfig<N>> Div for QuadraticExten
     type Output = QuadraticExtension<N, Config>;
 
     fn div(self, other: Self) -> QuadraticExtension<N, Config> {
-        todo!()
+        self * other.inverse().unwrap()
     }
 }
