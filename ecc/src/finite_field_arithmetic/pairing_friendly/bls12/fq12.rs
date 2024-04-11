@@ -1,10 +1,12 @@
 use crate::finite_field_arithmetic::bigint::BigInt;
 use crate::finite_field_arithmetic::pairing_friendly::bls12::{fq::Fq, fq2::Fq2, fq6::Fq6};
-use crate::finite_field_arithmetic::pairing_friendly::quadratic_extension::QuadraticExtensionConfig;
+use crate::finite_field_arithmetic::pairing_friendly::quadratic_extension::{
+    QuadraticExtension, QuadraticExtensionConfig,
+};
 
 const NUM_LIMBS: usize = 6;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Fq12Config;
 
 impl QuadraticExtensionConfig<NUM_LIMBS> for Fq12Config {
@@ -226,4 +228,13 @@ impl QuadraticExtensionConfig<NUM_LIMBS> for Fq12Config {
         c.c1 = c.c1 * Self::FROBENIUS_COEFF_C1[power % Self::DEGREE_OVER_BASE_PRIME_FIELD];
         c.c2 = c.c2 * Self::FROBENIUS_COEFF_C1[power % Self::DEGREE_OVER_BASE_PRIME_FIELD];
     }
+}
+
+pub type Fq12 = QuadraticExtension<NUM_LIMBS, Fq12Config>;
+impl Fq12 {}
+
+mod tests {
+    use crate::finite_field_arithmetic::pairing_friendly::field::Field;
+
+    use super::*;
 }

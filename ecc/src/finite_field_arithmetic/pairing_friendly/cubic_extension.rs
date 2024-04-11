@@ -23,7 +23,7 @@ pub trait CubicExtensionConfig<const N: usize>: Copy + Clone + Sized + 'static {
     fn multiply_frobenius_coeff(c1: &mut Self::BaseField, c2: &mut Self::BaseField, power: usize);
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct CubicExtension<const N: usize, Config: CubicExtensionConfig<N>> {
     pub c0: Config::BaseField,
     pub c1: Config::BaseField,
@@ -192,7 +192,6 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Field<N> for CubicExtensio
         )
     }
 
-    // naive implementation of square root of cubic extension
     fn sqrt(&self) -> Option<Self> {
         todo!()
     }
@@ -267,6 +266,6 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Div for CubicExtension<N, 
     type Output = CubicExtension<N, Config>;
 
     fn div(self, other: Self) -> CubicExtension<N, Config> {
-        todo!()
+        self * other.inverse().unwrap()
     }
 }
