@@ -23,16 +23,14 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
         - basic arithmetics on extension field $F_{q^k}$ of $F_q$
 
-            - quadratic extension $F_{q^2}/F_{q}$ [Ongoing]
+            - quadratic extension $F_{q^2}/F_{q}$ [$`\color{green}\checkmark`$]
 
-            - cubic extension $F_{q^3}/F_{q}$ [Ongoing]
-
-            - sextic extension $F_{q^6}/F_{q}$ [Ongoing]
+            - cubic extension $F_{q^3}/F_{q}$ [$`\color{green}\checkmark`$]
 
             - cyclotomic [Ongoing]
 
             - twist/untwist $\Phi: F_{q^k} \mapsto F_{q^{k / d}}$ [Ongoing]
-            - field implementation for BLS12/MNT/BN pairing-family curves [Ongoing]
+            - field implementation for BLS12/MNT/BN pairing-family curves [$`\color{green}\checkmark`$]
 
     - elliptic_curve_arithmetic 
 
@@ -85,8 +83,8 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
 #### Pairings
 
+- [Theory and Practical Implementation of BLS12-381](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/ryo55eEeC)(Updating...)
 - [Basic Arithmetics over Extension Field](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/rJZ-A_M1R)(Updating...)
-- [Practical Implementation of BLS12-381](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/ryo55eEeC)(Updating...)
 
 <br />
 
