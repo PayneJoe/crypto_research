@@ -2,7 +2,7 @@ pub mod ipa_over_pallas;
 
 // Inner Product Argument based Polynomial Commitment Scheme
 use crate::polynomial::{dense::DensePolynomial, sparse::SparsePolynomial};
-use ecc::elliptic_curve_arithmetic::weierstrass_model::{AffinePoint, Curve};
+use ecc::elliptic_curve_arithmetic::models::weierstrass_model::{AffinePoint, Curve};
 use ecc::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
 
 const WORD_SIZE: usize = 64;

@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "abstract_algebraic",
     "ecc",
     "hash",
     "pcs",

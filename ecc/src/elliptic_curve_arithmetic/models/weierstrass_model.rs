@@ -1,6 +1,3 @@
-pub mod pallas;
-pub mod vasta;
-
 use crate::finite_field_arithmetic::bigint::BigInt;
 use crate::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
 

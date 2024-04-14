@@ -1,4 +1,4 @@
-pub mod montgomery_curve;
-pub mod montgomery_model;
-pub mod weierstrass_curve;
-pub mod weierstrass_model;
+pub mod conceptural;
+pub mod cycle_friendly;
+pub mod models;
+pub mod pairing_friendly;

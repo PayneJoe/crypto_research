@@ -5,7 +5,7 @@ use crate::finite_field_arithmetic::cycle_friendly::pallas::{fq::Fq, fr::Fr};
 use crate::finite_field_arithmetic::traits::weierstrass_field::PrimeField;
 use std::marker::PhantomData;
 
-use crate::elliptic_curve_arithmetic::weierstrass_model::{AffinePoint, Curve};
+use crate::elliptic_curve_arithmetic::models::weierstrass_model::{AffinePoint, Curve};
 use crate::utils;
 
 // make sure WINDOW_SIZE < 8
