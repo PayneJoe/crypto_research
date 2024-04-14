@@ -58,6 +58,9 @@ pub trait PrimeField<const N: usize>:
 // trait of extension field F_q^k over F_q, it is a more general trait than PrimeField
 pub trait Field<const N: usize>:
     Sized
+    + Debug
+    + Eq
+    + PartialEq
     + Copy
     + Clone
     + Add<Self, Output = Self>
@@ -86,6 +89,12 @@ pub trait Field<const N: usize>:
 
     // construct extension field from single base prime field
     fn from_base_prime_field_elem(elem: Self::BasePrimeField) -> Self;
+
+    // construct extension field from small field of string (base prime field)
+    fn from_small_base_prime_field_str(elem: &str) -> Self {
+        let base = Self::BasePrimeField::from(BigInt::<N>::from_str(elem).unwrap());
+        Self::from_base_prime_field_elem(base)
+    }
 
     // whether is capable of squaring within current (extension) field F_q^k or not
     fn legendre(&self) -> LegendreSymbol;

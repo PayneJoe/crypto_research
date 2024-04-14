@@ -1,10 +1,13 @@
 use crate::finite_field_arithmetic::bigint::BigInt;
 use crate::finite_field_arithmetic::pairing_friendly::field::{Field, LegendreSymbol, PrimeField};
+use std::fmt::Debug;
 use std::iter::Chain;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::str::FromStr;
 
-pub trait QuadraticExtensionConfig<const N: usize>: Copy + Clone + Sized + 'static {
+pub trait QuadraticExtensionConfig<const N: usize>:
+    Copy + Clone + Sized + 'static + Debug + Eq + PartialEq
+{
     type BasePrimeField: PrimeField<N>;
     type BaseField: Field<N, BasePrimeField = Self::BasePrimeField>;
     type FrobCoeff: Field<N>;

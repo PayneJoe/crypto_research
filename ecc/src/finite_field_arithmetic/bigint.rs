@@ -249,6 +249,24 @@ impl<const N: usize> From<&[Word; N]> for BigInt<N> {
     }
 }
 
+// skip leading zeros
+impl<const N: usize> Into<Vec<Word>> for BigInt<N> {
+    fn into(self) -> Vec<Word> {
+        let mut leading_zeros = 0;
+        if self.0[N - 1] == 0_u64 {
+            leading_zeros += 1;
+            for i in (0..(N - 1)).rev() {
+                if self.0[i] == self.0[i + 1] {
+                    leading_zeros += 1;
+                } else {
+                    break;
+                }
+            }
+        }
+        self.0[..(N - leading_zeros)].to_vec()
+    }
+}
+
 impl<const N: usize> From<&[u8]> for BigInt<N> {
     fn from(bytes: &[u8]) -> Self {
         let n = bytes.len();
@@ -344,25 +362,101 @@ mod tests {
 
     #[test]
     fn test_from_str() {
-        let Fr = "28948022309329048855892746252171976963363056481941647379679742748393362948097";
-        let R = "28948022309329048855892746252171976963180815219815621900418355762733040795645";
-        let R2 = "4263855311957679929489659445116329028194309752796460188622876710448966664207";
-        let R3 = "3557709630315679472311684181007729646594247341237824434526702614836137537100";
-
-        let FrVec: Vec<Word> = BigInt::<4>::from_str(Fr).unwrap().0.try_into().unwrap();
-        let RVec: Vec<Word> = BigInt::<4>::from_str(R).unwrap().0.try_into().unwrap();
-        let R2Vec: Vec<Word> = BigInt::<4>::from_str(R2).unwrap().0.try_into().unwrap();
-        let R3Vec: Vec<Word> = BigInt::<4>::from_str(R3).unwrap().0.try_into().unwrap();
+        // let tag = "pallas_base";
+        // let tag = "bls12_base";
+        let tag = "bls12_scalar";
+        let (Fr, R, R2, R3, RODD, N) = match tag {
+            "pallas_base" => (
+                "28948022309329048855892746252171976963363056481941560715954676764349967630337",
+                "28948022309329048855892746252171976963180815219815881891593553714863226748925",
+                "4263855311831330276397237192126260515652039413828781833859739249380679483407",
+                "19398276961315000371481654775825491914897503251658641052577562551434289746169",
+                "6739986666787659948666753771754907668419893943225396963757154709741",
+                "0",
+            ),
+            "pallas_scalar" => (
+                "28948022309329048855892746252171976963363056481941647379679742748393362948097",
+                "28948022309329048855892746252171976963180815219815621900418355762733040795645",
+                "4263855311957679929489659445116329028194309752796460188622876710448966664207",
+                "3557709630315679472311684181007729646594247341237824434526702614836137537100",
+                "0",
+                "0",
+            ),
+            "bls12_base" => (
+                "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129015664037894272559787",
+                "3380320199399472671518931668520476396067793891014375699959770179129436917079669831430077592723774664465579537268733",
+                "2708263910654730174793787626328176511836455197166317677006154293982164122222515399004018013397331347120527951271750",
+                "1639067542774625894236716575548084905938753837211594095883637014582201460755008380976950835174037649440777609978336",
+                "2001204777610833696708894912867952078278441409969503942666029068062015825245418932221343814564507832018947136279893",
+                "2",
+            ),
+            "bls12_scalar" => (
+                "52435875175126190479447740508185965837690552500527637822603658699938581184513",
+                "10920338887063814464675503992315976177888879664585288394250266608035967270910",
+                "3294906474794265442129797520630710739278575682199800681788903916070560242797",
+                "49829253988540319354550742249276084460127446355315915089527227471280320770991",
+                "12208678567578594777604504606729831043093128246378069236549469339647",
+                "5"
+            ),
+            &_ => todo!(),
+        };
+        let (FrVec, RVec, R2Vec, R3Vec, RODDVec, NVec): (
+            Vec<Word>,
+            Vec<Word>,
+            Vec<Word>,
+            Vec<Word>,
+            Vec<Word>,
+            Vec<Word>,
+        ) = match tag {
+            "pallas_base" => (
+                BigInt::<4>::from_str(Fr).unwrap().into(),
+                BigInt::<4>::from_str(R).unwrap().into(),
+                BigInt::<4>::from_str(R2).unwrap().into(),
+                BigInt::<4>::from_str(R3).unwrap().into(),
+                BigInt::<4>::from_str(RODD).unwrap().into(),
+                BigInt::<4>::from_str(N).unwrap().into(),
+            ),
+            "pallas_scalar" => (
+                BigInt::<4>::from_str(Fr).unwrap().into(),
+                BigInt::<4>::from_str(R).unwrap().into(),
+                BigInt::<4>::from_str(R2).unwrap().into(),
+                BigInt::<4>::from_str(R3).unwrap().into(),
+                BigInt::<4>::from_str(RODD).unwrap().into(),
+                BigInt::<4>::from_str(N).unwrap().into(),
+            ),
+            "bls12_base" => (
+                BigInt::<6>::from_str(Fr).unwrap().into(),
+                BigInt::<6>::from_str(R).unwrap().into(),
+                BigInt::<6>::from_str(R2).unwrap().into(),
+                BigInt::<6>::from_str(R3).unwrap().into(),
+                BigInt::<6>::from_str(RODD).unwrap().into(),
+                BigInt::<6>::from_str(N).unwrap().into(),
+            ),
+            "bls12_scalar" => (
+                BigInt::<4>::from_str(Fr).unwrap().into(),
+                BigInt::<4>::from_str(R).unwrap().into(),
+                BigInt::<4>::from_str(R2).unwrap().into(),
+                BigInt::<4>::from_str(R3).unwrap().into(),
+                BigInt::<4>::from_str(RODD).unwrap().into(),
+                BigInt::<4>::from_str(N).unwrap().into(),
+            ),
+            &_ => todo!(),
+        };
 
         println!(
-            "pallas fr = {:?} \n R = {:?} \n R2 = {:?} \n R3 = {:?}\n",
-            FrVec, RVec, R2Vec, R3Vec
+            "pallas fr = {:?} \n R = {:?} \n R2 = {:?} \n R3 = {:?}\n RODD = {:?}\n N = {:?} \n",
+            FrVec, RVec, R2Vec, R3Vec, RODDVec, NVec
         );
 
         assert_eq!(FrVec, TestBigInt::from_str(Fr).unwrap().to_u64_digits().1);
         assert_eq!(RVec, TestBigInt::from_str(R).unwrap().to_u64_digits().1);
         assert_eq!(R2Vec, TestBigInt::from_str(R2).unwrap().to_u64_digits().1);
         assert_eq!(R3Vec, TestBigInt::from_str(R3).unwrap().to_u64_digits().1);
+        assert_eq!(
+            RODDVec,
+            TestBigInt::from_str(RODD).unwrap().to_u64_digits().1
+        );
+        assert_eq!(NVec, TestBigInt::from_str(N).unwrap().to_u64_digits().1);
     }
 
     #[test]
