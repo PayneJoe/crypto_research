@@ -2,7 +2,7 @@
 ///
 use std::ops::{Add, Div, Mul, Rem, Shl, Shr, Sub};
 
-use crate::finite_field_arithmetic::BigInteger;
+use crate::finite_field_arithmetic::conceptural::BigInteger;
 
 const WORD_SIZE: usize = 64;
 const DOUBLE_WORD_SIZE: usize = 64 * 2;

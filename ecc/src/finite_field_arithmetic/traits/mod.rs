@@ -1,18 +1,15 @@
 pub mod weierstrass_field;
 
-use crate::finite_field_arithmetic::field_mont_friendly::{Foo, BI};
+use crate::finite_field_arithmetic::bigint::BigInt;
 use std::{
     ops::{Add, Div, Mul, Shl, Shr, Sub},
     str::FromStr,
 };
 
-pub type BigInt = BI<2>;
-pub type PrimeField = Foo<2>;
-
 pub trait Field<const N: usize>:
     FromStr
-    + From<BI<N>>
-    + Into<BI<N>>
+    + From<BigInt<N>>
+    + Into<BigInt<N>>
     + From<[u8; N]>
     + Into<[u8; N]>
     + Clone
@@ -23,13 +20,13 @@ pub trait Field<const N: usize>:
     + Copy
 {
     // finite field modulus
-    const MODULUS: BI<N>;
+    const MODULUS: BigInt<N>;
     // W^s % MODULUS, for Montgomery reduce
-    const R: BI<N>;
+    const R: BigInt<N>;
     // W^2s % MODULUS, for Montgomery reduce
-    const R2: BI<N>;
+    const R2: BigInt<N>;
     // W^3s % MODULUS, for Montgomery reduce
-    const R3: BI<N>;
+    const R3: BigInt<N>;
     // inversion of least significant word of modulus, also convenient for Montgomery reduce
     const M0: u8;
     // for the convenient of square root (Tonelli and Shanks Algorithm)
@@ -46,9 +43,9 @@ pub trait Field<const N: usize>:
     fn is_quadratic_residual(self) -> bool;
 
     // reduce a bigint into the specified range [0, modulus)
-    fn reduce(u: &BI<N>, inv: Option<bool>) -> Self;
+    fn reduce(u: &BigInt<N>, inv: Option<bool>) -> Self;
     // convert a reduced number into a unreduced bigint
-    fn rev_reduce(&self) -> BI<N>;
+    fn rev_reduce(&self) -> BigInt<N>;
 
     //////////////////////////// basic operations on field
     // F^-1
@@ -57,7 +54,7 @@ pub trait Field<const N: usize>:
     fn square_inplace(&mut self);
     fn square(&self) -> Self;
     // F^e
-    fn pow(&self, e: BI<N>) -> Self;
+    fn pow(&self, e: BigInt<N>) -> Self;
     // F * F
-    fn mul_reduce(lft: &BI<N>, rht: &BI<N>) -> Self;
+    fn mul_reduce(lft: &BigInt<N>, rht: &BigInt<N>) -> Self;
 }

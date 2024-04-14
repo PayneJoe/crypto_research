@@ -2,8 +2,8 @@
 ///
 use std::str::FromStr;
 
-use crate::finite_field_arithmetic::field::{Field, Foo, BI};
-use crate::finite_field_arithmetic::{WSBigInt, WSField};
+use crate::finite_field_arithmetic::conceptural::field::{Field, Foo, BI};
+use crate::finite_field_arithmetic::conceptural::{WSBigInt, WSField};
 use std::ops::{Add, Mul, Neg};
 
 pub trait Curve {

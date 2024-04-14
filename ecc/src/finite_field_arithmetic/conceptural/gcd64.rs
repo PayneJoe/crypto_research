@@ -1,7 +1,7 @@
 /////// Implementation of GCD over Generalized (variable length) BigInteger<T>
 ///
 ///
-use crate::finite_field_arithmetic::BigInt64;
+use crate::finite_field_arithmetic::conceptural::BigInt64;
 
 const WORD_SIZE: usize = 64;
 type Word = u64;
