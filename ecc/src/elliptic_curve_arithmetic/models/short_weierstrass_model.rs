@@ -125,8 +125,10 @@ pub trait Curve<BaseField: Field<BASE_NUM_LIMBS>, ScalarField: Field<SCALAR_NUM_
     const IDENTITY: AffinePoint<BaseField, ScalarField, Self>;
     // generator
     const GENERATOR: AffinePoint<BaseField, ScalarField, Self>;
+    // cofactor of current curve
+    const COFACTOR: ScalarField;
     // order
-    const ORDER: BigInt<SCALAR_NUM_LIMBS>;
+    const ORDER: BigInt<BASE_NUM_LIMBS>;
 
     // referenced from Definition 13.2 of "handbook of elliptic and hyperelliptic curve cryptography"
     fn is_nonsingular() -> bool {

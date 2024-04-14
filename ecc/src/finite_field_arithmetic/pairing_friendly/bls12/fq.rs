@@ -508,6 +508,7 @@ impl Field<NUM_LIMBS> for Fq<NUM_LIMBS> {
 
 mod tests {
     use super::*;
+    use crate::finite_field_arithmetic::pairing_friendly::bls12::fr::Fr;
 
     #[test]
     fn test_frobenius_coeff() {
@@ -572,6 +573,30 @@ mod tests {
             let c1 = Fq::<NUM_LIMBS>::from_str(fp12_frob_coeff[i][1]).unwrap();
             println!("##{}: [{:?}, {:?}]\n", i, c0, c1);
         }
+    }
+
+    #[test]
+    fn test_g1_params() {
+        let (A_str, B_str, g_x_str, g_y_str, cofactor_str, order_str) = (
+            "0",
+            "4",
+            "2692123600071756619419818346034684082725332351033369131526424770819803359314308568526583945144042096467111674171870",
+            "2252474714045329559777954940872666422452966964194125783659025076260039706371076591999443648467094309068826876633587",
+            "76329603384216526031706109802092473003",
+            "4002409555221667393417789825735904156556882819939007885332058136124031650490837864442687629129030796414117214202539",
+        );
+        let (A, B, g_x, g_y, cofactor, order) = (
+            Fq::<NUM_LIMBS>::from_str(A_str).unwrap(),
+            Fq::<NUM_LIMBS>::from_str(B_str).unwrap(),
+            Fq::<NUM_LIMBS>::from_str(g_x_str).unwrap(),
+            Fq::<NUM_LIMBS>::from_str(g_y_str).unwrap(),
+            Fr::<4>::from_str(cofactor_str).unwrap(),
+            BigInt::<NUM_LIMBS>::from_str(order_str).unwrap(),
+        );
+        println!("## Parameters for G1 group: \n ");
+        println!("A = {:?} \n B = {:?} \n\n", A, B);
+        println!("g = ({:?}, {:?}) \n\n", g_x, g_y);
+        println!("cofactor = {:?} \n order = {:?}", cofactor, order);
     }
 
     #[test]
