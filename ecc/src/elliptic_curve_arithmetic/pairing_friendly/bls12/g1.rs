@@ -11,6 +11,7 @@ use crate::utils;
 const WINDOW_SIZE: usize = 6;
 const BASE_NUM_LIMBS: usize = 6;
 const SCALAR_NUM_LIMBS: usize = 4;
+const COFACTOR_NUM_LIMBS: usize = 8;
 const WORD_SIZE: usize = 64;
 type Word = u64;
 
@@ -44,43 +45,32 @@ impl Curve<BaseField, ScalarField> for G1 {
         _p1: PhantomData,
         _p2: PhantomData,
     };
-    const COFACTOR: ScalarField = Fr(BigInt([
-        3539960324247062393,
-        18440710228826679194,
-        11851524835792683153,
-        7872834068708710604,
-    ]));
-    // generator of this elliptic curve, g = (-1, 2)
+    const COFACTOR: BigInt<COFACTOR_NUM_LIMBS> =
+        BigInt([10088250816726084267, 4137836090706223446, 0, 0, 0, 0, 0, 0]);
+    // generator of this elliptic curve
     const GENERATOR: AffinePoint<BaseField, ScalarField, Self> = AffinePoint {
         x: Fq(BigInt([
-            5453649028791470116,
-            12663317930033027040,
-            16258884610009260315,
-            484012325457253400,
-            5671505916040228176,
-            1641491748660034055,
+            14075975981840609075,
+            11234243599598702937,
+            7066590567892948242,
+            17488881670571171319,
+            11959160094107449812,
+            1260506501383538803,
         ])),
         y: Fq(BigInt([
-            9506443546402900608,
-            10344778010329844905,
-            3702445485187808227,
-            2694742403118692161,
-            9709067848344340734,
-            1089823382506815431,
+            14015390473939241526,
+            1418777928756678030,
+            2198044176203395939,
+            9785802262355231165,
+            3059124926027740001,
+            543439022639199291,
         ])),
         _p1: PhantomData,
         _p2: PhantomData,
     };
-    // order of pallas curve is 28948022309329048855892746252171976963363056481941647379679742748393362948097
-    // which is the modulus of vesta curve
-    const ORDER: BigInt<BASE_NUM_LIMBS> = BigInt([
-        10088063165309954731,
-        2210141511517208576,
-        7435674573564081700,
-        7239337960414712511,
-        5412103778470702295,
-        1873798617647539866,
-    ]);
+    // frobenius map on G1 is trival
+    const FROB_TWIST_X: BaseField = Fq(BigInt([0, 0, 0, 0, 0, 0]));
+    const FROB_TWIST_Y: BaseField = Fq(BigInt([0, 0, 0, 0, 0, 0]));
 
     fn is_on_curve(p: &AffinePoint<BaseField, ScalarField, Self>) -> bool {
         let (x, y) = (p.x, p.y);

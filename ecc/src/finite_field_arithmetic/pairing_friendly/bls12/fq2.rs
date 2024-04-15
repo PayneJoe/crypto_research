@@ -64,6 +64,44 @@ mod tests {
     use std::str::FromStr;
 
     use super::*;
+
+    #[test]
+    fn test_g2_params() {
+        let (A, B, g_x, g_y, cofactor, frob_t_x, frob_t_y) = (
+            vec![Fq::ZERO(), Fq::ZERO()],
+            vec![
+                Fq::<NUM_LIMBS>::from_str("4").unwrap(),
+                Fq::<NUM_LIMBS>::from_str("4").unwrap(),
+            ],
+            vec![
+                Fq::<NUM_LIMBS>::from_str("1265792444950586559339325656560420460408530841056393412024045461464508512562612331578200132635472221512040207420018").unwrap(),
+                Fq::<NUM_LIMBS>::from_str("12405554917932443612178266677500354121343140278261928092817953758979290953103361135966895680930226449483176258412").unwrap(),
+            ],
+            vec![
+                Fq::<NUM_LIMBS>::from_str("3186142311182140170664472972219788815967440631281796388401764195993124196896119214281909067240924132200570679195848").unwrap(),
+                Fq::<NUM_LIMBS>::from_str("1062539859838502367600126754068373748370820338894390252225574631210227991825937548921368149527995055326277175720251").unwrap(),
+            ],
+            BigInt::<8>::from_str("305502333931268344200999753193121504214466019254188142667664032982267604182971884026507427359259977847832272839041616661285803823378372096355777062779109").unwrap(),
+            vec![
+                Fq::<NUM_LIMBS>::from_str("0").unwrap(),
+                Fq::<NUM_LIMBS>::from_str("4002409555221667392624310435006688643935503118305586438271171395842971157480381377015405980053539358417135540939437").unwrap(),
+            ],
+            vec![
+                Fq::<NUM_LIMBS>::from_str("2973677408986561043442465346520108879172042883009249989176415018091420807192182638567116318576472649347015917690530").unwrap(),
+                Fq::<NUM_LIMBS>::from_str("1028732146235106349975324479215795277384839936929757896155643118032610843298655225875571310552543014690878354869257").unwrap(),
+            ],
+        );
+        println!("Parameters for G2: \n A = {:?} \n B = {:?} \n g = ({:?}, {:?}) \n cofactor = {:?} \n frob_t_x = {:?} frob_t_y = {:?}",
+            Fq2::from_base_prime_field_elems(A).unwrap(),
+            Fq2::from_base_prime_field_elems(B).unwrap(),
+            Fq2::from_base_prime_field_elems(g_x).unwrap(),
+            Fq2::from_base_prime_field_elems(g_y).unwrap(),
+            cofactor,
+            Fq2::from_base_prime_field_elems(frob_t_x).unwrap(),
+            Fq2::from_base_prime_field_elems(frob_t_y).unwrap(),
+        );
+    }
+
     #[test]
     fn test_addition() {
         let a_raw = vec![

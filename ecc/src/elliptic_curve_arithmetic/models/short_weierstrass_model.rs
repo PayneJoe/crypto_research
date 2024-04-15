@@ -9,6 +9,7 @@ use std::str::FromStr;
 const WINDOW_SIZE: usize = 6;
 const BASE_NUM_LIMBS: usize = 6;
 const SCALAR_NUM_LIMBS: usize = 4;
+const COFACTOR_NUM_LIMBS: usize = 8;
 const WORD_SIZE: usize = 64;
 type Word = u64;
 
@@ -126,9 +127,11 @@ pub trait Curve<BaseField: Field<BASE_NUM_LIMBS>, ScalarField: Field<SCALAR_NUM_
     // generator
     const GENERATOR: AffinePoint<BaseField, ScalarField, Self>;
     // cofactor of current curve
-    const COFACTOR: ScalarField;
+    const COFACTOR: BigInt<COFACTOR_NUM_LIMBS>;
     // order
-    const ORDER: BigInt<BASE_NUM_LIMBS>;
+    // const ORDER: BigInt<BASE_NUM_LIMBS>;
+    const FROB_TWIST_X: BaseField;
+    const FROB_TWIST_Y: BaseField;
 
     // referenced from Definition 13.2 of "handbook of elliptic and hyperelliptic curve cryptography"
     fn is_nonsingular() -> bool {
