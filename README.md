@@ -5,6 +5,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 <br />
 
 ## Code Structure
+
 - ecc 
     - integer_arithmetic 
 
@@ -40,8 +41,8 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
         - neccessary arithmetics on pairing-friendly elliptic curves over extension field $F_{q^k}$ and its instantiation
 
-          - add/doubling/scalar_mul/... [Ongoing]
-          - BLS12/MNT/BN pairing-friendly curves [Ongoing]
+          - add/doubling/scalar_mul/... [$`\color{green} \checkmark`$]
+          - BLS12/MNT/BN pairing-friendly curves [$`\color{green} \checkmark`$]
 
     - hyperelliptic_curve_arithmetic [TODO] 
 
@@ -101,3 +102,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 [5] [IPA PCS](https://hackmd.io/@arijitdutta67/r1ZFKoHy2#Accumulation-of-IPA-PCS-and-Recursive-Process-in-Aztec-3)
 
 [6] [Guide to Pairing-based Cryptography](https://www.math.u-bordeaux.fr/~damienrobert/csi/book/book.pdf)
+
+[7] [A note on twists for pairing friendly curves](http://indigo.ie/%7Emscott/twists.pdf)
+
+[8] [Pairing-Friendly Elliptic Curves of Prime Order](https://eprint.iacr.org/2005/133.pdf)
