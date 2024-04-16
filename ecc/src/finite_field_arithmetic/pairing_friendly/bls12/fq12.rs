@@ -1,10 +1,16 @@
 use crate::finite_field_arithmetic::bigint::BigInt;
-use crate::finite_field_arithmetic::pairing_friendly::bls12::{fq::Fq, fq2::Fq2, fq6::Fq6};
+use crate::finite_field_arithmetic::pairing_friendly::bls12::{
+    fq::Fq, fq2::Fq2, fq6::Fq6, fq6::Fq6Config,
+};
+use crate::finite_field_arithmetic::pairing_friendly::cubic_extension::CubicExtensionConfig;
+use crate::finite_field_arithmetic::pairing_friendly::cyclotomic::CyclotomicGroup;
+use crate::finite_field_arithmetic::pairing_friendly::field::Field;
 use crate::finite_field_arithmetic::pairing_friendly::quadratic_extension::{
     QuadraticExtension, QuadraticExtensionConfig,
 };
 
 const NUM_LIMBS: usize = 6;
+const MAX_SCALAR_LIMBS: usize = 8;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Fq12Config;
@@ -231,10 +237,118 @@ impl QuadraticExtensionConfig<NUM_LIMBS> for Fq12Config {
 }
 
 pub type Fq12 = QuadraticExtension<NUM_LIMBS, Fq12Config>;
-impl Fq12 {}
+
+impl CyclotomicGroup<NUM_LIMBS> for Fq12 {
+    // since Fq12 is quadratic extension of Fq6, so inversion would be easily obtained with conjugation
+    //
+    fn cyclotomic_inverse(&self) -> Option<Self> {
+        if self.is_zero() {
+            return None;
+        }
+        Some(Self {
+            c0: self.c0,
+            c1: -self.c1,
+        })
+    }
+
+    // referenced from 5.3.2(P140) "Guide to Pairing-based Cryptography"
+    //
+    // for the convenience of utilization superior property of cyclotomic subgroup,
+    // we need to reframe field tower of Fp12 first, 2/3/2 -> 3/2/2,
+    // transform Fp2 -> Fp6 -> Fp12 into Fp2 -> Fp4 -> Fp12
+    // namely transform Fp12 = Fp6[w] / X^2 - v, Fp6 = Fp2[v] / X^3 - (u + 1)
+    //        into      Fp12 = Fp4[y] / X^3 - x, Fp4 = Fp2[x] / X^2 - (u + 1)
+    //
+    // alpha = (c00 + c01 v + c02 v^2) + (c10 + c11 v + c12 v^2)w
+    //       = (c00 + c11 x) + (c02 + c10 x) * y  + (c01 + c12 x) * y^2
+    //       = a + b * y + c * y^2
+    // where alpha \in Fp12, a, b, c \in Fp4
+    //
+    // alpha^2 = A + B * y + C * y^2
+    //         = (3 * a^2 - 2 * a') + (3 * c^2 * (u + 1) + 2 * b') * y + (3 * b^2 - 2c') * y^2
+    //
+    // a^2 = ((c00 - c11) * (c00 - (u + 1) * c11) + c00 * c11 + (u + 1) * c00 * c11) + 2 * (c00 * c11) * x
+    fn cyclotomic_square(&self) -> Self {
+        let (a0, a1) = (self.c0.c0, self.c1.c1);
+        let (b0, b1) = (self.c0.c2, self.c1.c0);
+        let (c0, c1) = (self.c0.c1, self.c1.c2);
+
+        // Fp6 = Fp2[v] / X^3 - beta, where beta = u + 1
+        let beta = Fq6Config::NON_CUBIC_RESIDUAL;
+
+        // Since Fp4 is not implemented, we have manually do it here
+        // square of a over Fp4
+        let (a_square_0, a_square_1) = {
+            let (v0, v3, v2) = (a0 - a1, a0 - beta * a1, a0 * a1);
+            ((v0 * v3 + v2) + beta * v2, v2 + v2)
+        };
+        // square of b over Fp4
+        let (b_square_0, b_square_1) = {
+            let (v0, v3, v2) = (b0 - b1, b0 - beta * b1, b0 * b1);
+            ((v0 * v3 + v2) + beta * v2, v2 + v2)
+        };
+        // square of c over Fp4
+        let (mut c_square_0, mut c_square_1) = {
+            let (v0, v3, v2) = (c0 - c1, c0 - beta * c1, c0 * c1);
+            ((v0 * v3 + v2) + beta * v2, v2 + v2)
+        };
+
+        // A = 3 * a^2 - 2 * a' = a^2 + 2 * (a^2 - a')
+        let (a_conj_0, a_conj_1) = (a0, -a1);
+        let (A0, A1) = {
+            let (tmp_0, tmp_1) = (a_square_0 - a_conj_0, a_square_1 - a_conj_1);
+            (a_square_0 + tmp_0 + tmp_0, a_square_1 + tmp_1 + tmp_1)
+        };
+
+        // B = 3 * beta * c^2 + 2 * b' = beta * c^2 + 2 * (beta * c^2 + b')
+        let (b_conj_0, b_conj_1) = (b0, -b1);
+        (c_square_0, c_square_1) = (beta * c_square_0, beta * c_square_1);
+        let (B0, B1) = {
+            let (tmp_0, tmp_1) = (c_square_0 + b_conj_0, c_square_1 + b_conj_1);
+            (c_square_0 + tmp_0 + tmp_0, c_square_1 + tmp_1 + tmp_1)
+        };
+
+        // C = 3 * b^2 - 2 * c' = b^2 + 2 * (b^2 - c')
+        let (c_conj_0, c_conj_1) = (c0, -c1);
+        let (C0, C1) = {
+            let (tmp_0, tmp_1) = (b_square_0 - c_conj_0, b_square_1 - c_conj_1);
+            (b_square_0 + tmp_0 + tmp_0, b_square_1 + tmp_1 + tmp_1)
+        };
+
+        Self {
+            c0: Fq6 {
+                c0: A0,
+                c1: C0,
+                c2: B0,
+            },
+            c1: Fq6 {
+                c0: B1,
+                c1: A1,
+                c2: C1,
+            },
+        }
+    }
+
+    // trival implementation for cyclotomic group
+    fn cyclotomic_exponentiation(&self, e: BigInt<MAX_SCALAR_LIMBS>) -> Self {
+        let n_bits: Vec<u8> = e.to_bits();
+        // make sure the highest bit is ONE
+        assert_eq!(*n_bits.last().unwrap(), 1_u8);
+        let (mut y, x) = (Fq12::ONE(), *self);
+        for i in (0..n_bits.len()).rev() {
+            y = y.cyclotomic_square();
+            if n_bits[i] == 1 {
+                y = y * x;
+            }
+        }
+        y
+    }
+}
 
 mod tests {
     use crate::finite_field_arithmetic::pairing_friendly::field::Field;
 
     use super::*;
+    #[test]
+    fn test_cycotomic() {}
 }
