@@ -130,6 +130,7 @@ pub trait Field<const N: usize>:
     fn pow(&self, e: BigInt<N>) -> Self;
 
     fn is_zero(&self) -> bool;
+    fn is_one(&self) -> bool;
     fn ZERO() -> Self;
     fn ONE() -> Self;
 }

@@ -346,9 +346,52 @@ impl CyclotomicGroup<NUM_LIMBS> for Fq12 {
 }
 
 mod tests {
+    use std::str::FromStr;
+
     use crate::finite_field_arithmetic::pairing_friendly::field::Field;
 
     use super::*;
+
+    #[test]
+    fn test_twist_params() {
+        // twist_x = w^2, twist_y = w^3
+        // twist_x^-1 = 2001204777610833696708894912867952078278441409969503942666029068062015825245418932221343814564507832018947136279893 * w^10 + w^4
+        // twist_y^-1 = 2001204777610833696708894912867952078278441409969503942666029068062015825245418932221343814564507832018947136279893 * w^9 + w^3
+        let t_x_vec = ["0", "0", "1", "0", "0", "0", "0", "0", "0", "0", "0", "0"];
+        let t_y_vec = ["0", "0", "0", "1", "0", "0", "0", "0", "0", "0", "0", "0"];
+        let t_x_inv_vec = [
+            "0", "0", "0", "0", "1", "0", "0", "0", "0", "0", "2001204777610833696708894912867952078278441409969503942666029068062015825245418932221343814564507832018947136279893", "0"
+        ];
+        let t_y_inv_vec = vec![
+            "0", "0", "0", "1", "0", "0", "0", "0", "0", "2001204777610833696708894912867952078278441409969503942666029068062015825245418932221343814564507832018947136279893", "0", "0"
+        ];
+        let twist_x_inv_coeff: Vec<Fq<NUM_LIMBS>> = t_x_inv_vec
+            .into_iter()
+            .map(|s| Fq::<NUM_LIMBS>::from_str(s).unwrap())
+            .collect();
+        let twist_y_inv_coeff: Vec<Fq<NUM_LIMBS>> = t_y_inv_vec
+            .into_iter()
+            .map(|s| Fq::<NUM_LIMBS>::from_str(s).unwrap())
+            .collect();
+        let twist_x_coeff: Vec<Fq<NUM_LIMBS>> = t_x_vec
+            .into_iter()
+            .map(|s| Fq::<NUM_LIMBS>::from_str(s).unwrap())
+            .collect();
+        let twist_y_coeff: Vec<Fq<NUM_LIMBS>> = t_y_vec
+            .into_iter()
+            .map(|s| Fq::<NUM_LIMBS>::from_str(s).unwrap())
+            .collect();
+        let twist_x = Fq12::from_base_prime_field_elems(twist_x_coeff);
+        let twist_y = Fq12::from_base_prime_field_elems(twist_y_coeff);
+        let twist_x_inv = Fq12::from_base_prime_field_elems(twist_x_inv_coeff);
+        let twist_y_inv = Fq12::from_base_prime_field_elems(twist_y_inv_coeff);
+
+        println!(
+            "twist_x = {:?} \n\n twist_y = {:?} \n\n twist_x_inv = {:?} \n\n twist_y_inv = {:?}",
+            twist_x, twist_y, twist_x_inv, twist_y_inv
+        );
+    }
+
     #[test]
     fn test_cycotomic() {}
 }

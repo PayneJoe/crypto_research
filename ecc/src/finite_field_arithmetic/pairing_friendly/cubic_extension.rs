@@ -179,6 +179,10 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Field<N> for CubicExtensio
         self.c0.is_zero() && self.c1.is_zero()
     }
 
+    fn is_one(&self) -> bool {
+        self.c0.is_one() && self.c1.is_zero() && self.c2.is_zero()
+    }
+
     fn ZERO() -> Self {
         Self::new(
             Config::BaseField::ZERO(),
@@ -225,6 +229,12 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Add for CubicExtension<N, 
     type Output = CubicExtension<N, Config>;
 
     fn add(self, other: Self) -> CubicExtension<N, Config> {
+        if self.is_zero() {
+            return other;
+        }
+        if other.is_zero() {
+            return self;
+        }
         Self::new(self.c0 + other.c0, self.c1 + other.c1, self.c2 + other.c2)
     }
 }
@@ -233,6 +243,12 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Sub for CubicExtension<N, 
     type Output = CubicExtension<N, Config>;
 
     fn sub(self, other: Self) -> CubicExtension<N, Config> {
+        if self.is_zero() {
+            return -other;
+        }
+        if other.is_zero() {
+            return self;
+        }
         Self::new(self.c0 - other.c0, self.c1 - other.c1, self.c2 - other.c2)
     }
 }
@@ -252,6 +268,18 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Mul for CubicExtension<N, 
     type Output = CubicExtension<N, Config>;
 
     fn mul(self, other: Self) -> CubicExtension<N, Config> {
+        if self.is_zero() {
+            return Self::ZERO();
+        }
+        if other.is_zero() {
+            return Self::ZERO();
+        }
+        if self.is_one() {
+            return other;
+        }
+        if other.is_one() {
+            return self;
+        }
         let v0 = self.c0 * other.c0;
         let v1 = self.c1 * other.c1;
         let v2 = self.c2 * other.c2;
@@ -269,6 +297,9 @@ impl<const N: usize, Config: CubicExtensionConfig<N>> Div for CubicExtension<N, 
     type Output = CubicExtension<N, Config>;
 
     fn div(self, other: Self) -> CubicExtension<N, Config> {
+        if other.is_one() {
+            return self;
+        }
         self * other.inverse().unwrap()
     }
 }

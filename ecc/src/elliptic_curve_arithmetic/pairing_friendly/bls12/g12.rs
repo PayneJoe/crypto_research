@@ -13,7 +13,6 @@ use crate::utils;
 const WINDOW_SIZE: usize = 6;
 const BASE_NUM_LIMBS: usize = 6;
 const SCALAR_NUM_LIMBS: usize = 4;
-const COFACTOR_NUM_LIMBS: usize = 8;
 const WORD_SIZE: usize = 64;
 type Word = u64;
 
@@ -21,10 +20,10 @@ type Word = u64;
 
 // custom curve instance
 #[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
-pub struct G1;
+pub struct G12;
 
 type ScalarField = Fr<SCALAR_NUM_LIMBS>;
-type BaseField = Fq<BASE_NUM_LIMBS>;
+type BaseField = Fq12;
 type FullExtensionField = Fq12;
 
 const Fq2ZERO: Fq2 = Fq2 {
@@ -44,56 +43,54 @@ const Fq12ZERO: Fq12 = Fq12 {
 };
 
 // implementation of custom curve instance
-impl Curve<BaseField, ScalarField, FullExtensionField> for G1 {
-    // y^2 = x^3 + 4
+impl Curve<BaseField, ScalarField, FullExtensionField> for G12 {
+    // y^2 = x^3 + 4 * (u + 1)
     // for the purpose of research, we fill these constant parameters through mannual computation
     // actually these constant parameters need to be determined dynamicly at compile-time
-    const a4: Fq<BASE_NUM_LIMBS> = Fq(BigInt([0 as Word; BASE_NUM_LIMBS]));
-    const a6: Fq<BASE_NUM_LIMBS> = Fq(BigInt([
-        12260768510540316659,
-        6038201419376623626,
-        5156596810353639551,
-        12813724723179037911,
-        10288881524157229871,
-        708830206584151678,
-    ]));
+    const a4: BaseField = Fq12ZERO;
+    const a6: BaseField = BaseField {
+        c0: Fq6 {
+            c0: Fq2 {
+                c0: Fq(BigInt([
+                    12260768510540316659,
+                    6038201419376623626,
+                    5156596810353639551,
+                    12813724723179037911,
+                    10288881524157229871,
+                    708830206584151678,
+                ])),
+                c1: Fq(BigInt([0; BASE_NUM_LIMBS])),
+            },
+            c1: Fq2ZERO,
+            c2: Fq2ZERO,
+        },
+        c1: Fq6ZERO,
+    };
     // faked identity representing the point at infinity
     const IDENTITY: AffinePoint<BaseField, ScalarField, FullExtensionField, Self> = AffinePoint {
-        x: Fq(BigInt([0 as Word; BASE_NUM_LIMBS])),
-        y: Fq(BigInt([0 as Word; BASE_NUM_LIMBS])),
+        x: Fq12ZERO,
+        y: Fq12ZERO,
         _p1: PhantomData,
         _p2: PhantomData,
         _p3: PhantomData,
     };
-    const COFACTOR: BigInt<COFACTOR_NUM_LIMBS> =
-        BigInt([10088250816726084267, 4137836090706223446, 0, 0, 0, 0, 0, 0]);
-    // generator of this elliptic curve
+    const COFACTOR: BigInt<8> = BigInt([0; 8]);
+    // generator of this elliptic curve, g = (-1, 2)
     const GENERATOR: AffinePoint<BaseField, ScalarField, FullExtensionField, Self> = AffinePoint {
-        x: Fq(BigInt([
-            14075975981840609075,
-            11234243599598702937,
-            7066590567892948242,
-            17488881670571171319,
-            11959160094107449812,
-            1260506501383538803,
-        ])),
-        y: Fq(BigInt([
-            14015390473939241526,
-            1418777928756678030,
-            2198044176203395939,
-            9785802262355231165,
-            3059124926027740001,
-            543439022639199291,
-        ])),
+        x: Fq12ZERO,
+        y: Fq12ZERO,
+
         _p1: PhantomData,
         _p2: PhantomData,
         _p3: PhantomData,
     };
-    // frobenius map on G1 is trival
-    const FROB_TWIST_X: BaseField = Fq(BigInt([0, 0, 0, 0, 0, 0]));
-    const FROB_TWIST_Y: BaseField = Fq(BigInt([0, 0, 0, 0, 0, 0]));
+
     const TWIST_X_INV: FullExtensionField = Fq12ZERO;
     const TWIST_Y_INV: FullExtensionField = Fq12ZERO;
+    // twist_beta_t_x^{-(p - 1)}
+    const FROB_TWIST_X: BaseField = Fq12ZERO;
+    // twist_beta_t_y^{-(p - 1)}
+    const FROB_TWIST_Y: BaseField = Fq12ZERO;
 
     fn is_on_curve(p: &AffinePoint<BaseField, ScalarField, FullExtensionField, Self>) -> bool {
         let (x, y) = (p.x, p.y);
@@ -104,7 +101,7 @@ impl Curve<BaseField, ScalarField, FullExtensionField> for G1 {
         lft == rht
     }
 
-    fn to_y(x: &Fq<BASE_NUM_LIMBS>) -> Fq<BASE_NUM_LIMBS> {
+    fn to_y(x: &BaseField) -> BaseField {
         unimplemented!()
     }
 
@@ -148,8 +145,8 @@ impl Curve<BaseField, ScalarField, FullExtensionField> for G1 {
             (
                 // x1 * x1 * (3 as Word) + Self::a2 * x1 * (2 as Word) + Self::a4 - Self::a1 * y1,
                 // y1 * (2 as Word) + Self::a1 * x1 + Self::a3,
-                x1.square() * (3 as Word) + Self::a4,
-                y1 * (2 as Word),
+                x1.square() * BaseField::from_small_base_prime_field_str("3") + Self::a4,
+                y1 * BaseField::from_small_base_prime_field_str("2"),
             )
         } else {
             (y1 - y2, x1 - x2)

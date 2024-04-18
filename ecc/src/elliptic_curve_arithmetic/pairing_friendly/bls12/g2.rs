@@ -1,11 +1,15 @@
 //// This is a practical implementation for pallas curve over standard Weierstrass model
 use crate::finite_field_arithmetic::bigint::BigInt;
-use crate::finite_field_arithmetic::pairing_friendly::bls12::{fq::Fq, fq2::Fq2, fr::Fr};
+use crate::finite_field_arithmetic::pairing_friendly::bls12::{
+    fq::Fq, fq12::Fq12, fq2::Fq2, fq6::Fq6, fr::Fr,
+};
 use crate::finite_field_arithmetic::pairing_friendly::field::Field;
-use std::marker::PhantomData;
 
 use crate::elliptic_curve_arithmetic::models::short_weierstrass_model::{AffinePoint, Curve};
+use crate::elliptic_curve_arithmetic::pairing_friendly::bls12::g12::G12;
+
 use crate::utils;
+use std::marker::PhantomData;
 
 // make sure WINDOW_SIZE < 8
 const WINDOW_SIZE: usize = 6;
@@ -13,6 +17,9 @@ const BASE_NUM_LIMBS: usize = 6;
 const SCALAR_NUM_LIMBS: usize = 4;
 const WORD_SIZE: usize = 64;
 type Word = u64;
+
+type FullExtensionField = Fq12;
+type FullExtensionCurve = G12;
 
 // type BigInteger = BigInt<BASE_NUM_LIMBS>;
 
@@ -23,8 +30,26 @@ pub struct G2;
 type ScalarField = Fr<SCALAR_NUM_LIMBS>;
 type BaseField = Fq2;
 
+const Fq2ZERO: Fq2 = Fq2 {
+    c0: Fq(BigInt([0; BASE_NUM_LIMBS])),
+    c1: Fq(BigInt([0; BASE_NUM_LIMBS])),
+};
+
+const Fq6ZERO: Fq6 = Fq6 {
+    c0: Fq2ZERO,
+    c1: Fq2ZERO,
+    c2: Fq2ZERO,
+};
+
+const Fq12ZERO: Fq12 = Fq12 {
+    c0: Fq6ZERO,
+    c1: Fq6ZERO,
+};
+
+impl G2 {}
+
 // implementation of custom curve instance
-impl Curve<BaseField, ScalarField> for G2 {
+impl Curve<BaseField, ScalarField, FullExtensionField> for G2 {
     // y^2 = x^3 + 4 * (u + 1)
     // for the purpose of research, we fill these constant parameters through mannual computation
     // actually these constant parameters need to be determined dynamicly at compile-time
@@ -51,17 +76,12 @@ impl Curve<BaseField, ScalarField> for G2 {
         ])),
     };
     // faked identity representing the point at infinity
-    const IDENTITY: AffinePoint<BaseField, ScalarField, Self> = AffinePoint {
-        x: BaseField {
-            c0: Fq(BigInt([0; BASE_NUM_LIMBS])),
-            c1: Fq(BigInt([0; BASE_NUM_LIMBS])),
-        },
-        y: BaseField {
-            c0: Fq(BigInt([0; BASE_NUM_LIMBS])),
-            c1: Fq(BigInt([0; BASE_NUM_LIMBS])),
-        },
+    const IDENTITY: AffinePoint<BaseField, ScalarField, FullExtensionField, Self> = AffinePoint {
+        x: Fq2ZERO,
+        y: Fq2ZERO,
         _p1: PhantomData,
         _p2: PhantomData,
+        _p3: PhantomData,
     };
     const COFACTOR: BigInt<8> = BigInt([
         14923865813284960485,
@@ -74,7 +94,7 @@ impl Curve<BaseField, ScalarField> for G2 {
         420316534768199665,
     ]);
     // generator of this elliptic curve, g = (-1, 2)
-    const GENERATOR: AffinePoint<BaseField, ScalarField, Self> = AffinePoint {
+    const GENERATOR: AffinePoint<BaseField, ScalarField, FullExtensionField, Self> = AffinePoint {
         x: BaseField {
             c0: Fq(BigInt([
                 17190305259240202339,
@@ -114,8 +134,78 @@ impl Curve<BaseField, ScalarField> for G2 {
         },
         _p1: PhantomData,
         _p2: PhantomData,
+        _p3: PhantomData,
     };
 
+    // 1 / beta_t_x
+    const TWIST_X_INV: Fq12 = Fq12 {
+        c0: Fq6 {
+            c0: Fq2ZERO,
+            c1: Fq2ZERO,
+            c2: Fq2 {
+                c0: Fq(BigInt([
+                    8505329371266088957,
+                    17002214543764226050,
+                    6865905132761471162,
+                    8632934651105793861,
+                    6631298214892334189,
+                    1582556514881692819,
+                ])),
+                c1: Fq(BigInt([0; BASE_NUM_LIMBS])),
+            },
+        },
+        c1: Fq6 {
+            c0: Fq2ZERO,
+            c1: Fq2ZERO,
+            c2: Fq2 {
+                c0: Fq(BigInt([
+                    11671922859260663127,
+                    11050707557586042878,
+                    284884720401305268,
+                    17749945728364010941,
+                    8613774818643959860,
+                    145621051382923523,
+                ])),
+                c1: Fq(BigInt([0; BASE_NUM_LIMBS])),
+            },
+        },
+    };
+
+    // 1 / beta_t_y
+    const TWIST_Y_INV: Fq12 = Fq12 {
+        c0: Fq6 {
+            c0: Fq2ZERO,
+            c1: Fq2 {
+                c0: Fq(BigInt([0; BASE_NUM_LIMBS])),
+                c1: Fq(BigInt([
+                    8505329371266088957,
+                    17002214543764226050,
+                    6865905132761471162,
+                    8632934651105793861,
+                    6631298214892334189,
+                    1582556514881692819,
+                ])),
+            },
+            c2: Fq2ZERO,
+        },
+        c1: Fq6 {
+            c0: Fq2ZERO,
+            c1: Fq2 {
+                c0: Fq(BigInt([0; BASE_NUM_LIMBS])),
+                c1: Fq(BigInt([
+                    11671922859260663127,
+                    11050707557586042878,
+                    284884720401305268,
+                    17749945728364010941,
+                    8613774818643959860,
+                    145621051382923523,
+                ])),
+            },
+            c2: Fq2ZERO,
+        },
+    };
+
+    // twist_beta_t_x^{-(p - 1)}
     const FROB_TWIST_X: BaseField = BaseField {
         c0: Fq(BigInt([0, 0, 0, 0, 0, 0])),
         c1: Fq(BigInt([
@@ -127,6 +217,7 @@ impl Curve<BaseField, ScalarField> for G2 {
             1505729768134575418,
         ])),
     };
+    // twist_beta_t_y^{-(p - 1)}
     const FROB_TWIST_Y: BaseField = BaseField {
         c0: Fq(BigInt([
             4480897313486445265,
@@ -146,7 +237,42 @@ impl Curve<BaseField, ScalarField> for G2 {
         ])),
     };
 
-    fn is_on_curve(p: &AffinePoint<BaseField, ScalarField, Self>) -> bool {
+    // for weil pairing
+    fn untwist<C: Curve<FullExtensionField, ScalarField, FullExtensionField>>(
+        p: &AffinePoint<BaseField, ScalarField, FullExtensionField, Self>,
+    ) -> AffinePoint<FullExtensionField, ScalarField, FullExtensionField, C> {
+        AffinePoint {
+            x: Fq12 {
+                c0: Fq6 {
+                    c0: Self::TWIST_X_INV.c0.c0 * p.x,
+                    c1: Self::TWIST_X_INV.c0.c1 * p.x,
+                    c2: Self::TWIST_X_INV.c0.c2 * p.x,
+                },
+                c1: Fq6 {
+                    c0: Self::TWIST_X_INV.c1.c0 * p.x,
+                    c1: Self::TWIST_X_INV.c1.c1 * p.x,
+                    c2: Self::TWIST_X_INV.c1.c2 * p.x,
+                },
+            },
+            y: Fq12 {
+                c0: Fq6 {
+                    c0: Self::TWIST_Y_INV.c0.c0 * p.y,
+                    c1: Self::TWIST_Y_INV.c0.c1 * p.y,
+                    c2: Self::TWIST_Y_INV.c0.c2 * p.y,
+                },
+                c1: Fq6 {
+                    c0: Self::TWIST_Y_INV.c1.c0 * p.y,
+                    c1: Self::TWIST_Y_INV.c1.c1 * p.y,
+                    c2: Self::TWIST_Y_INV.c1.c2 * p.y,
+                },
+            },
+            _p1: PhantomData,
+            _p2: PhantomData,
+            _p3: PhantomData,
+        }
+    }
+
+    fn is_on_curve(p: &AffinePoint<BaseField, ScalarField, FullExtensionField, Self>) -> bool {
         let (x, y) = (p.x, p.y);
         // let lft = y * y + Self::a1 * x * y + Self::a3 * y;
         // let rht = x * x * x + Self::a2 * x * x + Self::a4 * x + Self::a6;
@@ -160,19 +286,20 @@ impl Curve<BaseField, ScalarField> for G2 {
     }
 
     fn neg(
-        p: &AffinePoint<BaseField, ScalarField, Self>,
-    ) -> AffinePoint<BaseField, ScalarField, Self> {
+        p: &AffinePoint<BaseField, ScalarField, FullExtensionField, Self>,
+    ) -> AffinePoint<BaseField, ScalarField, FullExtensionField, Self> {
         AffinePoint {
             x: p.x,
             y: -p.y,
             _p1: PhantomData,
             _p2: PhantomData,
+            _p3: PhantomData,
         }
     }
 
     fn is_negate(
-        p1: &AffinePoint<BaseField, ScalarField, Self>,
-        p2: &AffinePoint<BaseField, ScalarField, Self>,
+        p1: &AffinePoint<BaseField, ScalarField, FullExtensionField, Self>,
+        p2: &AffinePoint<BaseField, ScalarField, FullExtensionField, Self>,
     ) -> bool {
         // (p1.x == p2.x) && (p1.y + p2.y == -Self::a1 * p1.x - Self::a3)
         (p1.x == p2.x) && (p1.y + p2.y == BaseField::ZERO())
@@ -180,9 +307,9 @@ impl Curve<BaseField, ScalarField> for G2 {
 
     // referenced from P.270 of "handbook of elliptic and hyperelliptic curve cryptography"
     fn addition(
-        p1: &AffinePoint<BaseField, ScalarField, Self>,
-        p2: &AffinePoint<BaseField, ScalarField, Self>,
-    ) -> AffinePoint<BaseField, ScalarField, Self> {
+        p1: &AffinePoint<BaseField, ScalarField, FullExtensionField, Self>,
+        p2: &AffinePoint<BaseField, ScalarField, FullExtensionField, Self>,
+    ) -> AffinePoint<BaseField, ScalarField, FullExtensionField, Self> {
         if *p1 == Self::IDENTITY {
             return p2.clone();
         }
@@ -215,16 +342,17 @@ impl Curve<BaseField, ScalarField> for G2 {
             y: lambda * (x1 - x3) - y1,
             _p1: PhantomData,
             _p2: PhantomData,
+            _p3: PhantomData,
         }
     }
 
     // referenced from Algorithm 13.6 of "handbook of elliptic and hyperelliptic curve cryptography"
     fn scalar_mul(
-        base: &AffinePoint<BaseField, ScalarField, Self>,
+        base: &AffinePoint<BaseField, ScalarField, FullExtensionField, Self>,
         scalar: &Fr<SCALAR_NUM_LIMBS>,
-    ) -> AffinePoint<BaseField, ScalarField, Self> {
+    ) -> AffinePoint<BaseField, ScalarField, FullExtensionField, Self> {
         if scalar.is_zero() {
-            return AffinePoint::<BaseField, ScalarField, Self>::IDENTITY();
+            return AffinePoint::<BaseField, ScalarField, FullExtensionField, Self>::IDENTITY();
         }
         // k < 8, make sure Word is big enough for store precomputated points
         // let k = 6;

@@ -497,6 +497,10 @@ impl Field<NUM_LIMBS> for Fq<NUM_LIMBS> {
         *self == Self::ZERO()
     }
 
+    fn is_one(&self) -> bool {
+        *self == Self::ONE()
+    }
+
     fn square(&self) -> Self {
         Self::mul_reduce(&self.0, &self.0)
     }
