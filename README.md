@@ -28,9 +28,10 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
             - cubic extension $F_{q^3}/F_{q}$ [$`\color{green}\checkmark`$]
 
-            - cyclotomic [Ongoing]
+            - cyclotomic [$`\color{green}\checkmark`$]
 
             - twist/untwist $\Phi: F_{q^k} \mapsto F_{q^{k / d}}$ [Ongoing]
+
             - field implementation for BLS12/MNT/BN pairing-family curves [$`\color{green}\checkmark`$]
 
     - elliptic_curve_arithmetic 
@@ -42,6 +43,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
         - neccessary arithmetics on pairing-friendly elliptic curves over extension field $F_{q^k}$ and its instantiation
 
           - add/doubling/scalar_mul/... [$`\color{green} \checkmark`$]
+
           - BLS12/MNT/BN pairing-friendly curves [$`\color{green} \checkmark`$]
 
     - hyperelliptic_curve_arithmetic [TODO] 
@@ -57,6 +59,8 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
             - final exponentiation [Ongoing]
 
         - pairing family
+
+          -  Weil Pairing [$`\color{green}\checkmark`$]
 
           - Tate Pairing [Ongoing]
 
@@ -106,3 +110,5 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 [7] [A note on twists for pairing friendly curves](http://indigo.ie/%7Emscott/twists.pdf)
 
 [8] [Pairing-Friendly Elliptic Curves of Prime Order](https://eprint.iacr.org/2005/133.pdf)
+
+[9] [Optimal Pairings](https://eprint.iacr.org/2008/096.pdf)
