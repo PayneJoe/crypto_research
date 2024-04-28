@@ -80,8 +80,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
 #### Pairings
 
-- [Theory and Practical Implementation of BLS12-381](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/ryo55eEeC)(Updating...)
-- [Basic Arithmetics over Extension Field](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/rJZ-A_M1R)(Updating...)
+- [Theory and Practical Implementation of BLS12-381](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/ryo55eEeC)
 
 <br />
 
