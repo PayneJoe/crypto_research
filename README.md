@@ -32,6 +32,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
             - twist/untwist $\Phi: F_{q^k} \mapsto F_{q^{k / d}}$ [Ongoing]
 
+            - frobenius map [Ongoing]
             - field implementation for BLS12/MNT/BN pairing-family curves [$`\color{green}\checkmark`$]
 
     - elliptic_curve_arithmetic 
@@ -51,22 +52,13 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
     - special_curve_arithmetic [TODO]
 
     - pairings 
+        -  Weil Pairing [$`\color{green}\checkmark`$]
 
-        - algorithms
+        - Tate Pairing [Ongoing]
 
-            - miller loop [Ongoing]
+        - Ate Pairing [Ongoing]
 
-            - final exponentiation [Ongoing]
-
-        - pairing family
-
-          -  Weil Pairing [$`\color{green}\checkmark`$]
-
-          - Tate Pairing [Ongoing]
-
-          - Ate Pairing [Ongoing]
-
-          - Optimal Ate Pairings [Ongoing]
+        - Optimal Ate Pairings [Ongoing]
 
     - ...
 
@@ -112,3 +104,12 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 [8] [Pairing-Friendly Elliptic Curves of Prime Order](https://eprint.iacr.org/2005/133.pdf)
 
 [9] [Optimal Pairings](https://eprint.iacr.org/2008/096.pdf)
+
+[10] [On the Computation of the Optimal Ate Pairing at the 192-bit Security Level](https://eprint.iacr.org/2016/130.pdf)
+
+[11] [Efficient Final Exponentiation via Cyclotomic Structure for Pairings over Families of Elliptic
+Curves](https://eprint.iacr.org/2020/875.pdf)
+
+[12] [Faster Squaring in the Cyclotomic Subgroup of Sixth Degree Extensions](https://eprint.iacr.org/2009/565.pdf)
+
+[13] [A Guide to Plane Algebraic Curves]()
