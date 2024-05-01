@@ -410,6 +410,14 @@ $$
 
 <br />
 
+<span style="color:red">在Ate Pairing中double-add 作用在curve $\mathbb{G}_2$ 上的点$Q$ (line evaluation的点是$P$)，并没有跟Tate Pairing一样作用在$\mathbb{G}_1$ (定义在base prime field$F_p$上) 上的点$P$ (line evaluation的点是$Q$)，为什么？因为Ate Pairing 之所以能用缩短Miller Loop，根本原因是运用了Frobenius Map $\varphi$ 的特性，而$\mathbb{G}_1$ 上运用Frobenius Map 是trivial的，没有意义，$\varphi(P) = [1]P$。</span>
+
+<span style="color:red">那么，计算上它会带来什么后果吗？ 有的，如果$Q$定义在$F_{p^{12}}$上，$Q \in \mathbb{G}_2 = E(F_{p^{12}})[r]$，那么它的Double-add 成本将会很大，所以这时候twist 就派上用场了，把$Q$映射 twist curve $\mathbb{G}_2'$ (定义在域$F_{p^2}$)上去，这样Double-add的成本就会最大程度地降低，但仍然要比Tate Pairing 中的Double-add成本要稍微大些（$F_{p^2}$ VS $F_p$），所幸的是Miller Loop 可以被大大缩短，这会在一定程度上覆盖掉Double-add 带来的损失。</span>
+
+<span style="color:red">所以Ate Pairing最终的性能如何，还是要取决于$T$ 的bit length 与 $r$ 的bit length 之间的差距。但是大家通常所见到的都是Ate Pairing，为什么Tate Pairing没有出现过？原因其实很简单，通过polynomial function $r(x) = x^4 - x^2 + 1, t(x) = x + 1$ 很容易看出Ate Pairing 的Miller Loop 要大大小于Tate Pairing的Miller Loop，$\log(r) \approx 4 \log(x) \approx 4\log(T)$。因此上面提到的Double-add 带来的影响就基本上可以被忽略了。 </span>
+
+<br />
+
 事实上**Ate Pairing** 在做的就是找到与 $r$ 的某个倍乘相关的数, $T$ 就是我们要找的,它满足 $r | T^k - 1$. 但是，$\log{T}$ 一定是最短的 **Miller Loop**吗? 可能是（也可能不是），下面写几行代码反证一下：
 
 ```python=
@@ -1949,7 +1957,7 @@ But in **Ate Pairing**, $[T] P \ne \mathcal{O}$ which is far away from $\mathcal
 
 ```python=
 ## General Miller Loop Entry
-def MillerLoop(P, Q, G, q, phi, reverse = False):
+def MillerLoop(P, Qx, Qy, G, q, phi, reverse = False):
     ## if power q is negative or not
     P = P if q > 0 else -P
     q = q if q > 0 else -q
@@ -1966,7 +1974,7 @@ def MillerLoop(P, Q, G, q, phi, reverse = False):
         #     f1 = f1 * (list(Q)[0] - list(T)[0])
         #     T = 2 * T
         #     break
-        T, e_1 = double_line(T, Q, G, phi, reverse)
+        T, e_1 = double_line(T, Qx, Qy, G, phi, reverse)
         f1 = f1 * f1 * e_1
         ##### strip this specific manner used in Tate Pairing
         # if (i == len(e_bits) - 1) and (e_bits[i] == 1):
@@ -1974,7 +1982,7 @@ def MillerLoop(P, Q, G, q, phi, reverse = False):
         #     T = T + P
         #     break
         if e_bits[i] == 1:
-            T, e_1 = add_line(T, P, Q, G, phi, reverse)
+            T, e_1 = add_line(T, P, Qx, Qy, G, phi, reverse)
             f1 = f1 * e_1
     
     return f1
@@ -2004,11 +2012,11 @@ Therefore we must deal with it properly in **Miller Loop** before looping.
 
 ```python=
 ## Ate Pairing Entry
-def AtePairing(P, Qx, G1, q, phi, p, k, u, T, trivial = True):
+def AtePairing(P, Qx, Qy, G1, q, phi, p, k, u, T):
     t0 = time.perf_counter()
-    f = MillerLoop(P, Qx, G1, T, phi, False)
+    f = MillerLoop(P, Qx, Qy, G1, T, phi, False)
     t1 = time.perf_counter()
-    mu_r = FinalExponentiation(f, p, k, q, u, trivial)
+    mu_r = FinalExponentiation(f, p, k, q, u)
     t2 = time.perf_counter()
     print('\n ##[Ate Pairing] Time consuming: t[f(P, Qx)] = {:.3f},  t[exp] = {:.3f}'.format(t1 - t0, t2 - t1))
     
@@ -2022,10 +2030,8 @@ P, Q = (C1 * G1.random_element(), C2 * G2_t.random_element())
 assert(q * P == G1(0))
 assert(q * Q == G2_t(0))
 
-## untwist from E2_t to E12: Q -> Qx
-Qx = into_E12(Q, beta, Fp, w, beta_t_x, beta_t_y, G12)
-assert(q * Qx == G12(0))
-assert(trace_map(Qx, 12, p, G12) == G12(0))
+## map P from curve E(Fp) (or E(Fp12)) into twisted curve E_t(Fp2)
+Px_t, Py_t = twist(P.xy()[0], P.xy()[1], beta_t_x, beta_t_y)
 
 ## parameter for p(x), q(x), and t(x)
 x = -15132376222941642752
@@ -2040,7 +2046,9 @@ assert(abs(p + 1 - t) == Efp.order())
 ## p \equiv T \mod q
 T = t - 1
 ####################################### Ate Pairing Testation
-mu_r_ate = AtePairing(P, Qx, G1, q, phi, p, k, x, T, False)
+## phi maps fp2 into fp12 before line function evaluation
+phi = Hom(Fp2, Fp12)(Fp2.gen().minpoly().roots(Fp12)[0][0])
+mu_r_ate = AtePairing(Q, Px_t, Py_t, G2_t, q, phi, p, k, x, T)
 assert(mu_r_ate ** q == Fp12(1))
 ```
 
@@ -2050,9 +2058,9 @@ The running output:
 ```python=
 Miller Loop Length: 64
 
-     ##[Hard Part of Ate Pairing] Time consuming: t[easy] = 0.105,  t[hard] = 0.081
+     ##[Hard Part of Ate Pairing] Time consuming: t[easy] = 0.106,  t[hard] = 0.073
 
- ##[Ate Pairing] Time consuming: t[f(P, Qx)] = 0.007,  t[exp] = 0.186
+ ##[Ate Pairing] Time consuming: t[f(P, Qx)] = 0.025,  t[exp] = 0.179
 ```
 
 Obviousely time cost of **Miller Loop** is greatly reduced, since $\log{T}$ is far more less than $\log{q}$ (64 vs 255).
