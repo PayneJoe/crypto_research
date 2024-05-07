@@ -1,4 +1,7 @@
-load('utils.sage')
+import os
+
+cur_path = os.getcwd()
+load('{}/utils.sage'.format(cur_path))
 
 ################################################################### Tower Fields
 class Fp(object):

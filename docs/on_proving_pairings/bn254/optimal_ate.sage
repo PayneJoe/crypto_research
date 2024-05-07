@@ -1,4 +1,7 @@
-load('curves.sage')
+import os
+
+cur_path = os.getcwd()
+load('{}/curves.sage'.format(cur_path))
 
 ##################################################################### Optimal Ate Pairing
 def line_func_add(r, p, q, r2):
@@ -134,13 +137,13 @@ def miller(q, p):
     assert type(p) == G1
 
     Q = copy.deepcopy(q)
-    Q.force_affine()
+    Q = Q.force_affine()
 
     P = copy.deepcopy(p)
-    P.force_affine()
+    P = P.force_affine()
 
     mQ = copy.deepcopy(Q)
-    mQ.negate()
+    mQ = mQ.negate()
 
     f = Fp12(Fp6.ZERO(), Fp6.ONE())
     T = Q

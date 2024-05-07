@@ -100,7 +100,7 @@ where $h = \frac{p^k - 1}{r}$, namely $(f_a \cdot f_b)$ is a $r$-th residue, let
 
 ### witness for verification of final exponentiation
 
-```pyton=
+```python=
 ## refer from https://eprint.iacr.org/2009/457.pdf
 def tonelli_shanks3(c, s, t, a, k, F):
     r = a^t

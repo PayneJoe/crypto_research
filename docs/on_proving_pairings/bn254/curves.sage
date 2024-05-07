@@ -1,4 +1,7 @@
-load('fields.sage')
+import os
+
+cur_path = os.getcwd()
+load('{}/fields.sage'.format(cur_path))
 
 ########################################################## Elliptic Curves
 curve_B = Fp(3)
@@ -6,9 +9,9 @@ twist_B = Fp2(Fp(0), curve_B).mul(beta.inverse())
 
 ###################################### traits for Elliptic Curve
 def point_on_curve(point, b):
-    point.force_affine()
-    yy = point.y.square()
-    xxx = point.x.square() * point.x
+    p = point.force_affine()
+    yy = p.y.square()
+    xxx = p.x.square() * p.x
     yy -= xxx
     yy -= b
     return yy.is_zero()
@@ -114,11 +117,11 @@ def point_force_affine(point):
     zinv2 = (zinv * zinv)
     zinv3 = (zinv2 * zinv)
 
-    point.x = point.x * zinv2
-    point.y = point.y * zinv3
-    point.z = point.one_element()
+    # point.x = point.x * zinv2
+    # point.y = point.y * zinv3
+    # point.z = point.one_element()
     
-    return point
+    return point.__class__(point.x * zinv2, point.y * zinv3, point.one_element()) 
 
 def point_scalar_mul(pt, k):
     # assert is_integer_type(k)
@@ -148,6 +151,10 @@ class G1(object):
         self.y = y
         self.z = z
 
+    def __eq__(self, other):
+        return (self.x.mul(self.z.inverse()) == other.x.mul(other.z.inverse())) and \
+                (self.y.mul(self.z) == other.y) 
+
     def zero_element(self):
         return Fp(0)
 
@@ -155,8 +162,8 @@ class G1(object):
         return Fp(1)
 
     def __repr__(self):
-        self.force_affine()
-        return "(%d, %d)" % (self.x.value(), self.y.value())
+        p = self.force_affine()
+        return "(%d, %d)" % (p.x.value(), p.y.value())
 
     def is_on_curve(self):
         return point_on_curve(self, curve_B)
@@ -171,7 +178,7 @@ class G1(object):
         return point_double(self)
 
     def force_affine(self):
-        point_force_affine(self)
+        return point_force_affine(self)
 
     def scalar_mul(self, k):
         return point_scalar_mul(self, k)
@@ -185,6 +192,9 @@ class G2(object):
         self.x = x
         self.y = y
         self.z = z
+
+    def __eq__(self, other):
+        return (self.x == other.x) and (self.y == other.y) and (self.z == other.z)
 
     def one_element(self):
         return Fp2.ONE()
