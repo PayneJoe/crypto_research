@@ -60,3 +60,4 @@ e = 6 * x + 2
 print('parameter x = {}\n'.format(x))
 L1 = line_function(Q1, e)
 L2 = line_function(Q2, e)
+print('\n [Oracle] line function for Q1, and Q2 are both precomputated. \n')
