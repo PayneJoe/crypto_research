@@ -60,6 +60,11 @@ def line_func_add(r, p, q, r2):
     b = L1.negative_of()
     b = b.mul_scalar(q.x).double()
 
+    ##### abandon the convenience of projective coordinate, be consistant with verifier
+    ## 2 * z_r
+    aux_inv = r_z.double().inverse()
+    a, b, c = a.mul(aux_inv), b.mul(aux_inv), c.mul(aux_inv)
+
     return (a, b, c, r_out)
 
 def line_func_double(r, q):
@@ -106,6 +111,11 @@ def line_func_double(r, q):
 
     c = r_z * r_t
     c = c.double().mul_scalar(q.y)
+
+    ##### abandon the convenience of projective coordinate, be consistant with verifier
+    ## 2 * z_r * z_t^2
+    aux_inv = r_t.mul(r_z).double().inverse()
+    a, b, c = a.mul(aux_inv), b.mul(aux_inv), c.mul(aux_inv)
 
     return (a,b,c,r_out)
 

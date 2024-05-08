@@ -215,12 +215,21 @@ class Fp2(object):
         # assert is_integer_type(k)
         # assert(type(x) == Fp2)
         
-        R = [Fp2(Fp(0), Fp(1)), self]
-        for kb in bits_of(k):
-            R[kb^1] = R[kb].mul(R[kb^1])
-            assert type(R[kb]) == Fp2
-            R[kb] = R[kb].square()
-        return R[0]
+        # R = [Fp2(Fp(0), Fp(1)), self]
+        # for kb in bits_of(k):
+        #     R[kb^1] = R[kb].mul(R[kb^1])
+        #     assert type(R[kb]) == Fp2
+        #     R[kb] = R[kb].square()
+        # return R[0]
+        R = self 
+        e = list(reversed(to_naf(k)))[1:]
+        for kb in e:
+            R = R.square()
+            if kb == 1:
+                R = R.mul(self)
+            elif kb == -1:
+                R = R.mul(self.inverse())
+        return R
     
 ## non-cubic residue
 beta = Fp2(Fp(1), Fp(3))
@@ -403,9 +412,11 @@ class Fp6(object):
 ## quadratic extension of Fp6
 class Fp12(object):
     ## coefficients for one time of frobenius map
-    beta_pi_1 = [Fp2.exp(beta, i * ((Fp.p - 1) // 6)) for i in range(1, 6)]
+    beta_pi_1 = [beta.exp(i * ((Fp.p - 1) // 6)) for i in range(1, 6)]
     ## coefficients for two times of frobenius map
-    beta_pi_2 = [Fp2.exp(beta, i * (((Fp.p ** 2) - 1) // 6)) for i in range(1, 6)]
+    beta_pi_2 = [beta.exp(i * (((Fp.p ** 2) - 1) // 6)) for i in range(1, 6)]
+    ## coefficients for three times of frobenius map
+    beta_pi_3 = [beta.exp(i * (((Fp.p ** 3) - 1) // 6)) for i in range(1, 6)]
     
     def ZERO():
         return Fp12(Fp6.ZERO(), Fp6.ZERO())
@@ -477,13 +488,22 @@ class Fp12(object):
     def exp(self, k):
         # assert is_integer_type(k)
 
-        R = [Fp12(Fp6.ZERO(), Fp6.ONE()), self]
+        # R = [Fp12(Fp6.ZERO(), Fp6.ONE()), self]
 
-        for kb in bits_of(k):
-            R[kb^1] = R[kb].mul(R[kb^1])
-            R[kb] = R[kb].square()
+        # for kb in bits_of(k):
+        #     R[kb^1] = R[kb].mul(R[kb^1])
+        #     R[kb] = R[kb].square()
 
-        return R[0]
+        # return R[0]
+        R = self 
+        e = list(reversed(to_naf(k)))[1:]
+        for kb in e:
+            R = R.square()
+            if kb == 1:
+                R = R.mul(self)
+            elif kb == -1:
+                R = R.mul(self.inverse())
+        return R
 
     def square(self):
         v0 = self.x * self.y

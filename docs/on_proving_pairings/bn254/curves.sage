@@ -114,8 +114,8 @@ def point_force_affine(point):
         return point
 
     zinv = point.z.inverse()
-    zinv2 = (zinv * zinv)
-    zinv3 = (zinv2 * zinv)
+    zinv2 = zinv.square()
+    zinv3 = zinv2.mul(zinv)
 
     # point.x = point.x * zinv2
     # point.y = point.y * zinv3
@@ -124,7 +124,7 @@ def point_force_affine(point):
     return point.__class__(point.x * zinv2, point.y * zinv3, point.one_element()) 
 
 def point_scalar_mul(pt, k):
-    # assert is_integer_type(k)
+    assert(k >= 0)
 
     if k == 0:
         return pt.__class__(pt.one_element(), pt.one_element(), pt.zero_element())
@@ -194,7 +194,9 @@ class G2(object):
         self.z = z
 
     def __eq__(self, other):
-        return (self.x == other.x) and (self.y == other.y) and (self.z == other.z)
+        # return (self.x == other.x) and (self.y == other.y) and (self.z == other.z)
+        return (self.x.mul(self.z.square().inverse()) == other.x.mul(other.z.square().inverse())) and \
+        (self.y.mul(self.z.square().mul(self.z).inverse()) == other.y.mul(other.z.square().mul(other.z).inverse()))
 
     def one_element(self):
         return Fp2.ONE()
@@ -203,8 +205,8 @@ class G2(object):
         return Fp2.ZERO()
 
     def __repr__(self):
-        self.force_affine()
-        return "(%s, %s)" % (self.x, self.y)
+        t = self.force_affine()
+        return "(%s, %s)" % (t.x, t.y)
 
     def is_on_curve(self):
         return point_on_curve(self, twist_B)
@@ -228,7 +230,7 @@ class G2(object):
     def negate(self):
         return G2(self.x, self.y.negative_of(), self.z)
         
-## generator of G1: (1, -2)
+## generator of G1:
 g1 = G1(
     Fp(5705654538364796659083211974660230379298377357377701286821204717382476057802),
     Fp(37152507632483591484435791911354797337571904428358231246265173998464956873438),
