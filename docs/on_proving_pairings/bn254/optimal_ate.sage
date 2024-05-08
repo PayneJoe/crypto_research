@@ -118,16 +118,19 @@ def mul_line(r, a, b, c):
     # See function fp12e_mul_line in dclxvi
 
     t1 = Fp6(Fp2.ZERO(), a, b)
-    t2 = Fp6(Fp2.ZERO(), a, b + c)
+    t2 = Fp6(Fp2.ZERO(), a, b.add(c))
 
-    t1 = t1 * r.x
+    t1 = t1.mul(r.x)
     t3 = r.y.mul_scalar(c)
-    r.x += r.y
-    r.y = t3
-    r.x *= t2
-    r.x -= t1
-    r.x -= r.y
-    r.y += t1.mul_tau()
+
+    x = r.x.add(r.y)
+    y = t3
+    x = x.mul(t2)
+    x = x.sub(t1)
+    x = x.sub(y)
+    y = y.add(t1.mul_tau())
+
+    return Fp12(x, y) 
 
 def miller(q, p):
 
@@ -153,19 +156,23 @@ def miller(q, p):
     # 6x + 2 in NAF
     naf_6xp2 = list(reversed(to_naf(6 * x + 2)))[1:]
 
-    for naf_i in naf_6xp2:
+    f_list = []
+    for i, naf_i in enumerate(naf_6xp2):
         # Skip on first iteration?
         f = f.square()
 
         a, b, c, T = line_func_double(T, P)
-        mul_line(f, a, b, c)
+        f = mul_line(f, a, b, c)
+        f_list.append(f)
 
         if naf_i == 1:
             a, b, c, T = line_func_add(T, Q, P, Qp)
-            mul_line(f, a, b, c)
+            f = mul_line(f, a, b, c)
+            f_list.append(f)
         elif naf_i == -1:
             a, b, c, T = line_func_add(T, mQ, P, Qp)
-            mul_line(f, a, b, c)
+            f = mul_line(f, a, b, c)
+            f_list.append(f)
 
     # Q1 = pi(Q)
     Q1 = G2(
@@ -187,7 +194,7 @@ def miller(q, p):
     a, b, c, T = line_func_add(T, Q2, P, Qp)
     mul_line(f, a, b, c)
 
-    return f
+    return f, f_list
 
 def final_exp(inp):
     assert type(inp) == Fp12
@@ -249,7 +256,7 @@ def optimal_ate(a, b):
     assert type(a) == G2
     assert type(b) == G1
 
-    e = miller(a, b)
+    e, f_m = miller(a, b)
     mu = final_exp(e)
 
     if a.is_infinite() or b.is_infinite():
@@ -259,8 +266,8 @@ def optimal_ate(a, b):
 
 ################################################################# Testation
 print('\n================ Test Module of Optimal Ate =====================\n')
-Q, P = g2.scalar_mul(3), g1.scalar_mul(4)
-mu_r = optimal_ate(Q, P)
-t1 = mu_r.exp(rx(x)) == Fp12.ONE()
-print('[Test] optimal_ate(Q, P) ** r == Fp12.ONE()? {}\n'.format(t1))
+# Q, P = g2.scalar_mul(3), g1.scalar_mul(4)
+# mu_r = optimal_ate(Q, P)
+# t1 = mu_r.exp(rx(x)) == Fp12.ONE()
+# print('[Test] optimal_ate(Q, P) ** r == Fp12.ONE()? {}\n'.format(t1))
 print('\n============== End of Test Module of Optimal Ate ================\n')

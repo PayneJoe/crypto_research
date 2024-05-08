@@ -10,8 +10,12 @@ def line_double(T):
     x, y = T.x, T.y
     ## slope: alpha = 3 * x^2 / 2 * y
     alpha = x.square().mul_scalar(Fp(3)).mul(y.mul_scalar(Fp(2)).inverse())
-    ## bias: b = y - alpha * x
-    bias = y.sub(alpha.mul(x))
+    bias = y - alpha * x
+
+    ## projective coordinate
+    # x, y, z = T.x, T.y, T.z
+    # alpha = x.square().mul_scalar(Fp(3)).mul(y.mul(z).double().inverse())
+    # bias = y.sub(alpha.mul(x).mul(z)).mul(z.square().mul(z).inverse())
 
     return alpha, bias
 
