@@ -29,6 +29,7 @@ def line_add(T, P):
     alpha = y2.sub(y1).mul((x2.sub(x1)).inverse())
     ## bias: b = y1 - alpha * x1
     bias = y1.sub(alpha.mul(x1))
+    # bias = y1 - alpha * x1
 
     return alpha, bias
 
@@ -54,69 +55,70 @@ def line_function(Q, e, lamb):
     # Q1 = pi(Q)
     # x = x' * beta^(2 * (p - 1) // 6)
     # y = y' * beta^(3 * (p - 1) // 6))
-    Q1 = G2(
+    pi_1_Q = G2(
         Q.x.conjugate_of().mul(Fp12.beta_pi_1[1]),
         Q.y.conjugate_of().mul(Fp12.beta_pi_1[2]),
         Fp2.ONE())
-    assert(Q1.is_on_curve() == True)
-    assert(Q1 == Q.scalar_mul(px(x)))
+    assert(pi_1_Q.is_on_curve() == True)
+    assert(pi_1_Q == Q.scalar_mul(px(x)))
 
     # Q2 = pi2(Q)
     # x = x * beta * (2 * (p^2 - 1) // 6)
     # y = y * beta * (3 * (p^2 - 1) // 6) = -y
-    Q2 = G2(
+    pi_2_Q = G2(
         Q.x.mul(Fp12.beta_pi_2[1]),
         Q.y.mul(Fp12.beta_pi_2[2]),
         Fp2.ONE())
-    assert(Q2.is_on_curve() == True)
-    assert(Q2 == Q.scalar_mul(px(x) ** 2))
+    assert(pi_2_Q.is_on_curve() == True)
+    assert(pi_2_Q == Q.scalar_mul(px(x) ** 2))
 
     # Q3 = pi3(Q)
     # x = x' * beta * (2 * (p^3 - 1) // 6)
     # y = y' * beta * (3 * (p^3 - 1) // 6)
-    Q3 = G2(
+    pi_3_Q = G2(
         Q.x.conjugate_of().mul(Fp12.beta_pi_3[1]),
         Q.y.conjugate_of().mul(Fp12.beta_pi_3[2]),
         Fp2.ONE())
-    assert(Q3.is_on_curve() == True)
-    assert(Q3 == Q.scalar_mul(px(x) ** 3))
+    assert(pi_3_Q.is_on_curve() == True)
+    assert(pi_3_Q == Q.scalar_mul(px(x) ** 3))
 
-    alpha, bias = line_add(T, Q1)
-    T = T.add(Q1)
-    L.append((alpha, beta))
+    alpha, bias = line_add(T, pi_1_Q)
+    T = T.add(pi_1_Q)
+    L.append((alpha, bias))
 
     assert(T == Q.scalar_mul(e + px(x)))
 
-    alpha, bias = line_add(T, Q2.negate())
-    T = T.add(Q2.negate())
-    L.append((alpha, beta))
+    alpha, bias = line_add(T, pi_2_Q.negate())
+    T = T.add(pi_2_Q.negate())
+    L.append((alpha, bias))
 
     k = e + px(x) - px(x) ** 2
     assert(T == Q.scalar_mul(k if k > 0 else rx(x) - (-k % rx(x))))
 
-    alpha, bias = line_add(T, Q3)
-    T = T.add(Q3)
-    L.append((alpha, beta))
+    alpha, bias = line_add(T, pi_3_Q)
+    T = T.add(pi_3_Q)
+    L.append((alpha, bias))
 
     assert(T == Q.scalar_mul(lamb))
+    assert(T.is_infinite() == True)
+    assert(alpha.is_zero() == True)
 
     return L
 
 ####################################################
 ## assume we want to prove e(P1, Q1) = e(P2, Q2), namely e(P1, Q1) * e(P2, -Q2) = 1
 ## fixed point Q in G2, public known to verifier
-Q1 = g2.scalar_mul(1)
-Q2 = g2.scalar_mul(3)
+Q1 = g2.scalar_mul(1).force_affine()
+Q2 = g2.scalar_mul(3).force_affine()
 
 ## point P sent from prover
-P1 = g1.scalar_mul(3)
-P2 = g1.scalar_mul(1)
+P1 = g1.scalar_mul(3).force_affine()
+P2 = g1.scalar_mul(1).force_affine()
 
 ## indexer (oracle) for fixed point Q
 e = 6 * x + 2
 lamb = lambdax(x)
 print('parameter x = {}\n'.format(x))
-print('Q = {}\n\n'.format(Q1))
-L1 = line_function(Q1, e, lamb)
-# L2 = line_function(Q2.negate(), e, lamb)
+L1 = line_function(Q1.force_affine(), e, lamb)
+L2 = line_function(Q2.negate().force_affine(), e, lamb)
 print('\n [Oracle] line function for Q1, and Q2 are both precomputated. \n')

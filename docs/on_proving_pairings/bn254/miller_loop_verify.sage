@@ -55,33 +55,77 @@ def miller_loop_check(P, L, e, f_check):
             ########
 
         lc = lc + 1
-    assert(lc == len(L))
+    assert(lc == len(L) - 3)
     return f
 
 ## miller loop for multiple pairings, especially for \prod_i^n e(Qi, Pi) = 1
 def multi_miller_loop(eval_points, lines, e):
     assert(len(eval_points) == len(lines))
 
+    f_list = []
+    # f_check = [Fp12.ONE() for _ in range(len(lines))]
+
     lc = 0
     f = Fp12.ONE()
     naf_digits = list(reversed(to_naf(e)))[1:]
+    ## double-add part, 6x + 2 
     for i, digit in enumerate(naf_digits):
+        f = f.square()
+        # f_check = [e.square() for e in f_check]
 
         for j, (P, L) in enumerate(zip(eval_points, lines)):
             alpha, bias = L[lc]
             le = line_evaluation(alpha, bias, P)
-            f = mul_line(f.square(), le[0], le[1], le[2])
+            # f = mul_line_base(f, le[0], le[1], le[2])
+            f = mul_line(f, le[0], le[1], le[2])
+            f_list.append(f)
+
+            # f_check[j] = mul_line_base(f_check[j], le[0], le[1], le[2])
 
             if digit^2 == 1:
                 alpha, bias = L[lc + 1]
                 le = line_evaluation(alpha, bias, P)
+                # f = mul_line_base(f, le[0], le[1], le[2])
                 f = mul_line(f, le[0], le[1], le[2])
+                f_list.append(f)
+
+                # f_check[j] = mul_line_base(f_check[j], le[0], le[1], le[2])
+
         lc = (lc + 1) if digit == 0 else (lc + 2)
-    assert(lc == len(lines[0]))
-    return f
+    
+    ## frobenius map part, p - p^2 + p^3
+    for j, (P, L) in enumerate(zip(eval_points, lines)):
+        for k in range(2):
+            alpha, bias = L[lc + k]
+            le = line_evaluation(alpha, bias, P)
+            # f = mul_line_base(f, le[0], le[1], le[2])
+            f = mul_line(f, le[0], le[1], le[2])
+            f_list.append(f)
+
+            # f_check[j] = mul_line_base(f_check[j], le[0], le[1], le[2])
+    lc = lc + 2
+
+    # assert(f_check[0].mul(f_check[1]) == f)
+
+    assert(lc + 1 == len(lines[0]))
+    return f, f_list
 
 ############################### Testation for miller loop,  with precomputed line functions
-_, f1_check = miller(Q1, P1)
-miller_loop_check(P1, L1, e, f1_check) 
-print('[Test] Miller loop done.\n\n')
+# _, f1_check = miller(Q1, P1)
+# miller_loop_check(P1, L1, e, f1_check) 
+# print('[Test] miller loop with precomputed lines.\n\n')
+
+f1_a, f1_a_list = miller(Q1, P1)
+f1_b, f1_b_list = multi_miller_loop([P1], [L1], e)
+assert(len(f1_a_list) == len(f1_b_list))
+assert(f1_a == f1_b)
+
+f2_a, f2_a_list = miller(Q2.negate().force_affine(), P2)
+f2_b, f2_b_list = multi_miller_loop([P2], [L2], e)
+assert(len(f2_a_list) == len(f2_b_list))
+assert(f2_a == f2_b)
+assert(f1_a.mul(f2_a) == f1_b.mul(f2_b))
+
+f, _ = multi_miller_loop([P1, P2], [L1, L2], e)
+assert(f == f1_a.mul(f2_a))
 ###############################

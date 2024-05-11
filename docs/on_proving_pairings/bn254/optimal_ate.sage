@@ -142,6 +142,15 @@ def mul_line(r, a, b, c):
 
     return Fp12(x, y) 
 
+def mul_line_base(r, a, b, c):
+    assert type(r) == Fp12
+    assert type(a) == Fp2
+    assert type(b) == Fp2
+    assert type(c) == Fp2
+
+    fl = Fp12(Fp6(Fp2.ZERO(), a, Fp2.ZERO()), Fp6(b, Fp2.ZERO(), c))
+    return r.mul(fl)
+
 def miller(q, p):
 
     import copy
@@ -173,36 +182,64 @@ def miller(q, p):
 
         a, b, c, T = line_func_double(T, P)
         f = mul_line(f, a, b, c)
+        # f = mul_line_base(f, a, b, c)
+        # print('a = {} \n b = {} \n c = {}\n\n'.format(a, b, c))
         f_list.append(f)
 
         if naf_i == 1:
             a, b, c, T = line_func_add(T, Q, P, Qp)
             f = mul_line(f, a, b, c)
+            # f = mul_line_base(f, a, b, c)
             f_list.append(f)
         elif naf_i == -1:
             a, b, c, T = line_func_add(T, mQ, P, Qp)
             f = mul_line(f, a, b, c)
+            # f = mul_line_base(f, a, b, c)
             f_list.append(f)
 
     # Q1 = pi(Q)
     Q1 = G2(
-        Q.x.conjugate_of().mul(Fp12.beta_pi_1[1]),
-        Q.y.conjugate_of().mul(Fp12.beta_pi_1[2]),
+        Q.force_affine().x.conjugate_of().mul(Fp12.beta_pi_1[1]),
+        Q.force_affine().y.conjugate_of().mul(Fp12.beta_pi_1[2]),
         Fp2.ONE())
+    assert(Q1.is_on_curve() == True)
+    assert(Q1 == Q.scalar_mul(px(x)))
 
     # Q2 = pi2(Q)
+    # Q2 = G2(
+    #     Q.force_affine().x.mul_scalar(Fp12.beta_pi_2[1].y),
+    #     Q.force_affine().y,
+    #     Fp2.ONE())
     Q2 = G2(
-        Q.x.mul_scalar(Fp12.beta_pi_2[1].y),
-        Q.y,
+        Q.force_affine().x.mul(Fp12.beta_pi_2[1]),
+        Q.force_affine().y.mul(Fp12.beta_pi_2[2]),
         Fp2.ONE())
+    assert(Q2.is_on_curve() == True)
+    assert(Q2 == Q.scalar_mul(px(x) ** 2))
+
+    Q3 = G2(
+        Q.force_affine().x.conjugate_of().mul(Fp12.beta_pi_3[1]),
+        Q.force_affine().y.conjugate_of().mul(Fp12.beta_pi_3[2]),
+        Fp2.ONE())
+    assert(Q3.is_on_curve() == True)
+    assert(Q3 == Q.scalar_mul(px(x) ** 3))
 
     Qp = Q1.y.square()
     a, b, c, T = line_func_add(T, Q1, P, Qp)
-    mul_line(f, a, b, c)
+    f = mul_line(f, a, b, c)
+    # f = mul_line_base(f, a, b, c)
+    f_list.append(f)
 
     Qp = Q2.y.square()
-    a, b, c, T = line_func_add(T, Q2, P, Qp)
-    mul_line(f, a, b, c)
+    a, b, c, T = line_func_add(T, Q2.negate(), P, Qp)
+    f = mul_line(f, a, b, c)
+    # f = mul_line_base(f, a, b, c)
+    f_list.append(f)
+
+    # Qp = Q3.y.square()
+    # a, b, c, T = line_func_add(T, Q3, P, Qp)
+    # f = mul_line(f, a, b, c)
+    # f_list.append(f)
 
     return f, f_list
 
@@ -276,8 +313,8 @@ def optimal_ate(a, b):
 
 ################################################################# Testation
 print('\n================ Test Module of Optimal Ate =====================\n')
-# Q, P = g2.scalar_mul(3), g1.scalar_mul(4)
-# mu_r = optimal_ate(Q, P)
-# t1 = mu_r.exp(rx(x)) == Fp12.ONE()
-# print('[Test] optimal_ate(Q, P) ** r == Fp12.ONE()? {}\n'.format(t1))
+Q, P = g2.scalar_mul(3), g1.scalar_mul(4)
+mu_r = optimal_ate(Q, P)
+t1 = mu_r.exp(rx(x)) == Fp12.ONE()
+print('[Test] optimal_ate(Q, P) ** r == Fp12.ONE()? {}\n'.format(t1))
 print('\n============== End of Test Module of Optimal Ate ================\n')
