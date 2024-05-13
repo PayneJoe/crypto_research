@@ -42,13 +42,13 @@ def point_add(a, b):
 
     z1z1 = a.z.square()
     z2z2 = b.z.square()
-    u1 = (z2z2 * a.x)
-    u2 = (z1z1 * b.x)
-    h = u2 - u1
+    u1 = z2z2.mul(a.x)
+    u2 = z1z1.mul(b.x)
+    h = u2.sub(u1)
 
-    s1 = (a.y * b.z * z2z2)
-    s2 = (b.y * a.z * z1z1)
-    r = s2 - s1
+    s1 = a.y.mul(b.z).mul(z2z2)
+    s2 = b.y.mul(a.z).mul(z1z1)
+    r = s2.sub(s1)
 
     if h.is_zero() and r.is_zero():
         return a.double()
@@ -56,18 +56,18 @@ def point_add(a, b):
     r = r.double()
     i = h.square()
     i = i.double().double()
-    j = (h * i)
+    j = h.mul(i)
 
-    V = (u1 * i)
+    V = u1.mul(i)
 
-    c_x = (r.square() - j - V.double())
-    c_y = (r * (V - c_x) - s1*j.double())
+    c_x = r.square().sub(j).sub(V.double())
+    c_y = r.mul(V.sub(c_x)).sub(s1.mul(j).double())
 
-    c_z = a.z + b.z
+    c_z = a.z.add(b.z)
     c_z = c_z.square()
-    c_z -= z1z1
-    c_z -= z2z2
-    c_z *= h
+    c_z = c_z.sub(z1z1)
+    c_z = c_z.sub(z2z2)
+    c_z = c_z.mul(h)
 
     return a.__class__(c_x, c_y, c_z)
 
@@ -117,10 +117,6 @@ def point_force_affine(point):
     zinv2 = zinv.square()
     zinv3 = zinv2.mul(zinv)
 
-    # point.x = point.x * zinv2
-    # point.y = point.y * zinv3
-    # point.z = point.one_element()
-    
     return point.__class__(point.x * zinv2, point.y * zinv3, point.one_element()) 
 
 def point_scalar_mul(pt, k):
@@ -131,13 +127,15 @@ def point_scalar_mul(pt, k):
 
     R = pt
     e = list(reversed(to_naf(k)))[1:]
-    for kb in e:
+
+    for i, kb in enumerate(e):
         R = R.double()
+        # assert(R.is_on_curve())
         if kb == 1:
             R = R.add(pt)
         elif kb == -1:
             R = R.add(pt.negate())
-    
+
     return R
 #####################################################################################
 
@@ -232,36 +230,36 @@ class G2(object):
         
 ## generator of G1:
 g1 = G1(
-    Fp(5705654538364796659083211974660230379298377357377701286821204717382476057802),
-    Fp(37152507632483591484435791911354797337571904428358231246265173998464956873438),
-    Fp(1)
+    Fp(19491323635986486980056165026003970884581302300479364565163758691834883767296),
+    Fp(2503817206389621232991390790939417031444960302945150474681637705185779211401),
+    Fp.ONE()
 )
 assert(g1.is_on_curve() == True)
 
 ## generator of G2: 
 g2 = G2(
     Fp2(
-        Fp(62753311236339391648764148143567231210514074623491962919106780883433880483224),
-        Fp(40543586403660527254439344329784007160991630777619071944142909139758667202651)
+        Fp(11403269112307582471523194844678173363615200121780745962919905543513926078845),
+        Fp(10022529265301880767558967801827554994678953177337994173174782310334418209951)
     ),
     Fp2(
-        Fp(26582211052397732893044181121390539783060781418538774925579041820575147907402),
-        Fp(12563798145120946122771505835773576822967049713945453865865029634860688995606)
+        Fp(7417909083002664933410862546938954664060641619680344911439335935535164894254),
+        Fp(14403937293889182757621054345090826401263455856569175761852807173588543872656)
     ),
     Fp2.ONE()
 )
+assert(g2.is_on_curve() == True)
 
-################################################################# Testation
-print('\n================ Test Module of Curves =====================\n')
-t1 = (g2.is_on_curve() == True)
-assert(t1 == True)
-print('[Test] g2.is_on_curve()? {}\n'.format(t1))
+def test_curves():
+    ################################################################# Testation
+    print('\n================ Test Module of Curves =====================\n')
 
-t2 = g1.scalar_mul(rx(x)).is_infinite() == True
-assert(t2 == True)
-print('[Test] g1.scalar_mul(rx(x)).is_infinite()? {}\n'.format(t2))
+    t2 = g1.scalar_mul(rx(x)).is_infinite() == True
+    assert(t2 == True)
+    print('[Test] g1.scalar_mul(rx(x)).is_infinite()? {}\n'.format(t2))
 
-t3 = g2.scalar_mul(rx(x)).is_infinite() == True
-assert(t3 == True)
-print('[Test] g2.scalar_mul(rx(x)).is_infinite()? {}\n'.format(t3))
-print('\n============= End of Test Module of Curves =================\n')
+    t3 = g2.scalar_mul(rx(x)).is_infinite() == True
+    assert(t3 == True)
+    print('[Test] g2.scalar_mul(rx(x)).is_infinite()? {}\n'.format(t3))
+    # print(g2.scalar_mul(123432))
+    print('\n============= End of Test Module of Curves =================\n')

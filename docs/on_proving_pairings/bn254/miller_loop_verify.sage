@@ -18,7 +18,7 @@ def line_evaluation(alpha, bias, P):
         Fp2(Fp.ZERO(), P.y)
     )
 
-## make sure the line evaluation result is correct 
+## make sure the line evaluation result on verifier-side is consistant with the one on prover-side
 def miller_loop_check(P, L, e, f_check):
     f = Fp12.ONE()
     lc = 0
@@ -76,8 +76,8 @@ def multi_miller_loop(eval_points, lines, e):
         for j, (P, L) in enumerate(zip(eval_points, lines)):
             alpha, bias = L[lc]
             le = line_evaluation(alpha, bias, P)
-            # f = mul_line_base(f, le[0], le[1], le[2])
-            f = mul_line(f, le[0], le[1], le[2])
+            f = mul_line_base(f, le[0], le[1], le[2])
+            # f = mul_line(f, le[0], le[1], le[2])
             f_list.append(f)
 
             # f_check[j] = mul_line_base(f_check[j], le[0], le[1], le[2])
@@ -85,8 +85,8 @@ def multi_miller_loop(eval_points, lines, e):
             if digit^2 == 1:
                 alpha, bias = L[lc + 1]
                 le = line_evaluation(alpha, bias, P)
-                # f = mul_line_base(f, le[0], le[1], le[2])
-                f = mul_line(f, le[0], le[1], le[2])
+                f = mul_line_base(f, le[0], le[1], le[2])
+                # f = mul_line(f, le[0], le[1], le[2])
                 f_list.append(f)
 
                 # f_check[j] = mul_line_base(f_check[j], le[0], le[1], le[2])
@@ -95,37 +95,71 @@ def multi_miller_loop(eval_points, lines, e):
     
     ## frobenius map part, p - p^2 + p^3
     for j, (P, L) in enumerate(zip(eval_points, lines)):
-        for k in range(2):
+        for k in range(3):
             alpha, bias = L[lc + k]
-            le = line_evaluation(alpha, bias, P)
-            # f = mul_line_base(f, le[0], le[1], le[2])
-            f = mul_line(f, le[0], le[1], le[2])
+            if k == 2:
+                    eval = Fp12(
+                        Fp6.ZERO(),
+                        Fp6(Fp2.ZERO(), bias.negative_of(), Fp2(Fp.ZERO(), P.x))
+                    )
+                    f = f.mul(eval)
+            else:
+                le = line_evaluation(alpha, bias, P)
+                f = mul_line_base(f, le[0], le[1], le[2])
+            # f = mul_line(f, le[0], le[1], le[2])
             f_list.append(f)
 
             # f_check[j] = mul_line_base(f_check[j], le[0], le[1], le[2])
-    lc = lc + 2
+    lc = lc + 3
 
     # assert(f_check[0].mul(f_check[1]) == f)
 
-    assert(lc + 1 == len(lines[0]))
+    assert(lc == len(lines[0]))
     return f, f_list
 
-############################### Testation for miller loop,  with precomputed line functions
-# _, f1_check = miller(Q1, P1)
-# miller_loop_check(P1, L1, e, f1_check) 
-# print('[Test] miller loop with precomputed lines.\n\n')
+def test_precomputed_multi_miller_loop():
+    ############################### Testation for miller loop,  with precomputed line functions
+    # _, f1_check = miller(Q1, P1)
+    # miller_loop_check(P1, L1, e, f1_check) 
+    # print('[Test] miller loop with precomputed lines.\n\n')
 
-f1_a, f1_a_list = miller(Q1, P1)
-f1_b, f1_b_list = multi_miller_loop([P1], [L1], e)
-assert(len(f1_a_list) == len(f1_b_list))
-assert(f1_a == f1_b)
+    ####################################################
+    ## assume we want to prove e(P1, Q1) = e(P2, Q2), namely e(P1, Q1) * e(P2, -Q2) = 1
+    ## fixed point Q in G2, public known to verifier
+    Q1 = g2.scalar_mul(1).force_affine()
+    Q2 = g2.scalar_mul(3).force_affine()
 
-f2_a, f2_a_list = miller(Q2.negate().force_affine(), P2)
-f2_b, f2_b_list = multi_miller_loop([P2], [L2], e)
-assert(len(f2_a_list) == len(f2_b_list))
-assert(f2_a == f2_b)
-assert(f1_a.mul(f2_a) == f1_b.mul(f2_b))
+    ## point P sent from prover
+    P1 = g1.scalar_mul(3).force_affine()
+    P2 = g1.scalar_mul(1).force_affine()
 
-f, _ = multi_miller_loop([P1, P2], [L1, L2], e)
-assert(f == f1_a.mul(f2_a))
-###############################
+    e = 6 * x + 2
+    lamb = lambdax(x)
+    print('parameter x = {}\n'.format(x))
+    L1 = line_function(Q1.force_affine(), e, lamb)
+    L2 = line_function(Q2.negate().force_affine(), e, lamb)
+    
+    print('==================== Test Module of Miller Loop ================= \n')
+    f1_a, f1_a_list = miller(Q1, P1)
+    f1_b, f1_b_list = multi_miller_loop([P1], [L1], e)
+    assert(len(f1_a_list) == len(f1_b_list))
+    t1 = (f1_a == f1_b)
+    print('[Test] multi_miller_loop(P1, L1, e)? {}\n'.format(t1))
+    
+    f2_a, f2_a_list = miller(Q2.negate().force_affine(), P2)
+    f2_b, f2_b_list = multi_miller_loop([P2], [L2], e)
+    assert(len(f2_a_list) == len(f2_b_list))
+    assert(f2_a == f2_b)
+    t2 = (f1_a.mul(f2_a) == f1_b.mul(f2_b))
+    print('[Test] multi_miller_loop(P2, L2, e)? {}\n'.format(t2))
+    
+    f, _ = multi_miller_loop([P1, P2], [L1, L2], e)
+    t3 = (f == f1_a.mul(f2_a))
+    print('[Test] multi_miller_loop([P1, P2], [L1, L2], e)? {}\n'.format(t3))
+
+    t4 = (final_exp(f) == Fp12.ONE())
+    print('[Test] multi_miller_loop([P1, P2], [L1, L2], e)^h == 1? {}\n'.format(t4))
+    print('==================== End of Test Module of Miller Loop ================= \n')
+    ###############################
+
+# test_precomputed_multi_miller_loop()

@@ -95,7 +95,8 @@ def line_function(Q, e, lamb):
     k = e + px(x) - px(x) ** 2
     assert(T == Q.scalar_mul(k if k > 0 else rx(x) - (-k % rx(x))))
 
-    alpha, bias = line_add(T, pi_3_Q)
+    # alpha, bias = line_add(T, pi_3_Q)
+    alpha, bias = Fp2.ZERO(), T.x.mul(T.z.inverse().square())
     T = T.add(pi_3_Q)
     L.append((alpha, bias))
 
@@ -105,20 +106,23 @@ def line_function(Q, e, lamb):
 
     return L
 
-####################################################
-## assume we want to prove e(P1, Q1) = e(P2, Q2), namely e(P1, Q1) * e(P2, -Q2) = 1
-## fixed point Q in G2, public known to verifier
-Q1 = g2.scalar_mul(1).force_affine()
-Q2 = g2.scalar_mul(3).force_affine()
+def test_line_precomputation():
+    ####################################################
+    ## assume we want to prove e(P1, Q1) = e(P2, Q2), namely e(P1, Q1) * e(P2, -Q2) = 1
+    ## fixed point Q in G2, public known to verifier
+    Q1 = g2.scalar_mul(1).force_affine()
+    Q2 = g2.scalar_mul(3).force_affine()
+    
+    ## point P sent from prover
+    P1 = g1.scalar_mul(3).force_affine()
+    P2 = g1.scalar_mul(1).force_affine()
+    
+    ## indexer (oracle) for fixed point Q
+    e = 6 * x + 2
+    lamb = lambdax(x)
+    print('parameter x = {}\n'.format(x))
+    L1 = line_function(Q1.force_affine(), e, lamb)
+    L2 = line_function(Q2.negate().force_affine(), e, lamb)
+    print('\n [Oracle] line function for Q1, and Q2 are both precomputated. \n')
 
-## point P sent from prover
-P1 = g1.scalar_mul(3).force_affine()
-P2 = g1.scalar_mul(1).force_affine()
-
-## indexer (oracle) for fixed point Q
-e = 6 * x + 2
-lamb = lambdax(x)
-print('parameter x = {}\n'.format(x))
-L1 = line_function(Q1.force_affine(), e, lamb)
-L2 = line_function(Q2.negate().force_affine(), e, lamb)
-print('\n [Oracle] line function for Q1, and Q2 are both precomputated. \n')
+# test_line_precomputation()

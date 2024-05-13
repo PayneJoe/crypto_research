@@ -148,7 +148,7 @@ def mul_line_base(r, a, b, c):
     assert type(b) == Fp2
     assert type(c) == Fp2
 
-    fl = Fp12(Fp6(Fp2.ZERO(), a, Fp2.ZERO()), Fp6(b, Fp2.ZERO(), c))
+    fl = Fp12(Fp6(Fp2.ZERO(), a, b), Fp6(Fp2.ZERO(), Fp2.ZERO(), c))
     return r.mul(fl)
 
 def miller(q, p):
@@ -181,21 +181,22 @@ def miller(q, p):
         f = f.square()
 
         a, b, c, T = line_func_double(T, P)
-        f = mul_line(f, a, b, c)
-        # f = mul_line_base(f, a, b, c)
-        # print('a = {} \n b = {} \n c = {}\n\n'.format(a, b, c))
+        # f = mul_line(f, a, b, c)
+        f = mul_line_base(f, a, b, c)
         f_list.append(f)
 
         if naf_i == 1:
             a, b, c, T = line_func_add(T, Q, P, Qp)
-            f = mul_line(f, a, b, c)
-            # f = mul_line_base(f, a, b, c)
+            # f = mul_line(f, a, b, c)
+            f = mul_line_base(f, a, b, c)
             f_list.append(f)
         elif naf_i == -1:
             a, b, c, T = line_func_add(T, mQ, P, Qp)
-            f = mul_line(f, a, b, c)
-            # f = mul_line_base(f, a, b, c)
-            f_list.append(f)
+            # f = mul_line(f, a, b, c)
+            f = mul_line_base(f, a, b, c)
+            f_list.append(f)    
+    
+    assert(T == Q.scalar_mul(6 * x + 2))
 
     # Q1 = pi(Q)
     Q1 = G2(
@@ -226,20 +227,34 @@ def miller(q, p):
 
     Qp = Q1.y.square()
     a, b, c, T = line_func_add(T, Q1, P, Qp)
-    f = mul_line(f, a, b, c)
-    # f = mul_line_base(f, a, b, c)
+    # f = mul_line(f, a, b, c)
+    f = mul_line_base(f, a, b, c)
     f_list.append(f)
 
     Qp = Q2.y.square()
     a, b, c, T = line_func_add(T, Q2.negate(), P, Qp)
-    f = mul_line(f, a, b, c)
-    # f = mul_line_base(f, a, b, c)
+    # f = mul_line(f, a, b, c)
+    f = mul_line_base(f, a, b, c)
     f_list.append(f)
+
+    k = 6 * x + 2 + px(x) - px(x) ** 2
+    assert(T == Q.scalar_mul(k if k > 0 else rx(x) - ((-k) % rx(x))))
+    assert(T.is_infinite() == False)
 
     # Qp = Q3.y.square()
     # a, b, c, T = line_func_add(T, Q3, P, Qp)
     # f = mul_line(f, a, b, c)
-    # f_list.append(f)
+    # # f = mul_line_base(f, a, b, c)
+    eval = Fp12(
+        Fp6.ZERO(),
+        Fp6(Fp2.ZERO(), T.x.mul(T.z.inverse().square()).negative_of(), Fp2(Fp.ZERO(), P.x))
+    )
+    T = T.add(Q3)
+    f = f.mul(eval)
+    f_list.append(f)
+    k = 6 * x + 2 + px(x) - px(x) ** 2 + px(x) ** 3
+    assert(T == Q.scalar_mul(k))
+    assert(T.is_infinite() == True)
 
     return f, f_list
 
@@ -311,10 +326,13 @@ def optimal_ate(a, b):
 
     return mu
 
-################################################################# Testation
-print('\n================ Test Module of Optimal Ate =====================\n')
-Q, P = g2.scalar_mul(3), g1.scalar_mul(4)
-mu_r = optimal_ate(Q, P)
-t1 = mu_r.exp(rx(x)) == Fp12.ONE()
-print('[Test] optimal_ate(Q, P) ** r == Fp12.ONE()? {}\n'.format(t1))
-print('\n============== End of Test Module of Optimal Ate ================\n')
+def test_opt_ate():
+    ################################################################# Testation
+    print('\n================ Test Module of Optimal Ate =====================\n')
+    Q, P = g2.scalar_mul(3), g1.scalar_mul(4)
+    mu_r = optimal_ate(Q, P)
+    t1 = mu_r.exp(rx(x)) == Fp12.ONE()
+    print('[Test] optimal_ate(Q, P) ** r == Fp12.ONE()? {}\n'.format(t1))
+    print('\n============== End of Test Module of Optimal Ate ================\n')
+
+test_opt_ate()

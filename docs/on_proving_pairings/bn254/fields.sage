@@ -14,7 +14,8 @@ class Fp(object):
     R1 = R % p
     R2 = (R * R) % p
     R3 = (R1 * R2) % p
-    N = R - inv_mod(p, R)
+    # N = R - inv_mod(p, R)
+    N = gcd(p, R)[1] if gcd(p, R)[2] else (R - gcd(p, R)[1])
     
     def ZERO():
         return Fp(0, False)
@@ -23,11 +24,12 @@ class Fp(object):
         return Fp(1, True)
     
     def _redc(self, T):
-        #assert T < (self.R*p-1)
-        m = ((T & (self.R-1)) * self.N) & (self.R-1)
+        # assert T < (self.R * self.p - 1)
+        m = ((T & (self.R - 1)) * self.N) & (self.R - 1)
         t = (T + m * self.p) >> 256
         if t >= self.p:
             t -= self.p
+        # assert(t < self.p)
         return t
 
     def __init__(self, x, redc_needed = True):
@@ -51,7 +53,9 @@ class Fp(object):
 
     def __add__(self, other):
         x = self.v + other.v
-        if (x >> 255) > 0 and x >= self.p:
+        # if (x >> 255) > 0 and x >= self.p:
+        #     x -= self.p
+        if x >= self.p:
             x -= self.p
         #assert self._redc(x) == (self.value() + other.value()) % p
         return Fp(x, False)
@@ -78,6 +82,10 @@ class Fp(object):
     def triple(self):
         return self + self + self
 
+    def nine(self):
+        tri = self.triple()
+        return tri + tri + tri
+
     def is_one(self):
         return self.v == self.R1
 
@@ -89,6 +97,12 @@ class Fp(object):
 
     def mul(self, other):
         return self * other
+
+    def add(self, other):
+        return self + other
+
+    def sub(self, other):
+        return self - other
 
     def inverse(self):
         # Fermat
@@ -104,10 +118,9 @@ class Fp(object):
     def to_bytes(self):
         p_bytes = (self.p.bit_length() // 8) + (1 if (self.p.bit_length() % 8) > 0 else 0)
         return self.value().to_bytes(p_bytes, 'big')
-    
 
 ## non-quadratic residue 
-alpha = Fp(-1)
+alpha = Fp(Fp.p - 1)
 
 class Fp2(object):
     def ZERO():
@@ -165,10 +178,10 @@ class Fp2(object):
     def mul(self, b):
         # assert type(a) == Fp2 and type(b) == Fp2
         # Karatsuba
-        vy = (self.y * b.y)
-        vx = (self.x * b.x)
-        c0 = (vy - vx)
-        c1 = ((self.x + self.y)*(b.x + b.y) - vy - vx)
+        vy = self.y.mul(b.y)
+        vx = self.x.mul(b.x)
+        c0 = vy.sub(vx)
+        c1 = self.x.add(self.y).mul(b.x.add(b.y)).sub(vy).sub(vx)
 
         return Fp2(c1,c0)
 
@@ -187,19 +200,19 @@ class Fp2(object):
     # Multiply by i+3
     def mul_beta(a):
         # (beta + y)(3 + i) = 3beta + 3y - x + yi = (3x + y)i + (3y - x)
-        tx = (a.x.triple()) + a.y
-        ty = (a.y.triple()) - a.x
+        tx = (a.x.nine()) + a.y
+        ty = (a.y.nine()) - a.x
         return Fp2(tx, ty)
 
     def square(self):
         assert type(self.x) == Fp
         assert type(self.y) == Fp
         # Complex squaring
-        t1 = self.y - self.x
-        t2 = self.y + self.x
-        ty = (t1 * t2)
+        t1 = self.y.sub(self.x)
+        t2 = self.y.add(self.x)
+        ty = t1.mul(t2)
         #ty = a.y*a.y - a.x*a.x
-        tx = (self.x * self.y)
+        tx = self.x.mul(self.y)
         tx = tx.double()
         return Fp2(tx, ty)
 
@@ -235,7 +248,7 @@ class Fp2(object):
         return R
     
 ## non-cubic residue
-beta = Fp2(Fp(1), Fp(3))
+beta = Fp2(Fp(1), Fp(9))
 
 # cubic extension of Fp2
 class Fp6(object):
@@ -474,6 +487,17 @@ class Fp12(object):
 
         return Fp12(Fp6(e1_x,e1_y,e1_z), Fp6(e2_x,e2_y,e2_z))
 
+    def frobenius_p3(self):
+        e1_x = self.x.x.conjugate_of().mul(self.beta_pi_3[4])
+        e1_y = self.x.y.conjugate_of().mul(self.beta_pi_3[2])
+        e1_z = self.x.z.conjugate_of().mul(self.beta_pi_3[0])
+
+        e2_x = self.y.x.conjugate_of().mul(self.beta_pi_3[3])
+        e2_y = self.y.y.conjugate_of().mul(self.beta_pi_3[1])
+        e2_z = self.y.z.conjugate_of()
+
+        return Fp12(Fp6(e1_x,e1_y,e1_z), Fp6(e2_x,e2_y,e2_z))
+
     def sub(self, b):
         return Fp12(self.x - b.x, self.y - b.y)
 
@@ -539,42 +563,18 @@ class Fp12(object):
 ## non-quadratic residue
 gamma = Fp6(Fp2.ZERO(), Fp2.ONE(), Fp2.ZERO())
 
-################################################################# Testation
-print('\n================ Test Module of Fields =====================\n')
-t1 = (Fp(5).square() == Fp(25))
-assert(t1 == True)
-print('[Test] Fp(5).square() == Fp(25)? {}\n'.format(t1))
-
-t2 = (Fp(5) * (Fp(5).inverse()) == Fp.ONE())
-assert(t2 == True)
-print('[Test] Fp(5) * Fp(5).inverse() == Fp.ONE()? {}\n'.format(t2))
-
-t3 = beta * (beta.inverse()) == Fp2.ONE()
-assert(t3 == True)
-print('[Test] beta * beta.inverse() == Fp2.ONE()? {}\n'.format(t3))
-print('\n=============== End of Test Module of Fields ==============\n')
-
-a0 = Fp6(
-        Fp2(34828782555959400749089873727311924436065246867786464483939282510422038828023, 50907584953896980726214758383059745758608967402376068492169291309170705561063),
-        Fp2(0, 0),
-        Fp2(0, 19482641706064118683666785877159816774833750798416884741599879590406746710229)
-    )
-a1 = Fp6(
-        Fp2(0, 0),
-        Fp2(15843156042020513199926158630706144859076300417832337935171017027294868376203, 12209634622754641969054606663103921359299723226413609383381251071991033840971),
-        Fp2(0, 0)
-    )
-b1 = Fp6(
-        Fp2(0, 0),
-        Fp2(25674720514203944480604688097299722111955882161583829277089949012182826810769, 9146642495220243917512705633605220321294157277065762527559792039231187113908),
-        Fp2(0, 0)
-    )
-
-b0 = Fp6(
-        Fp2(19744856206700437860953523711822183234635231116373081271456856943097731729858, 7959959503469563391699279464233690318175839734394227536101783192665624537918),
-        Fp2(0, 0),
-        Fp2(0, 37152507632483591484435791911354797337571904428358231246265173998464956873438)
-    )
-a = Fp12(a1, a0)
-b = Fp12(b1, b0)
-# print(a.mul(b))
+def test_fields():
+     ################################################################# Testation
+     print('\n================ Test Module of Fields =====================\n')
+     t1 = (Fp(5).square() == Fp(25))
+     assert(t1 == True)
+     print('[Test] Fp(5).square() == Fp(25)? {}\n'.format(t1))
+     
+     t2 = (Fp(5) * (Fp(5).inverse()) == Fp.ONE())
+     assert(t2 == True)
+     print('[Test] Fp(5) * Fp(5).inverse() == Fp.ONE()? {}\n'.format(t2))
+     
+     t3 = beta * (beta.inverse()) == Fp2.ONE()
+     assert(t3 == True)
+     print('[Test] beta * beta.inverse() == Fp2.ONE()? {}\n'.format(t3))
+     print('\n=============== End of Test Module of Fields ==============\n')
