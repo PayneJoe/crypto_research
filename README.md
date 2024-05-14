@@ -6,6 +6,13 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
 ## Code Structure
 
+- docs
+    - bls12_381
+        note and python versioned bls12-381 implementation [$`\color{green}\checkmark`$]
+
+    - on_proving_pairings 
+        note and python versioned bn254 implementation [$`\color{green}\checkmark`$]
+
 - ecc 
     - integer_arithmetic 
 
@@ -81,6 +88,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 #### Pairings
 
 - [Theory and Practical Implementation of BLS12-381](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/ryo55eEeC)
+- [On Proving Pairings](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/S1cU7YJGC)
 
 <br />
 
