@@ -1,10 +1,10 @@
-## Domain
+# Domain
 
-Firstly there's one thing we need to look into it, that is the domain $D$ which the polynomial $p(x)$ defines over. 
+Firstly we need to look into domain $D$, which the polynomial $p(x)$ defines over. 
 
 <br />
 
-#### traditional domain
+## Traditional Domain
 
 Usually the domain $D$ is a cyclic multiplicative sub-group $H$ defined over finite prime field $F_p$, say $F_{13}$, then $|F_{13}^{\times}| = |\langle 6 \rangle| = 12$, there is a order-$4$ subgroup:
 $$
@@ -33,13 +33,13 @@ Obviousely $p(X)$ is a **univariate** polynomial, as $X$ is one-diamentional coo
 
 <br />
 
-#### circle domain
+## Circle Domain
 
-While in circle domain, $X$ is not one-diamentional coordinate anymore, it's two-diamentional coordinates, its **bivariate** polynomial $p(x, y)$, and its domain $D$ is a **additive** group rather multiplicative group. 
+While in circle domain, $X$ is not one-diamentional coordinate anymore, it's two-diamentional coordinates, it's a **bivariate** polynomial $p(x, y)$, and its domain $D$ is a **additive** group rather a **multiplicative** group. 
 
 <br />
 
-Assuming a **additive** cyclic group $G$:
+Assuming there's a **additive** cyclic group $G$:
 $$
 G = \{(x, y); x^2 + y^2 = 1, x, y \in F_p \}
 $$
@@ -70,17 +70,17 @@ If you take a close look at its domain $D$:
 $$
 D = H = \{ g + [i]g_2, i < 32 \}
 $$
-you'll notice that, it's not a **additive** cyclic group, as it does not even have a generator! So we must correct it, we can not call $D$ as a group anymore, **domain** is more accurate.
+you'll notice that, it's not a **additive** cyclic group, as it does not even have a generator! So we must correct it, we can not call $D$ as a group anymore, maybe **domain** is more accurate.
 
 <br />
 
-## FFT
+# FFT
 
 Secondly, given a vector of evaluations:
 $$
 e = [e_0, e_1, e_2, e_3, ..., e_{31}]
 $$
-we want to get its coefficient represented polynomial $p(x)$, aka polynomial coefficient vector, through interpolation, say:
+we want to get its coefficient represented polynomial $p(x)$, aka polynomial coefficient vector, through a interpolation algorithm, say:
 $$
 c = [c_0, c_1, c_2, c_3, ..., c_{31}]
 $$
@@ -89,9 +89,11 @@ This is what **FFT** does.
 
 <br />
 
-#### traditional FFT
+## Traditional FFT
 
-**First round**, given **univairate polynomial** evaluation table $Y = p(X), X \in D = \{ g_m^i, i < n \}$:
+#### First Round
+
+Given **univairate polynomial** evaluation table $Y = p(X), X \in D = \{ g_m^i, i < n \}$:
 $$
 \def\arraystretch{1.5}
    \begin{array}{c:c:c}
@@ -99,7 +101,7 @@ $$
    Y & e_0 & e_1 & e_2 & ... & e_{n - 1}
 \end{array}
 $$
-we need to solve the coefficients of polynomial $p(X)$ through interpolation.
+we need to solve the coefficients of polynomial $p(X)$ through $FFT$ interpolation.
 
 <br />
 
@@ -150,7 +152,9 @@ $$
 
 <br />
 
-**Second and rest rounds**, given the evaluation table of $f_0(X)$:
+#### Second and The Rest Rounds
+
+Given the evaluation table of $f_0(X)$:
 $$
 \def\arraystretch{1.5}
    \begin{array}{c:c:c}
@@ -161,7 +165,7 @@ $$
 
 <br />
 
-Then coefficient vector of $f_0(X)$ is reduced into $f_{00}(X^2)$ and $f_{01}(X^2)$ with halved domain size again, similarily works for $f_1(X)$:
+Then coefficient vector of $f_0(X)$ is reduced into $f_{00}(X^2)$ and $f_{01}(X^2)$ with halved domain size again after applying **FFT** algorithm, similarily works for $f_1(X)$:
 $$
 \def\arraystretch{1.5}
    \begin{array}{c:c:c}
@@ -169,13 +173,15 @@ $$
    Y & \frac{e_0 - e_{31}}{2 \cdot 1} & \frac{e_1 - e_{30}}{2 \cdot g_2} & \frac{e_2 - e_{29}}{2 \cdot g_4} & ... & \frac{e_{15} - e_{16}}{2 \cdot g_{30}} 
 \end{array}
 $$
-apply **FFT** algorithm recursively on $f_0(X)$ and $f_1(X)$ $log{n}$ times, we'll get the final coefficients of univaritate polynomial $p(X)$.
+apply **FFT** algorithm recursively on $f_0(X)$ and $f_1(X)$ $log{n}$ times, we'll get the final coefficients of **univaritate** polynomial $p(X)$.
 
 <br />
 
-#### circle FFT
+## Circle FFT
 
-**First round**, given **bivairate polynomial** evaluation table $Y = p(X), X \in D = \{ g + [i]g_2, i < n \}$:
+#### First Round
+
+Given **bivairate polynomial** evaluation table $Y = p(X), X \in D = \{ g + [i]g_2, i < n \}$:
 $$
 \def\arraystretch{1.5}
    \begin{array}{c:c:c}
@@ -191,7 +197,7 @@ But the problem in front of us is that $X$ is a two-diamentional coordinates, sa
 $$
 p(X) = p(x, y)= 3x + 2x^2 + y \cdot 5x^2 + y^2 \cdot 4 + y^3 \cdot 4x^3
 $$
-Luckly any $p(x, y)$ can also be converted into two sub-polynomials $f_0(x)$ and $f_1(x)$:
+Luckly any $p(x, y)$ can also be converted into two sub-polynomials $f_0(x)$ and $f_1(x)$ as traditional **FFT** does:
 $$
 p(x, y) = f_0(x) + y \cdot f_1(x)
 $$
@@ -206,24 +212,18 @@ f_0(x) &= 3x + 2x^2 + (1 - x^2) \cdot 4\\
 f_1(x) &= 5x^2 + (1 - x^2) \cdot 4x^3 \\
 \end{aligned}
 $$
+It's a amazing property for circle domain, isn't it? 
 
 <br />
 
-It's a amazing property for circle domain, isn't it? Comparing to univariate polynomial $p(X)$, the division is:
-$$
-p(X) = f_0(X^2) + X \cdot f_1(X^2)
-$$
-
-<br />
-
-Therefore the sub-polynomials are:
+The **bivariate** polynomial $p(x, y)$ can also be splitted into two **univariate** polynomials $f_0(x)$ and $f_1(x)$:
 $$
 \begin{aligned}
 f_0(x) = \frac{p(x, y) + p(x, -y)}{2} \\
 f_1(x) = \frac{p(x, y) - p(x, -y)}{2 \cdot y} \\
 \end{aligned}
 $$
-where both of them are **univariate** polynomials:
+the evaluation table of them would be like below:
 $$
 \def\arraystretch{1.5}
    \begin{array}{c:c:c}
@@ -232,11 +232,13 @@ $$
    f_1(x) = f_1(X.x) & \frac{e_0 - e_{31}}{2 \cdot g.y} & \frac{e_1 - e_{30}}{2 \cdot g_3.y} & \frac{e_2 - e_{29}}{2 \cdot g_5.y} & ... & \frac{e_{15} - e_{16}}{2 \cdot g_{n - 1}.y} \\
 \end{array}
 $$
-the domain of $f_0(X)$ and $f_1(X)$ is halved already.
+and the domain $X$ has already been halved.
 
 <br />
 
-**Second and the rest rounds**, given evaluation table of polynomial $f_0(x)$ (not bivariate polynomial anymore):
+#### Second and The Rest Rounds
+
+Given evaluation table of polynomial $f_0(x)$ (not **bivariate** polynomial anymore):
 $$
 \def\arraystretch{1.5}
    \begin{array}{c:c:c}
@@ -250,16 +252,18 @@ $$
    \begin{array}{c:c:c}
    x^2 & g_2.x & g_6.x & g_{10}.x & ... & g_{n - 2}.x \\ \hline
    f_{00}(x^2) & \frac{((e_0 + e_{31}) / 2) + ((e_{15} + e_{16}) / 2)}{2} & \frac{((e_1 + e_{30}) / 2) + ((e_{14} + e_{17}) / 2)}{2} & ... & ... & \frac{((e_7 + e_{24}) / 2) + ((e_8 + e_{23}) / 2)}{2} \\ \hline
+   f_{01}(x^2) & \frac{((e_0 + e_{31}) / 2) - ((e_{15} + e_{16}) / 2)}{2 \cdot g.x} & ... & ... & ... & ... \\ 
 \end{array}
 $$
-similarly it works for $f_1(x)$. Then apply **FFT** algorithm recursively $\log{n}$ times, we will get the final coefficients of bivariate polynomial $p(x, y)$.
-
+similarly it works for $f_1(x)$. Then apply **FFT** algorithm recursively $\log{n}$ times, we will finally get the coefficients of **bivariate** polynomial $p(x, y)$.
 
 <br />
 
-#### circle iFFT
+## Circle iFFT
 
-**First round**, givent coefficients of **bivariate** polynomials:
+#### First Round
+
+Givent coefficients of **bivariate** polynomials:
 $$
 \def\arraystretch{1.5}
    \begin{array}{c:c:c}
@@ -299,7 +303,9 @@ Therefore solving the evaluations of original **bivariate** polynomial is reduce
 
 ----
 
-**Second and the rest rounds**, given coefficients of **univariate** polynomial $f_0(x)$:
+#### Second and The Rest Rounds
+
+Given coefficients of **univariate** polynomial $f_0(x)$:
 $$
 \def\arraystretch{1.5}
    \begin{array}{c:c:c}
@@ -313,7 +319,7 @@ $$
 {f_0}_R(x) = f_{00}(x) - x \cdot f_{01}(x), x = t.x, t \in \{ g_2 + [i] g_4, i < n / 2 \} \\
 \end{aligned}
 $$
-apply **iFFT** algorithm we will finally get the evaluations over entire circle domain $D$:
+apply **iFFT** algorithm recursively we will finally get the evaluations over entire circle domain $D$:
 $$
 \def\arraystretch{1.5}
    \begin{array}{c:c:c}
@@ -323,9 +329,11 @@ $$
 
 <br />
 
-## FRI
+# FRI
 
-Originally, FRI prover needs to prove that $p_0(x, y)$ (evaluation vector) is close to a low-degree (trace) polynomial $t(x)$ with certain degree-bound $d$, where the evaluation domain size $|D|$ is blow-up factor times of $d$, say $|D| = s \cdot d$.
+## How FRI Works
+
+Originally, FRI prover needs to prove that $p_0(x, y)$ (evaluation vector) is close to a low-degree (trace) polynomial $t(x)$ with certain degree-bound $d$, where the evaluation domain size $|D|$ is blow-up factor $s$ times of $d$, say $|D| = s \cdot d$.
 
 <br />
 
@@ -343,8 +351,8 @@ Actually the folding process of FRI operator is non-succinct, prover need to pro
 
 Sum up, prover needs to finish three tasks:
 - commit evaluation vector $p_i(x, y)$ into $C_k$ with merkle hash, and provide merkle proofs for openings (merkle tree path)
-- FRI operator, fold original evaluation vector $p_0(x, y)$ into $p_k(x, y)$, and provide folding proofs for openings (leaves of folding tree)
-- low degree testing, check whether the final evaluation vector $p_k(x, y)$ is close to polynomial $t_k(x)$ with degree-bound $d / 2^k$.
+- FRI operator, fold original evaluation vector $p_0(x, y)$ into $p_k(x, y)$, and provide folding proofs for openings (leaves of folding tree), and also need to provide merkle proof for these folding proofs (leaves of folding tree) 
+- low degree testing, check whether the final evaluation vector $p_k(x, y)$ is close to polynomial $t_k(x)$ with low degree-bound $d / 2^k$.
 
 <br />
 
@@ -355,15 +363,15 @@ Verifier needs to finish three tasks:
 
 <br />
 
-#### Circle FRI 
+## Circle FRI 
 
 Circle FRI is a FRI protocol based on circle domain (satisfying $x^2 + y^2 = 1$), not single prime field based domain anymore.
 
 <br />
 
-###### Merkle Commitment and FRI Operator 
+#### Merkle Commitment and FRI Operator 
 
-Mainly consists two parts, preparaion of folding and folding:
+Mainly consists two parts, preparaion of folding and fold:
 
 - prepare domain/evaluation vector to be folded
     
@@ -472,7 +480,7 @@ Mainly consists two parts, preparaion of folding and folding:
         
         <br />
 
-###### decommitment
+#### Decommitment
 
 ![fri folding proof](./fri_folding_proof.drawio.png)
 
@@ -508,13 +516,119 @@ In summary, the time complexity of single query is $O(N^2) = O(\log^2{d})$. Actu
 
 <br />
 
-## Quotient Polynomial
+# Quotient Polynomial
 
-#### Circle Quotient
+Recall that, there's a polynomial $f(x)$ ($x$ is defined over some evaluation domain $D$), prover want to prove $f(u) = v$. Then the quotient polynomial comes:
+$$
+q(x) = \frac{f(x) - v}{x - u}; u, v \in D
+$$
+where $x \in F$, and $D \subset F$. Prover need to prove existence of the quotient polynomial.
 
 <br />
 
-## Folding Paradigm
+If polynomial $f(x)$ is not a univariate-based domain anymore, how about $f(X)$ and $X$ is a bivariate-based domain, say circle domain?
+
+<br />
+
+## Circle Quotient
+
+Let's take a toy example, say:
+$$
+f(X) = f(x, y) = 3 x + 4 y, X \in D = \{ g + [i]g_2, i < n \}
+$$
+evaluate on one point $P$, we get $f(P) = v$, namely:
+$$
+3 P.x + 4 P.y - v = 0
+$$
+Similarily the quotient polynomial comes:
+$$
+q(X) = \frac{f(X) - v}{X - P}; P \in D
+$$
+where $X \in F$, and $F$ is the entire **circle domain**.
+
+<br />
+
+The problem is how to represent this quotient polynomial, which is a *line* through one point $P$? It seems impossible, since there are uncountable lines through one point. Indeed it is true in **univariate** coordinate space. But it also holds in **bivariate** coordinate, what we need is a trick.
+
+<br />
+
+Let's fix the $x$-part of $f(x, y)$, say:
+$$
+f(y) = 4 y = v - 3 x
+$$
+this is what'd love to see, as $f(y)$ is a **univariate** polynomial, not a **bivariate** one anymore. So, evaluation on $P.y$, it would be like:
+$$
+f(P.y) = 4 P.y = v_0
+$$
+But it is not enough to determine $f(P) = v$, since there are two solutions $P.x$ and $-P.x$ for $P.y$ in circle domain, satisfying $x^2 + y^2 = 1$. So we need another point $P'$ (Vitalik call it [dummy point](https://vitalik.eth.limo/general/2024/07/23/circlestarks.html)), who's relevant to $P$, to make this *line* uniqueness.
+
+<br />
+
+Actually there're many solutions to this, in [Stwo](https://github.com/starkware-libs/stwo) implementation, they provide a extreme cheap method **Conjugation**, namely to say:
+$$
+P' = \bar{P} = (P.\bar{x}, P.\bar{y})
+$$
+as $P.x, P.y$ are **QM31** field elements, conjugation of $P.\bar{y}$ is just a negation of **CM31** field, cheaper enough! So, we can interpolate the polynomial $f(X)$ with these points $P$ and $\bar{P}$:
+$$
+\begin{vmatrix}
+f(X) & X & 1 \\
+f(P) & P & 1 \\
+f(\bar{P}) & \bar{P} & 1 \\
+\end{vmatrix}
+$$
+
+<br />
+
+Theoretically $[2]P$, $[3]P$, ..., $[k]P$ all are fine, let's take $[2]P$ as a example:
+$$
+[2]P = (2 \cdot P.x^2 - 1, 2 \cdot P.x \cdot P.y)
+$$
+it requires one multiplication of **QM31** field, much more expensive than **conjugation**, so we choose **conjugation** method instead.
+
+<br />
+
+The circle quotient is formalized as:
+$$
+q(X) = \frac{f(X) - f(P)}{V_{P}(X)}
+$$
+but how to compute this it anyway? Let's split it into two parts, **nominator** part $f(X) - f(P)$, and **denominator** part $V_P(X)$.
+
+<br />
+
+#### Nominator of Circle Quotient
+
+$f(X) - f(P)$ is a **bivariate** polynomial who vanishes at single point $P$, $f(X)$ can be converted into a **univariate** line through $(P.y, v)$ and $(\bar{P}.y, \bar{v})$ as what we've already illustrated above:
+$$
+f(X) = 
+\begin{vmatrix}
+f(X) & X.y & 1 \\
+v & P.y & 1 \\
+\bar{v} & \bar{P}.y & 1 \\
+\end{vmatrix} 
+= v + (\bar{v} - v) \cdot \frac{X.y - P.y}{\bar{P}.y - P.y}
+$$
+
+<br />
+
+#### Denominator of Circle Quotient
+
+Vanishing polynomial can be represented as:
+$$
+V_P(X) = \frac{(P - X).y}{1 + (P - X).x}
+$$
+where $P - X$ is arithemtic on additive circle group.
+
+<br />
+
+Put it all together, we have the final circle quotient polynomial:
+$$
+q(X) = \frac{f(X) - f(P)}{V_P(X)} = (v + (\bar{v} - v) \cdot \frac{X.y - P.y}{\bar{P}.y - P.y}) \cdot \frac{1 + (P - X).x}{(P - X).y} 
+$$
+where $X \in F$.
+
+<br />
+
+# Folding Paradigm
 
 ![fri_fold](./fri_fold.drawio.png)
 
@@ -522,14 +636,20 @@ In folding paradigm, we often see one word **non-succinct**. Yes, the folding he
 
 <br />
 
-If the cost of verifying original proof $\pi_0$ is $t_0$, verifying the final compressed proof $pi_2$ is $t_2$, and cost of folding on query points is $t_k$. Then we must have:
+If the cost of verifying original proof $\pi_0$ is $t_0$, verifying the final compressed proof $\pi_2$ is $t_2$, and cost of folding on query points is $t_k$. Then we must have:
 $$
 t_0 \ll t_2 + t_k
 $$
 
 <br />
 
-## Credits
+# Thanks 
+
+Special thanks to weikengchen for his input on circle quotients, and learns a lot from his work on [Bitcoin Wildlife Sanctuary](https://github.com/Bitcoin-Wildlife-Sanctuary), finally give great thanks to victor from starkware for his inputs during implementing stwo with bitcoin scripts.
+
+<br />
+
+# References 
 
 [1] [Circle Stark]( https://eprint.iacr.org/2024/278.pdf)
 
@@ -538,3 +658,5 @@ $$
 [3] [Stark 101](https://starkware.co/stark-101/)
 
 [4] [Bitcoin Circle Stark](https://github.com/Bitcoin-Wildlife-Sanctuary/bitcoin-circle-stark)
+
+[5] [Vitalik Circle Stark Blog](https://vitalik.eth.limo/general/2024/07/23/circlestarks.html)
