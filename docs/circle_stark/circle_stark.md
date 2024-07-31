@@ -474,10 +474,37 @@ Mainly consists two parts, preparaion of folding and folding:
 
 ###### decommitment
 
-Verifier sample some points $q = \{ q_0, q_1, ..., q_{m - 1} \}$ (within evaluation domain) and send them to prover, prover provide two kinds of proofs for these points, and proof of low-degree test
-- merkle proof for authentication of sample values (consistency of merkle commitment), say $b = \{ b_0, b_1, ..., b_{m - 1} \}$
-- folding proof for consistency check of sample values, say $l = \{ l_0, l_1, l_2, ..., l_{m - 1} \}$
-- final folded evaluation vector $p_k(x, y)$
+![fri folding proof](./fri_folding_proof.drawio.png)
+
+Verifier sample $m$ points $q = \{ q_0, q_1, ..., q_{m - 1} \}$ within evaluation domain and send them to prover, prover provide two kinds of proofs for these points, and proof of low-degree test:
+
+- folding proof for consistency check of sample values
+
+   If FRI operator continues until low-degree bound reaches the bottom, say $d / 2^k = 1$, then the maximum number of folding would be $N = \log{d}$. We get the exact number of folding proof, say $2 N - 1$.
+
+   <br />
+
+   The total size of folding proof of $m$-queries would be $m \cdot (2N - 1)$.
+
+   <br />
+
+- merkle proof for authentication of sample values and their folding proof (consistency of merkle commitment)
+
+   If we also take the **ultimate** folding, we need to provide merkle proof for each folding proof, including the sample values themselves. Therefore we can also get the exact number of merkle proof for this, say $N + (N - 1) + (N - 2) + ... + 1 = \frac{(1 + N)N}{2}$ .
+
+   <br />
+
+   The total size of merkle proof of $m$-queries would be $m \cdot \frac{(1 + N)N}{2}$ .
+
+   <br />
+
+- low-degree test proof, that's the final folded evaluation vector $p_k(x, y)$
+
+   If we take the **ultimate** folding as well, we can get the exact number of low-degree test proof, that is what we called *blow-up factor* . 
+
+<br />
+
+In summary, the time complexity of single query is $O(N^2) = O(\log^2{d})$. Actually there's no need to do the **ultimate** folding, it's all fine as long as the low-degree bound $d / 2^k$ is small enough.
 
 <br />
 
@@ -487,11 +514,11 @@ Verifier sample some points $q = \{ q_0, q_1, ..., q_{m - 1} \}$ (within evaluat
 
 <br />
 
-## Thinking in Folding 
+## Folding Paradigm
 
 ![fri_fold](./fri_fold.drawio.png)
 
-In folding paradim, we often see one word **non-succinct**. Yes, the folding helps prover compress a big proof into a much smaller proof, so verifier can verify it efficiently. But what we must not ignore is the overhead folding induces. And it's always not succinct, in FRI, verifier need to do the same folding as prover did, fortunately verifier only need to do few times folding depending on the number of queries.
+In folding paradigm, we often see one word **non-succinct**. Yes, the folding helps prover compress a big proof into a much smaller proof, so verifier can verify it efficiently. But what we must not ignore is the overhead folding induces. And folding is not always succinct, in FRI, verifier need to do the same folding as prover did, fortunately verifier only need to do few times' folding depending on the number of queries.
 
 <br />
 
@@ -501,3 +528,13 @@ t_0 \ll t_2 + t_k
 $$
 
 <br />
+
+## Credits
+
+[1] [Circle Stark]( https://eprint.iacr.org/2024/278.pdf)
+
+[2] [Stwo](https://github.com/starkware-libs/stwo)
+
+[3] [Stark 101](https://starkware.co/stark-101/)
+
+[4] [Bitcoin Circle Stark](https://github.com/Bitcoin-Wildlife-Sanctuary/bitcoin-circle-stark)
