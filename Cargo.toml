@@ -3,6 +3,8 @@ members = [
     "ecc",
     "hash",
     "pcs",
-    "lbc"
+    "lbc",
+    "small_fields", 
+    "fri"
 ]
 resolver = "2"
