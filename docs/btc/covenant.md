@@ -99,14 +99,23 @@
 
         - spend_type
 
-        - previous_output
-            - input $0$
-                - prev_txid
-                - prev_output index
-            - prev_output of input $0$
-                - prev_amount
-                - script_pubkey locking prev_amount
-            - sequence number of input $0$
+        - outputs 
+            - output $0$
+                - amount
+                - pubkey
+            - output $1$
+                - dust
+                - caboose
+
+        - input $0$
+            - prev_txid
+            - prev_output index
+
+        - prev_output of input $0$
+            - prev_amount
+            - script_pubkey locking prev_amount
+
+        - sequence number of input $0$
 
         - script leaf hash
 
@@ -116,7 +125,7 @@
 
     - generate $e$
         $$
-            e = SHA256(TAG || TAG || G || G || m)
+            e = SHA256(SHA256(TAG) || SHA256(TAG) || G || G || m)
         $$
 
     <br />
