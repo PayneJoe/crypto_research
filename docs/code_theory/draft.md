@@ -1,4 +1,8 @@
 
+> This is note for **Code Theory**-)
+
+<br />
+
 ## Even Parity Check
 
 - can only be detect sigle error
