@@ -19,7 +19,7 @@ with probability distribution
 
 Lemma :
 $$
-d(\bold{x}, \bold{y}) \le d(\bold{x}, \bold{z}) + d(\bold{z}, \bold{y})
+d(\mathbf{x}, \mathbf{y}) \le d(\mathbf{x}, \mathbf{z}) + d(\mathbf{z}, \mathbf{y})
 $$
 
 <br />
@@ -41,14 +41,14 @@ Group code is a set of codewords consisting a group, which including the **zero*
 - compute the distance of codewords is costly, say $\binom{n}{2} = \frac{n (n - 1)}{2}$, fortunately $d_{min}$ is dependent with weights
 
     $$
-    d(\bold{x}, \bold{y}) = w(\bold{x} + \bold{y})
+    d(\mathbf{x}, \mathbf{y}) = w(\mathbf{x} + \mathbf{y})
     $$
 
 <br />
 
 Theorem:
 $$
-d_{min} = min\{w(\bold{x}): \bold{x} \ne \bold{0} \}
+d_{min} = min\{w(\mathbf{x}): \mathbf{x} \ne \mathbf{0} \}
 $$
 the distance of **group code** is the minimum weight of non-zero codewords, therefore the cost of computing distance becomes $n$, greatly reduced from $\frac{n (n - 1)}{2}$.
 
@@ -62,7 +62,7 @@ Theorem:
 
 **Let $H$ be a matrix $\mathbb{M}_{m \times n}(\mathbb{Z}_2)$, then its null space is a group code**:
 $$
-Null(H) = \{\bold{x}: \langle H \cdot \bold{x} \rangle = \bold{0} \}
+Null(H) = \{\mathbf{x}: \langle H \cdot \mathbf{x} \rangle = \mathbf{0} \}
 $$
 
 For example:
@@ -75,13 +75,13 @@ H =
 \end{bmatrix}
 $$
 
-then the group code would be $\bold{x} = \{ 00000, 11110, 10101, 01011 \}$, with distance $3$.
+then the group code would be $\mathbf{x} = \{ 00000, 11110, 10101, 01011 \}$, with distance $3$.
 
 <br />
 
 But how to detect errors?
 
-If the received word is $10001$, then we can easily check that it's not a codeword, since $H \cdot \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \\ 1 \end{bmatrix} \ne \bold{0}$.
+If the received word is $10001$, then we can easily check that it's not a codeword, since $H \cdot \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \\ 1 \end{bmatrix} \ne \mathbf{0}$.
 
 <br />
 
@@ -91,7 +91,7 @@ Is there a efficient method to generate group code?
 
 #### Generator Matrix
 
-Original words are represented as column vector $\bold{x}_{n - m, 1}$.
+Original words are represented as column vector $\mathbf{x}_{n - m, 1}$.
 
 <br />
 
@@ -112,16 +112,16 @@ $$
 
 Then we must have:
 $$
-H \cdot \bold{y} = \bold{0}
+H \cdot \mathbf{y} = \mathbf{0}
 $$
-where $\bold{y} = \langle G, \bold{x} \rangle$ is what we want, group code. Why it holds for that? Let's prove it:
+where $\mathbf{y} = \langle G, \mathbf{x} \rangle$ is what we want, group code. Why it holds for that? Let's prove it:
 $$
 \begin{aligned}
-H \cdot \bold{y} &= (A | I_m) \cdot (\frac{I_{n - m}}{A}) \cdot \bold{x} \\
-&= (A | I_m) \cdot (\frac{\bold{x}}{A \cdot \bold{x}}) \\
-&= \langle A, \bold{x} \rangle + \langle I_m, A \cdot \bold{x} \rangle \\
-&= \langle A, \bold{x} \rangle + \langle A, \bold{x} \rangle  \\
-&= \bold{0}
+H \cdot \mathbf{y} &= (A | I_m) \cdot (\frac{I_{n - m}}{A}) \cdot \mathbf{x} \\
+&= (A | I_m) \cdot (\frac{\mathbf{x}}{A \cdot \mathbf{x}}) \\
+&= \langle A, \mathbf{x} \rangle + \langle I_m, A \cdot \mathbf{x} \rangle \\
+&= \langle A, \mathbf{x} \rangle + \langle A, \mathbf{x} \rangle  \\
+&= \mathbf{0}
 \end{aligned}
 $$
 
@@ -137,11 +137,11 @@ A =
 \end{bmatrix}
 $$
 
-then we can obtain the entire group code $\bold{y}$ with above method:
+then we can obtain the entire group code $\mathbf{y}$ with above method:
 $$
 \def\arraystretch{1.5}
    \begin{array}{c:c}
-   \bold{x} & G \cdot \bold{x} \\ \hline
+   \mathbf{x} & G \cdot \mathbf{x} \\ \hline
    000 & 000\color{red}{000} \\ \hdashline
    001 & 001\color{red}{101} \\ \hdashline
    010 & 010\color{red}{110} \\ \hdashline
@@ -159,8 +159,9 @@ the time complexity of this is $O(2^m)$.
 Let's take a closer look at:
 $$
 \begin{aligned}
-\bold{y} &= G \cdot \bold{x} = (\frac{I_{n - m}}{A}) \cdot \bold{x}  \\
-&= (\frac{\bold{x}}{A \cdot \bold{x}}) \\
+\mathbf{y} &= G \cdot \mathbf{x} \\ 
+&= (\frac{I_{n - m}}{A}) \cdot \mathbf{x}  \\
+&= (\frac{\mathbf{x}}{A \cdot \mathbf{x}}) \\
 \end{aligned}
 $$
-the above part of $\bold{y}$ is orginal message $\bold{x}$ **information bits**, the below part of $\bold{y}$ is **check bits**.
+the above part of $\mathbf{y}$ is orginal message $\mathbf{x}$ **information bits**, the below part of $\mathbf{y}$ is **check bits**.
