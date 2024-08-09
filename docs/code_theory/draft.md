@@ -269,7 +269,7 @@ $$
 
 We can obtain the error term or representative of coset, $\mathbf{e}$,after looking up the above decode table, treating syndrome $s$ as query.
 
-<br >
+<br />
 
 Finally we can get the orginal codeword $\mathbf{c}$:
 $$
