@@ -209,3 +209,66 @@ for i in range(1, 5):
 ```
 
 <br />
+
+## Arithmetics of Binary Field
+
+#### Multiplication
+
+Assume binary field $F_2^{(n)} = F_2^{(n - 1)}[X_n] / X_n^2 + X_n \cdot X_{n - 1} + 1$, two binary field element $a$ and $b$ denoted as:
+$$
+\begin{aligned}
+a &= a_0 + a_1 \cdot X_n \\
+b &= b_0 + b_1 \cdot X_n \\
+\end{aligned}
+$$
+where $a_0$ and $a_1$ are the lower bits and higher bits of $a$ repectively. For example, $a = 14 = 2 + 3 * 2^2$, where $a_0 = 2, a_1 = 3$.
+
+<br />
+
+Let's take a look at how multiplication works:
+$$
+\begin{aligned}
+a \cdot b &= (a_0 + a_1 \cdot X_n) \cdot (b_0 + b_1 \cdot X_n) \\
+&= a_0 \cdot b_0 + a_1 \cdot b_1 \cdot X_n^2 + (a_0 \cdot b_1 + a_1 \cdot b_0) \cdot X_n \\ 
+\end{aligned}
+$$
+since $X_n^2 = X_{n - 1} \cdot X_n + 1$, we have:
+$$
+a \cdot b = (\boxed{a_0 \cdot b_0 + a_1 \cdot b_1}) + (\boxed{a_1 \cdot b_1 \cdot X_{n - 1} + a_0 \cdot b_1 + a_1 \cdot b_0}) \cdot X_n
+$$
+where the result consists two parts, both of them are elements of $F_{n - 1}$. 
+
+<br />
+
+According to **Karatsuba** method:
+$$
+(a_0 \cdot b_1 + a_1 \cdot b_0) = (a_0 + a_1) \cdot (b_0 + b_1) - a_0 \cdot b_0 - a_1 \cdot b_1 \\
+$$
+since binary field $-x = x$, so we have: 
+$$
+(a_0 \cdot b_1 + a_1 \cdot b_0) = (a_0 + a_1) \cdot (b_0 + b_1) + a_0 \cdot b_0 + a_1 \cdot b_1
+$$
+
+<br />
+
+If we ignore the cost of addition, the total cost of $F_n$ multiplication equals **FOUR** times of cost $F_{n - 1}$ multiplication.
+$$
+\def\arraystretch{1.5}
+   \begin{array}{c:c:c}
+   Symbol & Expr \\ \hline
+   T0 & a_0 \cdot b_0 \\
+   T1 & a_1 \cdot b_1 \\
+   T2 & T1 \cdot X_{n - 1} \\
+   T3 & (a_0 + a_1) \cdot (b_0 + b_1) \\
+\end{array}
+$$
+the result will be:
+$$
+a \cdot b = (T0 + T1) + (T2 + T3 + T0 + T1) \cdot X_n
+$$
+
+<br />
+
+## References
+
+[1] [Succinct Arguments over Towers of Binary Fields](https://eprint.iacr.org/2023/1784.pdf)
