@@ -62,6 +62,16 @@ impl BinaryTowerField for Fp {
     fn square(self) -> Self {
         self
     }
+    #[allow(unused_variables)]
+    fn pow(self, e: u128) -> Self {
+        if e == 0 {
+            return Self::new(1);
+        }
+        self
+    }
+    fn inv(self) -> Self {
+        Self::new(1)
+    }
 }
 
 /// Fp2
@@ -85,9 +95,12 @@ mod test {
     fn test_fp2() {
         let a = Fp2::new(Fp(0), Fp(1));
         let b = Fp2::new(Fp(1), Fp(1));
-        let add_hint = Fp2::new(Fp(1), Fp(0));
-        let mul_hint = Fp2::new(Fp(1), Fp(0));
-        assert_eq!(a + b, add_hint);
-        assert_eq!(a * b, mul_hint);
+
+        assert_eq!(a + b, Fp2::new(Fp(1), Fp(0)));
+        assert_eq!(a * b, Fp2::new(Fp(1), Fp(0)));
+        assert_eq!(a.pow(17_u128), Fp2::new(Fp(1), Fp(1)));
+        assert_eq!(a.pow(12_u128), Fp2::new(Fp(1), Fp(0)));
+        assert_eq!(a.inv(), Fp2::new(Fp(1), Fp(1)));
+        assert_eq!(a * a.inv(), Fp2::ONE());
     }
 }

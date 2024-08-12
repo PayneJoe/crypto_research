@@ -1,5 +1,7 @@
 use std::ops::{Add, Mul, Neg, Sub};
 
+use crate::bits::BitVectorize;
+
 pub trait BaseBinaryField: BinaryTowerField + Copy + Clone + Eq + PartialEq {}
 
 #[allow(non_snake_case)]
@@ -21,8 +23,8 @@ pub trait BinaryTowerField:
     fn extension_degree() -> u32;
     fn square(self) -> Self;
     fn double(self) -> Self;
-    // fn pow() -> Self;
-    // fn inv() -> Self;
+    fn pow(self, e: u128) -> Self;
+    fn inv(self) -> Self;
 }
 
 pub trait BinaryTowerConfig: Copy + Clone + Sized + Eq + PartialEq {
@@ -76,11 +78,33 @@ impl<Config: BinaryTowerConfig> BinaryTowerField for BinaryTower<Config> {
         }
     }
 
+    fn pow(self, e: u128) -> Self {
+        if e == 0 {
+            return Self::ONE();
+        }
+        let bits = e.to_le_bits();
+        let mut result = self.clone();
+        for i in 1..bits.len() {
+            result = result.square();
+            if bits[i] == 1 {
+                result = result * self;
+            }
+        }
+        result
+    }
+
+    /// Little-Fermat Lemma: 1 / a = a^{p - 2}
+    fn inv(self) -> Self {
+        let degree = Self::extension_degree();
+        assert!(degree < 128);
+        self.pow((1 << degree) - 2)
+    }
+
     fn square(self) -> Self {
         let t0 = self.c0.square();
         let t1 = self.c1.square();
         let t2 = t1 * Config::BaseField::GEN();
-        let t3 = (self.c0 + self.c1).double();
+        let t3 = (self.c0 + self.c1).square();
         Self {
             c0: t0 + t1,
             c1: t2 + t3 + t0 + t1,
