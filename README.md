@@ -37,9 +37,9 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
             - cyclotomic [$`\color{green}\checkmark`$]
 
-            - twist/untwist $\Phi: F_{q^k} \mapsto F_{q^{k / d}}$ [Ongoing]
+            - twist/untwist $\Phi: F_{q^k} \mapsto F_{q^{k / d}}$ [$`\color{green}\checkmark`$]
 
-            - frobenius map [Ongoing]
+            - frobenius map [$`\color{green}\checkmark`$]
             - field implementation for BLS12/MNT/BN pairing-family curves [$`\color{green}\checkmark`$]
 
     - elliptic_curve_arithmetic 
@@ -61,7 +61,7 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
     - pairings 
         -  Weil Pairing [$`\color{green}\checkmark`$]
 
-        - Tate Pairing [Ongoing]
+        - Tate Pairing [$`\color{green}\checkmark`$]
 
         - Ate Pairing [Ongoing]
 
@@ -85,10 +85,22 @@ crypto research stuffs from numeric arithmetics to ZK-applied protocols all writ
 
 ## Notes 
 
+#### Small Fields
+
+- [Circle Stark from A New Starker
+](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/SJrem_VKC)
+- [Binius](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/r1iOQbaFR)
+
 #### Pairings
 
 - [Theory and Practical Implementation of BLS12-381](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/ryo55eEeC)
 - [On Proving Pairings](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/S1cU7YJGC)
+
+#### Proving System
+- [Plonk From Scratch](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/HJzwPUU7a)
+- [Relaxed Plonk Step by Step
+](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/BkT0ayKmT)
+- [Cross Term in Plonk](https://hackmd.io/@70xfCGp1QViTYYJh3AMrQg/SkDf2nIzp)
 
 <br />
 
@@ -120,3 +132,7 @@ Curves](https://eprint.iacr.org/2020/875.pdf)
 [12] [Faster Squaring in the Cyclotomic Subgroup of Sixth Degree Extensions](https://eprint.iacr.org/2009/565.pdf)
 
 [13] [A Guide to Plane Algebraic Curves]()
+
+[14] [Circle Stark](https://eprint.iacr.org/2024/278.pdf)
+
+[15] [Binius](https://eprint.iacr.org/2023/1784.pdf)
