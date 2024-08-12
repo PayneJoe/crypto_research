@@ -95,9 +95,9 @@ impl<Config: BinaryTowerConfig> BinaryTowerField for BinaryTower<Config> {
 
     /// Little-Fermat Lemma: 1 / a = a^{p - 2}
     fn inv(self) -> Self {
-        let degree = Self::extension_degree();
-        assert!(degree < 128);
-        self.pow((1 << degree) - 2)
+        let p = 1 << Self::extension_degree();
+        assert!(p < (1 << 128));
+        self.pow(p - 2)
     }
 
     fn square(self) -> Self {
