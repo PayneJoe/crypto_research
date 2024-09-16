@@ -456,7 +456,26 @@ The minimum independent columns is $3$, such as column $1, 2, 3$, sum of these t
 
 <br />
 
-## Decoder 
+## Decoder
+
+Theorem 1.11.2:
+*If $d$ is the minimum distance of a code $\mathcal{C}$(linear or nonlinear) and $t = \lfloor (d - 1) / 2 \rfloor$, then spheres of radius $t$ about distinct codewords are disjoint*.
+
+<br />
+
+What does it mean? Let's see a drawing below:
+
+![](./decoder_1.drawio.png)
+
+Two codewords $\mathbf{c_1}, \mathbf{c_2} \in \mathcal{C}$, the minimum distance of code $\mathcal{C}$ is $d$. There must exists a radius $t = \lfloor (d - 1) / 2 \rfloor$, so that two spheres centred by $\mathbf{c_1}$ and $\mathbf{c_2}$ are disjoint by each other.
+
+<br />
+
+What is *sphere* anyway? Providing a codeword $\mathbf{c_1}$, the maximum tolerance distance between two codewords $t$, and codeword $\mathbf{c_1}$ is defined over finite field $\mathbb{F}_q^n$. Then there are:
+$$
+\sum_{i = 0}^{t} \binom{n}{i}(q - i)^i
+$$
+codewords whose distance are under $t$. And these codewords consisting a sphere!
 
 <br />
 
