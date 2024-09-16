@@ -436,8 +436,6 @@ Obviously we have $\mathcal{C} = \mathcal{C'}$, so we can conclude that generato
 
 <br />
 
-## Theorems
-
 #### Minimum Distance VS Partity Check Matrix
 
 <span style="color: red">The minimum distance of a linear code $\mathcal{C}$ equals the least number of independent columns of parity check matrix</span>.
@@ -455,6 +453,10 @@ H =
 $$
 
 The minimum independent columns is $3$, such as column $1, 2, 3$, sum of these three columns $[0, 0, 1] + [0, 1, 0] + [0, 1, 1] = [0, 0, 0]$. So the minimum distance of the cooresponding code to $H$ is $3$.
+
+<br />
+
+## Decoder 
 
 <br />
 
