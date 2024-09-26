@@ -564,7 +564,7 @@ A question: how to calculate the syndrome table efficiently? It seems to be invo
 
 *How about Syndrome Decoding for Binary Hamming Codes*?
 
-For example, a hamming code $\mathcal{H}_3$ with parameters $[7, 4, 3]$, the parity check matrix is:
+For example, a hamming code $\mathcal{H}_3$ with parameters $[7, 4, 3]$, the parity check matrix is binary representation of numbers from $1$ to $7$:
 $$
 H_3 = 
 \begin{bmatrix}
@@ -573,11 +573,85 @@ H_3 =
 0 & 0 & 0 & 1 & 1 & 1 & 1 \\
 \end{bmatrix}
 $$
-if the receiving vector is $y = 1110011$, then its syndrome is $100$ (binary representation of $4$), we set $4$th bit of $y$ with $1$. So the sending codeword would be $1111011$. We do not need a *Syndrome table* for *Binary Hamming Code* anymore.
+
+If the receiving vector is $y = 1110011$, then its syndrome is $001$ (binary representation of $4$), we set $4$th bit of $y$ with $1$. So the sending codeword would be $1111011$. We do not need a *Syndrome table* for *Binary Hamming Code* anymore.
+
+<br />
+
+What does the particular parity check matrix actually mean?
+- the first row checks whether the least bit is $1$ or not, position $[1, 3, 5, 7]$
+- the second row checks whether the second bit from right is $1$ or not, position $[2, 3, 6, 7]$
+- the third row checks whether the third bit from right is $1$ or not, position $[4, 5, 6, 7]$
 
 <br />
 
 <span style="color: red">Summary for that, given a receiving vector we want to know which codeword is closest to it? **Coset Decoding** with $q^{n - k}$ entries is more efficient than brute force method with a table of $q^n$ entries</span>.
+
+<br />
+
+#### Error Analysis
+
+If there's no encoding, the error probability of message transmitting with length $k$ in BSC channel would be:
+$$
+P_{err} = 1 - (1 - \rho)^k
+$$
+
+If encoding is applied, the error probability would be:
+$$
+P_{err} = 1 - \sum_{i = 0}^t \binom{n}{i} \rho^i \cdot (1 - \rho)^{n - i}
+$$
+
+For example, after appling $[7, 4]$ binary hamming code $\mathcal{H}_3$ the error probability is $0.002 031 04$, if there's no encoding, it would be $0.039 403 99$. Super benefical, right?
+
+<br />
+
+#### Capacity of Channel
+
+$$
+C(\rho) = 1 + \rho \cdot \log \rho + (1 - \rho) \cdot \log {(1 - \rho)}
+$$
+
+A code $[n, k]$, $k / n$ is what we called *infomation rate*.
+
+<br />
+
+#### Cyclotomic Coset
+
+$$
+C_s = \{s, s \cdot q, s \cdot q^2, ..., s \cdot q^{r - 1}\} \mod q^t - 1
+$$
+where $r$ is the smallest number satisfy $s \cdot q^r = s \mod q^t - 1$.
+
+<br />
+
+For example, $2$-cyclotomic cosets modulo $15$ are:
+$$
+\begin{aligned}
+C_0 &= \{0\} \\
+C_1 &= \{1, 2, 4, 8\} \\
+C_3 &= \{3, 6, 12, 9\} \\
+C_5 &= \{5, 10\} \\
+C_7 &= \{7, 14, 13, 11\} \\
+\end{aligned}
+$$
+
+<br />
+
+## Cyclic Code
+
+> Polynomial $x^n - 1$ defined over finite field $\mathbb{F}_q$, has no repeated irreducible factors if and only if $q$ and $n$ are relatively prime, where charactor of $\mathbb{F}_q$ is $p$.
+
+<br />
+
+Proof:
+
+If $f(x) = x^n - 1$ has repeated irreducible factors, say $f(x) = g(x)^a \cdot h(x)$, then derivative of $f(x)$:
+$$
+f(x)' = n \cdot x^{n - 1} = 0
+$$
+have roots. Since $x^{n - 1} \ne 1$, we must have $n \equiv p \equiv 0$, $p$ divides $n$.
+
+On the contrary, if $x^n - 1$ has no repeated irreducible factors, $p$ and $n$ are co-prime.
 
 <br />
 
