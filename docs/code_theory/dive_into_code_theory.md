@@ -655,6 +655,34 @@ On the contrary, if $x^n - 1$ has no repeated irreducible factors, $p$ and $n$ a
 
 <br />
 
+For example, $p = 2, n = 3$, they are co-prime, then:
+$$
+x^3 - 1 = (x - 1)(x^2 + x + 1)
+$$
+has no repeated irreducible polynomials. Another example, $p = 2, n = 4$, they are not co-prime, then:
+$$
+x^4 - 1 = (x - 1)^4
+$$
+has $4$ repeated irreducible polynomials.
+
+<br />
+
+#### Encoding with Generator Polynomial
+
+Encode $[7, 3]$ binary cyclic code $\mathcal{C}$ with generator polynomial $g(x) = 1 + x + x^2 + x^4$, the generator matrix:
+$$
+G = 
+\begin{bmatrix}
+1 & 1 & 1 & 0 & 1 & 0 & 0 \\
+0 & 1 & 1 & 1 & 0 & 1 & 0 \\
+0 & 0 & 1 & 1 & 1 & 0 & 1 \\
+\end{bmatrix}
+$$
+
+
+
+<br />
+
 ## References
 
 [1] [Fundamentals of Error Correcting Code](https://theswissbay.ch/pdf/Gentoomen%20Library/Information%20Theory/Coding%20Theory/Fundamentals%20of%20Error-Correcting%20Codes%20-%20W.%20Cary%20Huffman.pdf)
