@@ -679,7 +679,53 @@ G =
 \end{bmatrix}
 $$
 
+code $\mathcal{C}$ will be like:
+$$
+\def\arraystretch{1.5}
+   \begin{array}{c:c}
+   message & codeword \\ \hline
+   000 & 0000000 \\ \hdashline
+   001 & 0011101 \\ \hdashline
+   010 & 0111010 \\ \hdashline
+   011 & 0100111 \\ \hdashline
+   100 & 1110100 \\ \hdashline
+   101 & 1101001 \\ \hdashline
+   110 & 1001110 \\ \hdashline
+   111 & 1010011 \\ \hdashline
+   \end{array}
+$$
+any shifted *non-zero* codeword will also be in $\mathcal{C}$, for example, shifted $0011101$ is $1001110$. Why is $\mathcal{C}$ a cyclic code? The reason is that generator polynomial $g(x)$ is ONE factor of modulus polynomial $x^7 - 1$:
+$$
+x^7 - 1 = (1 + x + x^2 + x^4) \cdot (1 + x^2 + x^3) 
+$$
 
+<br />
+
+If not, what will happen? Assume $g(x) = 1 + x^3$, not a factor of $x^7 - 1$. 
+$$
+G = 
+\begin{bmatrix}
+1 & 0 & 0 & 1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 & 1 & 0 \\
+\end{bmatrix}
+$$
+then the cooresponding code will be like:
+$$
+\def\arraystretch{1.5}
+   \begin{array}{c:c}
+   message & codeword \\ \hline
+   000 & 0000000 \\ \hdashline
+   001 & 0010010 \\ \hdashline
+   010 & 0100100 \\ \hdashline
+   011 & 0110110 \\ \hdashline
+   100 & 1001000 \\ \hdashline
+   101 & 1011010 \\ \hdashline
+   110 & 1101100 \\ \hdashline
+   111 & 1111110 \\ \hdashline
+   \end{array}
+$$
+Obviously it not a cyclic code, and its minimus distance is not a constant anymore.
 
 <br />
 
